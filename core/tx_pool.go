@@ -30,10 +30,13 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/stamina"
+	staminaCommon "github.com/ethereum/go-ethereum/stamina/common"
 )
 
 const (
@@ -77,6 +80,13 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+
+	// moscow - stamina related error
+	// TODO: change variable name and message
+	ErrStaminaTxSigner     = errors.New("failed to get signer")
+	ErrStaminaGetDelegatee = errors.New("failed to get delegatee")
+	ErrInsufficientStamina = errors.New("insufficient funds for gas * price")
+	ErrInsufficientValue   = errors.New("insufficient funds for value")
 )
 
 var (
@@ -605,21 +615,41 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
-	// Transactor should have enough funds to cover the costs
-	// cost == V + GP * GL
-	if from == params.NullAddress {
-		return nil
+
+	// moscow - delegatee 고려하기
+	// 검증할 때의 스태미나와 마이닝 될 때의 스태미나가 다를 텐데..
+	evm := pool.newStaticEVM()
+	delegatee, err := stamina.GetDelegatee(evm, from)
+	if err != nil {
+		return ErrStaminaGetDelegatee
+	}
+
+	if delegatee != common.HexToAddress("0x00") {
+		mgval := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(tx.Gas())))
+
+		// delegatee should have enough stemina
+		// cost == GP * GL
+		if stamina, _ := stamina.GetStamina(evm, delegatee); stamina.Cmp(mgval) < 0 {
+			return ErrInsufficientStamina
+		}
+		// sender should have enough value
+		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
+			return ErrInsufficientValue
+		}
 	} else {
+		// Transactor should have enough funds to cover the costs
+		// cost == V + GP * GL
 		if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 			return ErrInsufficientFunds
 		}
-		intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-		if err != nil {
-			return err
-		}
-		if tx.Gas() < intrGas {
-			return ErrIntrinsicGas
-		}
+	}
+
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	if err != nil {
+		return err
+	}
+	if tx.Gas() < intrGas {
+		return ErrIntrinsicGas
 	}
 	return nil
 }
@@ -966,18 +996,29 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			pool.all.Remove(hash)
 			pool.priced.Removed()
 		}
+
 		// Drop all transactions that are too costly (low balance or out of gas)
-		if addr == params.NullAddress {
-			continue
+		// moscow - do not drop tx if delegatee has enough stamina
+		evm := pool.newStaticEVM()
+		delegatee, _ := stamina.GetDelegatee(evm, addr)
+		stamina, _ := stamina.GetStamina(evm, delegatee)
+		balance := pool.currentState.GetBalance(addr)
+
+		var costlimit *big.Int
+
+		if stamina.Cmp(balance) >= 0 {
+			costlimit = stamina
 		} else {
-			drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
-			for _, tx := range drops {
-				hash := tx.Hash()
-				log.Trace("Removed unpayable queued transaction", "hash", hash)
-				pool.all.Remove(hash)
-				pool.priced.Removed()
-				queuedNofundsCounter.Inc(1)
-			}
+			costlimit = balance
+		}
+
+		drops, _ := list.Filter(costlimit, pool.currentMaxGas)
+		for _, tx := range drops {
+			hash := tx.Hash()
+			log.Trace("Removed unpayable queued transaction", "hash", hash)
+			pool.all.Remove(hash)
+			pool.priced.Removed()
+			queuedNofundsCounter.Inc(1)
 		}
 		// Gather all executable transactions and promote them
 		for _, tx := range list.Ready(pool.pendingState.GetNonce(addr)) {
