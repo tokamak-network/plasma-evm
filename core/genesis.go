@@ -25,16 +25,17 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/Onther-Tech/plasma-evm/common"
-	"github.com/Onther-Tech/plasma-evm/common/hexutil"
-	"github.com/Onther-Tech/plasma-evm/common/math"
-	"github.com/Onther-Tech/plasma-evm/core/rawdb"
-	"github.com/Onther-Tech/plasma-evm/core/state"
-	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/ethdb"
-	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/rlp"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
+	staminaCommon "github.com/ethereum/go-ethereum/stamina/common"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -354,6 +355,12 @@ func DeveloperGenesisBlock(period uint64) *Genesis {
 	config := *params.AllCliqueProtocolChanges
 	config.Clique.Period = period
 
+	var err error
+	staminaBinBytes, err := hex.DecodeString(staminaCommon.StaminaContractBin[2:])
+	if err != nil {
+		panic(err)
+	}
+
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
 		Config:     &config,
@@ -369,7 +376,11 @@ func DeveloperGenesisBlock(period uint64) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			params.Operator:                  {Balance: big.NewInt(0)},
+			staminaCommon.StaminaContractAddress: {
+				Code:    staminaBinBytes,
+				Balance: big.NewInt(0),
+			},
+			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
