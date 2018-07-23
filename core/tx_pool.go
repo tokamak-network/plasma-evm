@@ -25,14 +25,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Onther-Tech/plasma-evm/common"
-	"github.com/Onther-Tech/plasma-evm/common/prque"
-	"github.com/Onther-Tech/plasma-evm/core/state"
-	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/event"
-	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/metrics"
-	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/prque"
+	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
@@ -119,6 +120,10 @@ type blockChain interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
+
+	// moscow - added to create evm
+	Engine() consensus.Engine
+	GetHeader(common.Hash, uint64) *types.Header
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -1112,6 +1117,40 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			}
 		}
 	}
+}
+
+// moscow - arbitrary msg & header & author
+func (pool *TxPool) newStaticEVM() *vm.EVM {
+	msg := types.NewMessage(
+		staminaCommon.BlockchainAccount.Address(),
+		&staminaCommon.StaminaContractAddress,
+		0,
+		big.NewInt(0),
+		1000000,
+		big.NewInt(1e9),
+		nil,
+		false,
+	)
+
+	vmConfig := vm.Config{}
+
+	ctx := NewEVMContext(
+		msg,
+		&types.Header{
+			Number:     big.NewInt(0),
+			Time:       big.NewInt(0),
+			Difficulty: big.NewInt(0),
+		},
+		pool.chain,
+		&common.Address{},
+	)
+
+	return vm.NewEVM(
+		ctx,
+		pool.currentState,
+		pool.chainconfig,
+		vmConfig,
+	)
 }
 
 // demoteUnexecutables removes invalid and processed transactions from the pools
