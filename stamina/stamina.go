@@ -1,11 +1,16 @@
 package stamina
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	staminaCommon "github.com/ethereum/go-ethereum/stamina/common"
+)
+
+var (
+	ErrUpdateStamina = errors.New("Failed to update stamina.")
 )
 
 func GetDelegatee(evm *vm.EVM, from common.Address) (common.Address, error) {
@@ -47,7 +52,11 @@ func AddStamina(evm *vm.EVM, delegatee common.Address, gas *big.Int) error {
 		return err
 	}
 
-	_, _, err = evm.Call(staminaCommon.BlockchainAccount, staminaCommon.StaminaContractAddress, data, 1000000, big.NewInt(0))
+	res, _, err := evm.Call(staminaCommon.BlockchainAccount, staminaCommon.StaminaContractAddress, data, 1000000, big.NewInt(0))
+
+	if new(big.Int).SetBytes(res).Cmp(common.Big1) != 0 {
+		return ErrUpdateStamina
+	}
 
 	return err
 }
@@ -58,7 +67,11 @@ func SubtractStamina(evm *vm.EVM, delegatee common.Address, gas *big.Int) error 
 		return err
 	}
 
-	_, _, err = evm.Call(staminaCommon.BlockchainAccount, staminaCommon.StaminaContractAddress, data, 1000000, big.NewInt(0))
+	res, _, err := evm.Call(staminaCommon.BlockchainAccount, staminaCommon.StaminaContractAddress, data, 1000000, big.NewInt(0))
+
+	if new(big.Int).SetBytes(res).Cmp(common.Big1) != 0 {
+		return ErrUpdateStamina
+	}
 
 	return err
 }
