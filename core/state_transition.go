@@ -239,10 +239,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 	// get delegatee
 	delegatee, _ := stamina.GetDelegatee(evm, msg.From())
-	log.Info("GetDelegatee", "from", msg.From(), "delegatee", delegatee)
+	availableStamina, _ := stamina.GetStamina(evm, delegatee)
+	upfrontGasCost := new(big.Int).Mul(msg.GasPrice(), big.NewInt(int64(msg.Gas())))
 
-	// moscow - if has delegatee
-	if delegatee != common.HexToAddress("0x00") {
+	// moscow - if delegatee can pay up-front gas cost
+	if availableStamina.Cmp(upfrontGasCost) >= 0 {
 		if err = st.preDelegateeCheck(delegatee); err != nil {
 			return
 		}

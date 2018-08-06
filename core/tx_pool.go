@@ -624,14 +624,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrStaminaGetDelegatee
 	}
 
-	if delegatee != common.HexToAddress("0x00") {
-		mgval := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(tx.Gas())))
+	mgval := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(tx.Gas())))
+	availableStamina, _ := stamina.GetStamina(evm, delegatee)
 
-		// delegatee should have enough stemina
-		// cost == GP * GL
-		if stamina, _ := stamina.GetStamina(evm, delegatee); stamina.Cmp(mgval) < 0 {
-			return ErrInsufficientStamina
-		}
+	// moscow - only if can pay with stamina
+	if availableStamina.Cmp(mgval) >= 0 {
 		// sender should have enough value
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientValue
