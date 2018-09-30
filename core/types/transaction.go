@@ -196,6 +196,15 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 
+func (tx *Transaction) From() interface{} {
+	if from := tx.from.Load(); from == common.NullAddress {
+		return from.(common.Address)
+	}
+	v := rlpHash(tx)
+	tx.from.Store(v)
+	return v
+}
+
 // Size returns the true RLP encoded storage size of the transaction, either by
 // encoding and returning it, or returning a previsouly cached value.
 func (tx *Transaction) Size() common.StorageSize {
