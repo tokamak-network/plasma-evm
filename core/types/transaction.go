@@ -23,10 +23,11 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/rlp"
+	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -250,6 +251,30 @@ func (tx *Transaction) Cost() *big.Int {
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
+
+/* Both methods below are used for merkle_tree.go */
+
+//CalculateHash hashes the values of a Transaction
+func (t *Transaction) CalculateHash() ([]byte, error) {
+	h := sha3.NewKeccak256()
+	if _, err := h.Write(t.GetRlp()); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
+}
+
+//Equals tests for equality of two Contents
+func (t *Transaction) Equals(other *Transaction) (bool, error) {
+	return t == other, nil
+}
+
+func (t *Transaction) GetRlp() []byte {
+	enc, _ := rlp.EncodeToBytes(t)
+	return enc
+}
+
+
 
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction

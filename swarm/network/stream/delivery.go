@@ -22,12 +22,12 @@ import (
 
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/network"
-	"github.com/ethereum/go-ethereum/swarm/spancontext"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/metrics"
+	"github.com/Onther-Tech/plasma-evm/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/network"
+	"github.com/Onther-Tech/plasma-evm/swarm/spancontext"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

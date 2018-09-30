@@ -21,8 +21,8 @@ package geth
 import (
 	"errors"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
+	ethereum "github.com/Onther-Tech/plasma-evm"
+	"github.com/Onther-Tech/plasma-evm/common"
 )
 
 // Subscription represents an event subscription where events are
