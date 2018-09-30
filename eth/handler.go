@@ -682,7 +682,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// TODO : handle error message
 		if err := pm.txpool.AddRemotes(txs); err != nil {
-			return errResp(ErrNullAddress, "invalid nullAddress tx", )
+			return errResp(ErrNullAddress, "invalid NullAddress tx", )
 		}
 
 	default:
