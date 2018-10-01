@@ -225,7 +225,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
-	st.refundGas()
+	// Do not refund gas in case of NullAddress Transaction
+	if addr := st.msg.From(); addr != common.NullAddress {
+		st.refundGas()
+	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return ret, st.gasUsed(), vmerr != nil, err

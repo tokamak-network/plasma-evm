@@ -5,7 +5,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto"
 )
 
-func getMerkleRoot(level [][]byte) common.Hash {
+// TODO : needs to be refactored because of performance issue.
+func getBinaryMerkleRoot(level [][]byte) common.Hash {
 	if (len(level) == 1) {
 		root := common.BytesToHash(level[0])
 		return root
@@ -22,7 +23,7 @@ func getMerkleRoot(level [][]byte) common.Hash {
 		nextlevel[i/2] = crypto.Keccak256(level[len(level) - 1], level[len(level) - 1])
 	}
 
-	return getMerkleRoot(nextlevel)
+	return getBinaryMerkleRoot(nextlevel)
 }
 
 //GetTransactionRoot is getter for Merkle Root of transaction hashes.
@@ -31,7 +32,7 @@ func GetTransactionRoot(txs []*Transaction) common.Hash {
 	for _, tx := range txs {
 		level = append(level, tx.Hash().Bytes())
 	}
-	return getMerkleRoot(level)
+	return getBinaryMerkleRoot(level)
 }
 
 //GetIntermediateStateRoot is getter for Merkle Root of intermediateState hashes.
@@ -40,5 +41,5 @@ func GetIntermediateStateRoot(receipts []*Receipt) common.Hash {
 	for _, receipt := range receipts {
 		level = append(level, receipt.PostState)
 	}
-	return getMerkleRoot(level)
+	return getBinaryMerkleRoot(level)
 }

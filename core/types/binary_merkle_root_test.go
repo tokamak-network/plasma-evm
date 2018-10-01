@@ -85,29 +85,29 @@ func TestGetIntermediateStateRootEven(t *testing.T) {
 
 var txHash = common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000dead")
 
-func TestGetMerkleRoot(t *testing.T) {
+func TestGetBinaryMerkleRoot(t *testing.T) {
 	var txHashes [][]byte
 	for i := 0; i < 100; i++ {
 		txHashes = append(txHashes, txHash)
 
 		// 1 txHash
 		if len(txHashes) == 1 {
-			fmt.Println(getMerkleRoot(txHashes).Hex())
+			fmt.Println(getBinaryMerkleRoot(txHashes).Hex())
 			// 0x000000000000000000000000000000000000000000000000000000000000dead
 
 		// 2 txHashes
 		} else if len(txHashes) == 2 {
-			fmt.Println(getMerkleRoot(txHashes).Hex())
+			fmt.Println(getBinaryMerkleRoot(txHashes).Hex())
 			// 0x0af3feac67a59f8a6c839e5e7d85e7aa16d8569a0bbed85ae2204fa465300dde
 
 		// 10 txHashes
 		} else if len(txHashes) == 10 {
-			fmt.Println(getMerkleRoot(txHashes).Hex())
+			fmt.Println(getBinaryMerkleRoot(txHashes).Hex())
 			// 0x40f0a1fe3c6023fac1363e8ab9f303422a86f17df1d7c51a8a45a46fa76b3675
 
 		// 100 txHashes
 		} else if len(txHashes) == 100 {
-			fmt.Println(getMerkleRoot(txHashes).Hex())
+			fmt.Println(getBinaryMerkleRoot(txHashes).Hex())
 			// 0x098095028c5a5bd103ad3984aafc50ce2c04edcf65b5fdbdc359fc9d0d4a0618
 		}
 	}
