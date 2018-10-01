@@ -220,6 +220,11 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
+	// if the tx is from nullAddress, pass the validation process
+	zero := big.NewInt(0)
+	if Vb == zero && R == zero && S == zero {
+		return common.NullAddress, nil
+	}
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
 	}
