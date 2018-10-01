@@ -797,14 +797,16 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	var notnull_txs []*types.Transaction
-
-	for _, tx := range txs {
-		if addr := tx.From(); addr != common.NullAddress {
-			notnull_txs = append(notnull_txs, tx)
+	errs := make([]error, len(txs))
+	for i, tx := range txs {
+		if addr := tx.From(types.HomesteadSigner{}); addr == common.NullAddress {
+			errs[i] = fmt.Errorf("Not allowed NullAddress Transaction: %x", tx.Hash())
 		}
 	}
-	return pool.addTxs(notnull_txs, false)
+	if errs != nil {
+		return errs
+	}
+	return pool.addTxs(txs, false)
 }
 
 // addTx enqueues a single transaction into the pool if it is valid.

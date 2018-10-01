@@ -196,11 +196,11 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 
-func (tx *Transaction) From() interface{} {
+func (tx *Transaction) From(signer HomesteadSigner) interface{} {
 	if from := tx.from.Load(); from == common.NullAddress {
 		return from.(common.Address)
 	}
-	v := rlpHash(tx)
+	v, _ := signer.Sender(tx)
 	tx.from.Store(v)
 	return v
 }

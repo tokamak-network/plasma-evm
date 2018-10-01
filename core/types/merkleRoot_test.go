@@ -7,6 +7,8 @@ import (
 	"fmt"
 )
 
+
+// tx1 hash = [77 165 128 253 46 76 4 243 40 217 249 71 236 243 86 65 30 184 228 163 165 199 69 243 131 179 204 215 156 54 168 212]
 var (
 	tx1, _ = NewTransaction(
 		3,
@@ -19,8 +21,6 @@ var (
 		HomesteadSigner{},
 		common.Hex2Bytes("98ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4a8887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a301"),
 	)
-
-	// tx1 hash = [77 165 128 253 46 76 4 243 40 217 249 71 236 243 86 65 30 184 228 163 165 199 69 243 131 179 204 215 156 54 168 212]
 
 	tx2, _ = NewTransaction(
 		3,
@@ -64,12 +64,14 @@ func TestGetPostState(t *testing.T) {
 
 func TestGetTransactionRootOdd(t *testing.T) {
 	var oddTxs []*Transaction
-	oddTxs = append(oddTxs, tx1)
+	oddTxs = append(oddTxs, tx1, tx2, tx3)
 	fmt.Println(GetTransactionRoot(oddTxs))
 }
 
 func TestGetTransactionRootEven(t *testing.T) {
-
+	var evenTxs []*Transaction
+	evenTxs = append(evenTxs, tx1, tx2)
+	fmt.Println(GetTransactionRoot(evenTxs))
 }
 
 func TestGetIntermediateStateRootOdd(t *testing.T) {
