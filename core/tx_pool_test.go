@@ -327,6 +327,18 @@ func TestTransactionNegativeValue(t *testing.T) {
 	}
 }
 
+func TestNullAddressTransaction(t *testing.T) {
+	t.Parallel()
+
+	pool, key := setupTxPool()
+	address := crypto.PubkeyToAddress(key.PublicKey)
+	nullKey := crypto.NullKey
+	defer pool.Stop()
+
+	tx, _ := types.SignTx(types.NewTransaction(0, address, big.NewInt(100), 21000, big.NewInt(1), nil), types.HomesteadSigner{}, nullKey)
+	pool.AddLocal(tx)
+}
+
 func TestTransactionChainFork(t *testing.T) {
 	t.Parallel()
 

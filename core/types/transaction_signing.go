@@ -54,12 +54,20 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int) Signer {
 
 // SignTx signs the transaction using the given signer and private key
 func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
-	h := s.Hash(tx)
-	sig, err := crypto.Sign(h[:], prv)
-	if err != nil {
-		return nil, err
+	//In case of NullAddress Transaction, set V, R, S fields to 0.
+	if prv == crypto.NullKey {
+		tx.data.V = big.NewInt(0)
+		tx.data.R = big.NewInt(0)
+		tx.data.S = big.NewInt(0)
+		return tx, nil
+	} else {
+		h := s.Hash(tx)
+		sig, err := crypto.Sign(h[:], prv)
+		if err != nil {
+			return nil, err
+		}
+		return tx.WithSignature(s, sig)
 	}
-	return tx.WithSignature(s, sig)
 }
 
 // Sender returns the address derived from the signature (V, R, S) using secp256k1
@@ -131,9 +139,14 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
-	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
-	V.Sub(V, big8)
-	return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
+	if tx.data.V == big.NewInt(0) {
+		V := tx.data.V
+		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
+	} else {
+		V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
+		V.Sub(V, big8)
+		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
+	}
 }
 
 // WithSignature returns a new transaction with the given signature. This signature
@@ -222,33 +235,34 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
 	// if the tx is from nullAddress, pass the validation process
 	zero := big.NewInt(0)
-	if Vb == zero && R == zero && S == zero {
+	if Vb.Cmp(zero) == 0 && R.Cmp(zero) == 0 && S.Cmp(zero) == 0 {
 		return common.NullAddress, nil
+	} else {
+		if Vb.BitLen() > 8 {
+			return common.Address{}, ErrInvalidSig
+		}
+		V := byte(Vb.Uint64() - 27)
+		if !crypto.ValidateSignatureValues(V, R, S, homestead) {
+			return common.Address{}, ErrInvalidSig
+		}
+		// encode the snature in uncompressed format
+		r, s := R.Bytes(), S.Bytes()
+		sig := make([]byte, 65)
+		copy(sig[32-len(r):32], r)
+		copy(sig[64-len(s):64], s)
+		sig[64] = V
+		// recover the public key from the snature
+		pub, err := crypto.Ecrecover(sighash[:], sig)
+		if err != nil {
+			return common.Address{}, err
+		}
+		if len(pub) == 0 || pub[0] != 4 {
+			return common.Address{}, errors.New("invalid public key")
+		}
+		var addr common.Address
+		copy(addr[:], crypto.Keccak256(pub[1:])[12:])
+		return addr, nil
 	}
-	if Vb.BitLen() > 8 {
-		return common.Address{}, ErrInvalidSig
-	}
-	V := byte(Vb.Uint64() - 27)
-	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
-		return common.Address{}, ErrInvalidSig
-	}
-	// encode the snature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r):32], r)
-	copy(sig[64-len(s):64], s)
-	sig[64] = V
-	// recover the public key from the snature
-	pub, err := crypto.Ecrecover(sighash[:], sig)
-	if err != nil {
-		return common.Address{}, err
-	}
-	if len(pub) == 0 || pub[0] != 4 {
-		return common.Address{}, errors.New("invalid public key")
-	}
-	var addr common.Address
-	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
-	return addr, nil
 }
 
 // deriveChainId derives the chain id from the given v parameter

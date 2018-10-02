@@ -151,6 +151,8 @@ func (st *StateTransition) useGas(amount uint64) error {
 
 func (st *StateTransition) buyGas() error {
 	if addr := st.msg.From(); addr == common.NullAddress {
+		st.gas += st.msg.Gas()
+		st.initialGas = st.msg.Gas()
 		return nil
 	} else {
 		mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
