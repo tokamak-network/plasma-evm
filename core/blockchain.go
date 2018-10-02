@@ -129,6 +129,11 @@ type BlockChain struct {
 	vmConfig  vm.Config
 
 	badBlocks *lru.Cache // Bad block cache
+
+	// Plasma Chain Forks arguments
+	LastFinalizedBlock *common.Hash // block Hash of Last Finalized Block at Root Chain
+	LastFinalizedNumber *big.Int // block height of Last Finalized Block at Root Chain
+	CurrentForks *big.Int // +=1 Counter when Plasma chain fork
 }
 
 // NewBlockChain returns a fully initialised block chain using information
