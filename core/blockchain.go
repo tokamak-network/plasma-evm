@@ -896,7 +896,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	defer bc.mu.Unlock()
 
 	currentBlock := bc.CurrentBlock()
-	localTd := common.Big1
+	localTd := common.Big0
 	externTd :=  common.Big1
 
 	// Irrelevant of the canonical status, write the block itself to the database
