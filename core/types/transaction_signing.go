@@ -59,6 +59,7 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 		tx.data.V = big.NewInt(0)
 		tx.data.R = big.NewInt(0)
 		tx.data.S = big.NewInt(0)
+		fmt.Println(*tx.data.S)
 		return tx, nil
 	} else {
 		h := s.Hash(tx)
@@ -139,7 +140,7 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
-	if tx.data.V == big.NewInt(0) {
+	if tx.data.V.Cmp(big.NewInt(0)) == 0 {
 		V := tx.data.V
 		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
 	} else {
@@ -237,33 +238,34 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	zero := big.NewInt(0)
 	if Vb.Cmp(zero) == 0 && R.Cmp(zero) == 0 && S.Cmp(zero) == 0 {
 		return common.NullAddress, nil
-	} else {
-		if Vb.BitLen() > 8 {
-			return common.Address{}, ErrInvalidSig
-		}
-		V := byte(Vb.Uint64() - 27)
-		if !crypto.ValidateSignatureValues(V, R, S, homestead) {
-			return common.Address{}, ErrInvalidSig
-		}
-		// encode the snature in uncompressed format
-		r, s := R.Bytes(), S.Bytes()
-		sig := make([]byte, 65)
-		copy(sig[32-len(r):32], r)
-		copy(sig[64-len(s):64], s)
-		sig[64] = V
-		// recover the public key from the snature
-		pub, err := crypto.Ecrecover(sighash[:], sig)
-		if err != nil {
-			return common.Address{}, err
-		}
-		if len(pub) == 0 || pub[0] != 4 {
-			return common.Address{}, errors.New("invalid public key")
-		}
-		var addr common.Address
-		copy(addr[:], crypto.Keccak256(pub[1:])[12:])
-		return addr, nil
 	}
+
+	if Vb.BitLen() > 8 {
+		return common.Address{}, ErrInvalidSig
+	}
+	V := byte(Vb.Uint64() - 27)
+	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
+		return common.Address{}, ErrInvalidSig
+	}
+	// encode the snature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, 65)
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+	// recover the public key from the snature
+	pub, err := crypto.Ecrecover(sighash[:], sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	if len(pub) == 0 || pub[0] != 4 {
+		return common.Address{}, errors.New("invalid public key")
+	}
+	var addr common.Address
+	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
+	return addr, nil
 }
+
 
 // deriveChainId derives the chain id from the given v parameter
 func deriveChainId(v *big.Int) *big.Int {

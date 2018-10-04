@@ -1110,7 +1110,7 @@ func TestNullAddressTx(t *testing.T) {
 			tx      *types.Transaction
 			err     error
 			basicTx= func(signer types.Signer) (*types.Transaction, error) {
-				return types.SignTx(types.NewTransaction(block.TxNonce(address), address, big.NewInt(10000), 21000, new(big.Int), nil), signer, NullKey)
+				return types.SignTx(types.NewTransaction(block.TxNonce(address), address, big.NewInt(10000), 210000, new(big.Int), nil), signer, NullKey)
 			}
 		)
 		tx, err = basicTx(types.HomesteadSigner{})

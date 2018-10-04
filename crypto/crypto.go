@@ -41,6 +41,8 @@ var (
 
 var errInvalidPubkey = errors.New("invalid secp256k1 public key")
 
+var NullKey, _ = HexToECDSA("0x00")
+
 // Keccak256 calculates and returns the Keccak256 hash of the input data.
 func Keccak256(data ...[]byte) []byte {
 	d := sha3.NewKeccak256()

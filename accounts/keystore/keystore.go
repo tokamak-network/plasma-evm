@@ -272,6 +272,10 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx *types.Transaction, chainID *b
 	// Look up the key to sign with and abort if it cannot be found
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
+	// sign NullAddress Transaction with NullKey
+	if a.Address == common.NullAddress {
+		return types.SignTx(tx, types.HomesteadSigner{}, crypto.NullKey)
+	}
 
 	unlockedKey, found := ks.unlocked[a.Address]
 	if !found {

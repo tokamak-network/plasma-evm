@@ -83,6 +83,8 @@ func TestGetIntermediateStateRootEven(t *testing.T) {
 
 }
 
+
+
 var txHash = common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000dead")
 
 func TestGetBinaryMerkleRoot(t *testing.T) {
