@@ -1347,6 +1347,11 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *plasma.Config) {
 	}
  	// Override any default configs for hard coded networks.
 	switch {
+	case ctx.GlobalBool(PlasmaEnabledFlag.Name):
+	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		cfg.NetworkId = 16
+	}
+	cfg.Genesis = core.DefaultPlasmaGenesisBlock()
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 3
