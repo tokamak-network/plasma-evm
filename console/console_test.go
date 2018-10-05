@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/internal/jsre"
-	"github.com/ethereum/go-ethereum/node"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/eth"
+	"github.com/Onther-Tech/plasma-evm/internal/jsre"
+	"github.com/Onther-Tech/plasma-evm/node"
 )
 
 const (

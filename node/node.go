@@ -26,13 +26,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/internal/debug"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/event"
+	"github.com/Onther-Tech/plasma-evm/internal/debug"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/p2p"
+	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/prometheus/prometheus/util/flock"
 )
 

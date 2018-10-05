@@ -23,13 +23,13 @@ import (
 	"net"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/p2p/simulations/pipes"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/Onther-Tech/plasma-evm/event"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/node"
+	"github.com/Onther-Tech/plasma-evm/p2p"
+	"github.com/Onther-Tech/plasma-evm/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/p2p/simulations/pipes"
+	"github.com/Onther-Tech/plasma-evm/rpc"
 )
 
 // SimAdapter is a NodeAdapter which creates in-memory simulation nodes and

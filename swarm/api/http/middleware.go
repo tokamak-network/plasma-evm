@@ -6,11 +6,11 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/swarm/api"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/sctx"
-	"github.com/ethereum/go-ethereum/swarm/spancontext"
+	"github.com/Onther-Tech/plasma-evm/metrics"
+	"github.com/Onther-Tech/plasma-evm/swarm/api"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/sctx"
+	"github.com/Onther-Tech/plasma-evm/swarm/spancontext"
 	"github.com/pborman/uuid"
 )
 

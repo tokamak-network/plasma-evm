@@ -17,10 +17,10 @@
 package clique
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/consensus"
+	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/rpc"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting

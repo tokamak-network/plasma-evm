@@ -25,9 +25,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mock"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage/mock"
 )
 
 // MockStore creates NodeStore instances from provided GlobalStorer,

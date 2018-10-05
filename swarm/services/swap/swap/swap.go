@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/swarm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
 )
 
 // SwAP Swarm Accounting Protocol with

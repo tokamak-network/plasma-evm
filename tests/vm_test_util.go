@@ -22,15 +22,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/common/math"
+	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/state"
+	"github.com/Onther-Tech/plasma-evm/core/vm"
+	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 // VMTest checks EVM execution without block or transaction context.

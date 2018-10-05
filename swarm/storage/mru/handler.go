@@ -25,9 +25,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/ethereum/go-ethereum/swarm/chunk"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/swarm/chunk"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
 )
 
 type Handler struct {

@@ -36,16 +36,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/swarm/api"
-	swarm "github.com/ethereum/go-ethereum/swarm/api/client"
-	"github.com/ethereum/go-ethereum/swarm/multihash"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
-	"github.com/ethereum/go-ethereum/swarm/testutil"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/api"
+	swarm "github.com/Onther-Tech/plasma-evm/swarm/api/client"
+	"github.com/Onther-Tech/plasma-evm/swarm/multihash"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage/mru"
+	"github.com/Onther-Tech/plasma-evm/swarm/testutil"
 )
 
 func init() {
