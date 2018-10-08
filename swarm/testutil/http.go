@@ -23,9 +23,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/swarm/api"
-	"github.com/ethereum/go-ethereum/swarm/storage"
-	"github.com/ethereum/go-ethereum/swarm/storage/mru"
+	"github.com/Onther-Tech/plasma-evm/swarm/api"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage/mru"
 )
 
 type TestServer interface {

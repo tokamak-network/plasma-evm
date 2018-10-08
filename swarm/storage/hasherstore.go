@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	ch "github.com/ethereum/go-ethereum/swarm/chunk"
-	"github.com/ethereum/go-ethereum/swarm/storage/encryption"
+	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
+	ch "github.com/Onther-Tech/plasma-evm/swarm/chunk"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage/encryption"
 )
 
 type hasherStore struct {

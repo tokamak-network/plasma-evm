@@ -29,16 +29,16 @@ import (
 	"time"
 
 	"github.com/elastic/gosigar"
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/console"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/internal/debug"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/node"
+	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
+	"github.com/Onther-Tech/plasma-evm/cmd/utils"
+	"github.com/Onther-Tech/plasma-evm/console"
+	"github.com/Onther-Tech/plasma-evm/eth"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/internal/debug"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/metrics"
+	"github.com/Onther-Tech/plasma-evm/node"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -147,6 +147,10 @@ var (
 		utils.IPCPathFlag,
 	}
 
+	plasmaFlags = []cli.Flag{
+ 		utils.PlasmaEnabledFlag,
+ 	}
+
 	whisperFlags = []cli.Flag{
 		utils.WhisperEnabledFlag,
 		utils.WhisperMaxMessageSizeFlag,
@@ -203,6 +207,7 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
+	app.Flags = append(app.Flags, plasmaFlags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 

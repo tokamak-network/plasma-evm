@@ -22,14 +22,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p/protocols"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	pq "github.com/ethereum/go-ethereum/swarm/network/priorityqueue"
-	"github.com/ethereum/go-ethereum/swarm/network/stream/intervals"
-	"github.com/ethereum/go-ethereum/swarm/spancontext"
-	"github.com/ethereum/go-ethereum/swarm/state"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/Onther-Tech/plasma-evm/metrics"
+	"github.com/Onther-Tech/plasma-evm/p2p/protocols"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
+	pq "github.com/Onther-Tech/plasma-evm/swarm/network/priorityqueue"
+	"github.com/Onther-Tech/plasma-evm/swarm/network/stream/intervals"
+	"github.com/Onther-Tech/plasma-evm/swarm/spancontext"
+	"github.com/Onther-Tech/plasma-evm/swarm/state"
+	"github.com/Onther-Tech/plasma-evm/swarm/storage"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

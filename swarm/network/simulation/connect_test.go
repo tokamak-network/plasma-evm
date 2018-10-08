@@ -19,7 +19,7 @@ package simulation
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/p2p/discover"
 )
 
 func TestConnectToPivotNode(t *testing.T) {
