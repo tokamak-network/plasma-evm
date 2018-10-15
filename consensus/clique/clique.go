@@ -25,20 +25,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/consensus"
+	"github.com/Onther-Tech/plasma-evm/consensus/misc"
+	"github.com/Onther-Tech/plasma-evm/core/state"
+	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/rlp"
+	"github.com/Onther-Tech/plasma-evm/rpc"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -62,8 +62,8 @@ var (
 
 	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
-	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
-	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
+	diffInTurn = big.NewInt(0) // Block difficulty for in-turn signatures
+	diffNoTurn = big.NewInt(0) // Block difficulty for out-of-turn signatures
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -324,7 +324,8 @@ func (c *Clique) verifyHeader(chain consensus.ChainReader, header *types.Header,
 	}
 	// Ensure that the block's difficulty is meaningful (may not be correct at this point)
 	if number > 0 {
-		if header.Difficulty == nil || (header.Difficulty.Cmp(diffInTurn) != 0 && header.Difficulty.Cmp(diffNoTurn) != 0) {
+		// old code : if header.Difficulty == nil || (header.Difficulty.Cmp(diffInTurn) != 0 && header.Difficulty.Cmp(diffNoTurn) != 0) {
+		if header.Difficulty == nil {
 			return errInvalidDifficulty
 		}
 	}
