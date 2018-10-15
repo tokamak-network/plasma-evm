@@ -680,10 +680,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			p.MarkTransaction(tx.Hash())
 		}
-		// TODO : handle error message
-		if err := pm.txpool.AddRemotes(txs); err != nil {
-			return errResp(ErrNullAddress, "invalid NullAddress tx", )
-		}
+		pm.txpool.AddRemotes(txs)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
