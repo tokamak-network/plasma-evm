@@ -141,6 +141,9 @@ type Block struct {
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
+
+	// fork number
+	currentFork int64
 }
 
 // DeprecatedTd is an old relic for extracting the TD of a block. It is in the
@@ -148,6 +151,11 @@ type Block struct {
 // new, after which it should be deleted. Do not use!
 func (b *Block) DeprecatedTd() *big.Int {
 	return b.td
+}
+
+// This func returns current fork number of the block.
+func (b *Block) CurrentFork() int64 {
+	return b.currentFork
 }
 
 // [deprecated by eth/63]
@@ -332,6 +340,7 @@ func CalcUncleHash(uncles []*Header) common.Hash {
 
 // WithSeal returns a new block with the data from b but the header replaced with
 // the sealed one.
+// TODO : should make another way to set td.
 func (b *Block) WithSeal(header *Header) *Block {
 	cpy := *header
 
@@ -339,6 +348,22 @@ func (b *Block) WithSeal(header *Header) *Block {
 		header:       &cpy,
 		transactions: b.transactions,
 		uncles:       b.uncles,
+		td: 		  big.NewInt(b.currentFork * 1000 + int64(b.NumberU64())),
+	}
+}
+
+// this func is only for test.
+// TODO : should make another way to set td & currentFork.
+func (b *Block) WithSealFork(header *Header) *Block {
+	addedFork := b.currentFork + 1
+	cpy := *header
+
+	return &Block{
+		header:       &cpy,
+		transactions: b.transactions,
+		uncles:       b.uncles,
+		td: 		  big.NewInt(addedFork * 1000 + int64(b.NumberU64())),
+		currentFork:  addedFork,
 	}
 }
 

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -129,6 +128,11 @@ type BlockChain struct {
 	vmConfig  vm.Config
 
 	badBlocks *lru.Cache // Bad block cache
+
+	// Plasma Chain Forks arguments
+	LastFinalizedBlock *common.Hash // block Hash of Last Finalized Block at Root Chain
+	LastFinalizedNumber *big.Int // block height of Last Finalized Block at Root Chain
+	CurrentForks *big.Int // +=1 Counter when Plasma chain fork
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -892,8 +896,17 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	defer bc.mu.Unlock()
 
 	currentBlock := bc.CurrentBlock()
-	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	externTd := new(big.Int).Add(block.Difficulty(), ptd)
+	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	//externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
+
+	// TODO : need to do refactoring localTd. This code line is only for test.
+	localTd := currentBlock.DeprecatedTd()
+	if localTd == nil {
+		localTd = big.NewInt(0)
+	}
+	externTd := block.DeprecatedTd()
+
+	fmt.Printf("localTd : %v \nexternTd : %v \n", localTd, externTd)
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
@@ -963,10 +976,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
+	// Only do reorg when externTd > localTd : which means the fork count in root chain contract is increased.
+	/*
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then at random
 		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
 	}
+	*/
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
 		if block.ParentHash() != currentBlock.Hash() {
@@ -1054,7 +1070,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
 	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
-
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
 		// If the chain is terminating, stop processing blocks
@@ -1076,12 +1091,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		switch {
 		case err == ErrKnownBlock:
+			// TODO : this block is commented temporarily for test. It should be reverted.
 			// Block and state both already known. However if the current block is below
 			// this number we did a rollback and we should reimport it nonetheless.
-			if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
-				stats.ignored++
-				continue
-			}
+			//if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+			//	stats.ignored++
+			//	continue
+			//}
 
 		case err == consensus.ErrFutureBlock:
 			// Allow up to MaxFuture second in the future blocks. If this limit is exceeded
@@ -1289,6 +1305,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 
 			collectLogs(oldBlock.Hash())
 		}
+	// TODO : don't need to deal with this case. the height of fork block is always lower than current block.
 	} else {
 		// reduce new chain and append new chain blocks for inserting later on
 		for ; newBlock != nil && newBlock.NumberU64() != oldBlock.NumberU64(); newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1) {

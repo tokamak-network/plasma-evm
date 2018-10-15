@@ -440,9 +440,15 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 			}
 		}
 	}
+	// check which change is longer
+	fmt.Printf("Easy chain length : %v, Diff chain length : %v\n", len(first), len(second))
+
 	// Make sure the chain total difficulty is the correct one
 	want := new(big.Int).Add(blockchain.genesisBlock.Difficulty(), big.NewInt(td))
+	fmt.Println(">>> Genesis Difficulty : ", blockchain.genesisBlock.Difficulty())
+	fmt.Println(">>> new td Difficulty : ", big.NewInt(td))
 	if full {
+		fmt.Println(">>> Current block Diff is : ", blockchain.GetTdByHash(blockchain.CurrentBlock().Hash()))
 		if have := blockchain.GetTdByHash(blockchain.CurrentBlock().Hash()); have.Cmp(want) != 0 {
 			t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
 		}

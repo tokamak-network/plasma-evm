@@ -15,7 +15,7 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package clique implements the proof-of-authority consensus engine.
-package clique
+package cliqueplasma
 
 import (
 	"bytes"
