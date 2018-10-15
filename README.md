@@ -6,7 +6,7 @@ Official golang implementation of the Ethereum protocol.
 https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
 )](https://godoc.org/github.com/Onther-Tech/plasma-evm)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Onther-Tech/plasma-evm)](https://goreportcard.com/report/github.com/Onther-Tech/plasma-evm)
-[![Travis](https://travis-ci.org/ethereum/go-ethereum.svg?branch=master)](https://travis-ci.org/ethereum/go-ethereum)
+[![Travis](https://travis-ci.org/Onther-Tech/plasma-evm.svg?branch=master)](https://travis-ci.org/Onther-Tech/plasma-evm)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/nthXNEv)
 
 Automated builds are available for stable releases and the unstable master branch.
@@ -284,7 +284,7 @@ anyone on the internet, and are grateful for even the smallest of fixes!
 
 If you'd like to contribute to go-ethereum, please fork, fix, commit and send a pull request
 for the maintainers to review and merge into the main code base. If you wish to submit more
-complex changes though, please check up with the core devs first on [our gitter channel](https://gitter.im/ethereum/go-ethereum)
+complex changes though, please check up with the core devs first on [our gitter channel](https://gitter.im/Onther-Tech/plasma-evm)
 to ensure those changes are in line with the general philosophy of the project and/or get some
 early feedback which can make both your efforts much lighter as well as our review and merge
 procedures quick and simple.
