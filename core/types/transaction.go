@@ -251,6 +251,18 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
 
+//Equals tests for equality of two Contents
+func (t *Transaction) Equals(other *Transaction) (bool, error) {
+	return t == other, nil
+}
+
+func (t *Transaction) GetRlp() []byte {
+	enc, _ := rlp.EncodeToBytes(t)
+	return enc
+}
+
+
+
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction
 

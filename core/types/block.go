@@ -74,6 +74,7 @@ type Header struct {
 	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+	IntermediateStateHash common.Hash `json:"IntermediateStateRoot" gencodec:"required"`
 	Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
 	Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
 	Number      *big.Int       `json:"number"           gencodec:"required"`
@@ -194,6 +195,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 		b.header.ReceiptHash = EmptyRootHash
 	} else {
 		b.header.ReceiptHash = DeriveSha(Receipts(receipts))
+		b.header.IntermediateStateHash = GetIntermediateStateRoot(receipts)
 		b.header.Bloom = CreateBloom(receipts)
 	}
 

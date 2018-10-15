@@ -595,15 +595,19 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
-		return ErrInsufficientFunds
-	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	if err != nil {
-		return err
-	}
-	if tx.Gas() < intrGas {
-		return ErrIntrinsicGas
+	if from == common.NullAddress {
+		return nil
+	} else {
+		if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+			return ErrInsufficientFunds
+		}
+		intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+		if err != nil {
+			return err
+		}
+		if tx.Gas() < intrGas {
+			return ErrIntrinsicGas
+		}
 	}
 	return nil
 }
@@ -944,13 +948,17 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			pool.priced.Removed()
 		}
 		// Drop all transactions that are too costly (low balance or out of gas)
-		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
-		for _, tx := range drops {
-			hash := tx.Hash()
-			log.Trace("Removed unpayable queued transaction", "hash", hash)
-			pool.all.Remove(hash)
-			pool.priced.Removed()
-			queuedNofundsCounter.Inc(1)
+		if addr == common.NullAddress {
+			continue
+		} else {
+			drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+			for _, tx := range drops {
+				hash := tx.Hash()
+				log.Trace("Removed unpayable queued transaction", "hash", hash)
+				pool.all.Remove(hash)
+				pool.priced.Removed()
+				queuedNofundsCounter.Inc(1)
+			}
 		}
 		// Gather all executable transactions and promote them
 		for _, tx := range list.Ready(pool.pendingState.GetNonce(addr)) {
