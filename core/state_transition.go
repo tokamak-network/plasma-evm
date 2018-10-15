@@ -150,18 +150,24 @@ func (st *StateTransition) useGas(amount uint64) error {
 }
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
-		return errInsufficientBalanceForGas
-	}
-	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
-		return err
-	}
-	st.gas += st.msg.Gas()
+	if addr := st.msg.From(); addr == common.NullAddress {
+		st.gas += st.msg.Gas()
+		st.initialGas = st.msg.Gas()
+		return nil
+	} else {
+		mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+		if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
+			return errInsufficientBalanceForGas
+		}
+		if err := st.gp.SubGas(st.msg.Gas()); err != nil {
+			return err
+		}
+		st.gas += st.msg.Gas()
 
-	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
-	return nil
+		st.initialGas = st.msg.Gas()
+		st.state.SubBalance(st.msg.From(), mgval)
+		return nil
+	}
 }
 
 func (st *StateTransition) preCheck() error {
@@ -221,7 +227,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
-	st.refundGas()
+	// Do not refund gas in case of NullAddress Transaction
+	if addr := st.msg.From(); addr != common.NullAddress {
+		st.refundGas()
+	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return ret, st.gasUsed(), vmerr != nil, err
