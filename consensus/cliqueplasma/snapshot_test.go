@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package clique
+package cliqueplasma
 
 import (
 	"bytes"
@@ -504,4 +504,141 @@ func TestClique(t *testing.T) {
 		}
 	}
 }
+
+func TestRebase(t *testing.T) {
+	test := struct {
+		epoch   uint64
+		signers []string
+		votes   []testerVote
+		results []string
+		failure error
+	}{
+		// Single signer, voting to add two others (only accept first, second needs 2 votes)
+		signers: []string{"A"},
+		votes: []testerVote{
+			{signer: "A"},
+			{signer: "A"},
+			{signer: "A"},
+		},
+		results: []string{"A"},
+	}
+
+	// Create the account pool and generate the initial set of signers
+	accounts := newTesterAccountPool()
+	signers := make([]common.Address, len(test.signers))
+	for j, signer := range test.signers {
+		signers[j] = accounts.address(signer)
+	}
+	for j := 0; j < len(signers); j++ {
+		for k := j + 1; k < len(signers); k++ {
+			if bytes.Compare(signers[j][:], signers[k][:]) > 0 {
+				signers[j], signers[k] = signers[k], signers[j]
+			}
+		}
+	}
+	// Create the genesis block with the initial set of signers
+	genesis := &core.Genesis{
+		ExtraData: make([]byte, extraVanity+common.AddressLength*len(signers)+extraSeal),
+	}
+	for j, signer := range signers {
+		copy(genesis.ExtraData[extraVanity+j*common.AddressLength:], signer[:])
+	}
+	// Create a pristine blockchain with the genesis injected
+	db := ethdb.NewMemDatabase()
+	genesis.Commit(db)
+
+	config := *params.TestChainConfig
+	config.Clique = &params.CliqueConfig{
+		Period: 1,
+		Epoch:  30000,
+	}
+	engine := New(config.Clique, db)
+	engine.fakeDiff = false
+
+	easyBlocks, _ := core.GenerateChain(&config, genesis.ToBlock(db), engine, db, 3, func(j int, gen *core.BlockGen) {
+		// Cast the vote contained in this block
+		gen.SetCoinbase(accounts.address(test.votes[j].voted))
+		if test.votes[j].auth {
+			var nonce types.BlockNonce
+			copy(nonce[:], nonceAuthVote)
+			gen.SetNonce(nonce)
+		}
+	})
+
+	diffBlocks, _ := core.GenerateChain(&config, genesis.ToBlock(db), engine, db, 2, func(j int, gen *core.BlockGen) {
+		// Cast the vote contained in this block
+		gen.SetCoinbase(accounts.address(test.votes[j].voted))
+		if test.votes[j].auth {
+			var nonce types.BlockNonce
+			copy(nonce[:], nonceAuthVote)
+			gen.SetNonce(nonce)
+		}
+	})
+
+	// Iterate through the blocks and seal them individually
+	for j, block := range easyBlocks {
+		// Geth the header and prepare it for signing
+		header := block.Header()
+		if j > 0 {
+			header.ParentHash = easyBlocks[j-1].Hash()
+		}
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		if auths := test.votes[j].checkpoint; auths != nil {
+			header.Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+extraSeal)
+			accounts.checkpoint(header, auths)
+		}
+		header.Difficulty = big.NewInt(0) // diffInTurn Ignored, we just need a valid number
+
+		// Generate the signature, embed it into the header and the block
+		accounts.sign(header, test.votes[j].signer)
+		easyBlocks[j] = block.WithSeal(header)
+	}
+
+	for j, block := range diffBlocks {
+		// Geth the header and prepare it for signing
+		header := block.Header()
+		if j > 0 {
+			header.ParentHash = diffBlocks[j-1].Hash()
+		}
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		if auths := test.votes[j].checkpoint; auths != nil {
+			header.Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+extraSeal)
+			accounts.checkpoint(header, auths)
+		}
+		header.Difficulty = diffInTurn // Ignored, we just need a valid number
+
+		// Generate the signature, embed it into the header and the block
+		accounts.sign(header, test.votes[j].signer)
+		if j == 1 {
+			diffBlocks[j] = block.WithSealFork(header)
+			fmt.Printf("td of fork block : %v \n", diffBlocks[j].DeprecatedTd().Int64())
+			fmt.Printf("current fork : %v \n", diffBlocks[j].CurrentFork())
+		} else {
+			diffBlocks[j] = block.WithSeal(header)
+		}
+	}
+
+	// Pass all the headers through clique and ensure tallying succeeds
+	chain, err := core.NewBlockChain(db, nil, &config, engine, vm.Config{})
+	if err != nil {
+		t.Errorf("test : failed to create test chain: %v", err)
+	}
+
+	currentBlock := chain.CurrentBlock()
+	currentBlock.WithSeal(currentBlock.Header())
+	fmt.Printf("td of genesis block is : %v \n", currentBlock.DeprecatedTd())
+
+	fmt.Printf("Current Block Number before Insertion : %v \n", chain.CurrentBlock().NumberU64())
+
+	if _, err = chain.InsertChain(easyBlocks); err != nil {
+		t.Errorf("failed to import blocks: %v", err)
+	}
+
+	fmt.Printf("Current Block Number after inserting easy blocks : %v \n", chain.CurrentBlock().NumberU64())
+
+	if _, err = chain.InsertChain(diffBlocks); err != nil {
+		t.Errorf("failed to import blocks: %v", err)
+	}
+
+	fmt.Printf("Current Block Number after inserting diff blocks : %v \n", chain.CurrentBlock().NumberU64())
 }

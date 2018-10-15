@@ -450,11 +450,11 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 	if full {
 		fmt.Println(">>> Current block Diff is : ", blockchain.GetTdByHash(blockchain.CurrentBlock().Hash()))
 		if have := blockchain.GetTdByHash(blockchain.CurrentBlock().Hash()); have.Cmp(want) != 0 {
-			//t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
+			t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
 		}
 	} else {
 		if have := blockchain.GetTdByHash(blockchain.CurrentHeader().Hash()); have.Cmp(want) != 0 {
-			//t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
+			t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
 		}
 	}
 }
