@@ -59,7 +59,6 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 		tx.data.V = big.NewInt(0)
 		tx.data.R = big.NewInt(0)
 		tx.data.S = big.NewInt(0)
-		fmt.Println(*tx.data.S)
 		return tx, nil
 	} else {
 		h := s.Hash(tx)
