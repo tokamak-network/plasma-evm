@@ -767,31 +767,6 @@ func TestLightVsFastVsFullChainHeads(t *testing.T) {
 	assert(t, "light", light, height/2, 0, 0)
 }
 
-// ERROR : invalid chain id for signer
-func TestNullAddressTxExecution(t *testing.T) {
-	var (
-		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
-		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
-		db 		= ethdb.NewMemDatabase()
-		gspec 	= &Genesis{
-			Config:   params.TestChainConfig,
-			GasLimit: 3141592,
-		}
-		genesis = gspec.MustCommit(db)
-		signer  = types.NewEIP155Signer(gspec.Config.ChainID)
-	)
-
-	tx1, _ := types.SignTx(types.NewTransaction(0, addr1, big.NewInt(1000), params.TxGas, nil, nil), signer, crypto.NullKey)
-	tx2, _ := types.SignTx(types.NewTransaction(0, addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, crypto.NullKey)
-
-	GenerateChain(gspec.Config, genesis, ethash.NewFaker(), db, 3, func(i int, gen *BlockGen) {
-		gen.AddTx(tx1)
-		gen.AddTx(tx2)
-	})
-}
-
 // Tests that chain reorganisations handle transaction removals and reinsertions.
 func TestChainTxReorgs(t *testing.T) {
 	var (
@@ -1109,7 +1084,7 @@ func TestNullAddressTx(t *testing.T) {
 		var (
 			tx      *types.Transaction
 			err     error
-			basicTx= func(signer types.Signer) (*types.Transaction, error) {
+			basicTx = func(signer types.Signer) (*types.Transaction, error) {
 				return types.SignTx(types.NewTransaction(block.TxNonce(address), address, big.NewInt(10000), 210000, new(big.Int), nil), signer, NullKey)
 			}
 		)

@@ -186,7 +186,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
-		b.header.TxHash = GetTransactionRoot(txs)
+		b.header.TxHash = DeriveSha(Transactions(txs))
 		b.transactions = make(Transactions, len(txs))
 		copy(b.transactions, txs)
 	}

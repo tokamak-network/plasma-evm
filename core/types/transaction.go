@@ -27,7 +27,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/rlp"
-	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -196,15 +195,6 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 
-func (tx *Transaction) From(signer HomesteadSigner) interface{} {
-	if from := tx.from.Load(); from == common.NullAddress {
-		return from.(common.Address)
-	}
-	v, _ := signer.Sender(tx)
-	tx.from.Store(v)
-	return v
-}
-
 // Size returns the true RLP encoded storage size of the transaction, either by
 // encoding and returning it, or returning a previsouly cached value.
 func (tx *Transaction) Size() common.StorageSize {
@@ -259,18 +249,6 @@ func (tx *Transaction) Cost() *big.Int {
 
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
-}
-
-/* Both methods below are used for merkle_tree.go */
-
-//CalculateHash hashes the values of a Transaction
-func (t *Transaction) CalculateHash() ([]byte, error) {
-	h := sha3.NewKeccak256()
-	if _, err := h.Write(t.GetRlp()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
 }
 
 //Equals tests for equality of two Contents

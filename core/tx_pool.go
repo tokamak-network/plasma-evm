@@ -797,15 +797,6 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	errs := make([]error, len(txs))
-	for i, tx := range txs {
-		if addr := tx.From(types.HomesteadSigner{}); addr == common.NullAddress {
-			errs[i] = fmt.Errorf("Not allowed NullAddress Transaction: %x", tx.Hash())
-		}
-	}
-	if errs != nil {
-		return errs
-	}
 	return pool.addTxs(txs, false)
 }
 
