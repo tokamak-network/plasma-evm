@@ -20,17 +20,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum/swarm/log"
+	"github.com/Onther-Tech/plasma-evm/swarm/log"
 )
 
 /*
 http roundtripper to register for bzz url scheme
-see https://github.com/ethereum/go-ethereum/issues/2040
+see https://github.com/Onther-Tech/plasma-evm/issues/2040
 Usage:
 
 import (
- "github.com/ethereum/go-ethereum/common/httpclient"
- "github.com/ethereum/go-ethereum/swarm/api/http"
+ "github.com/Onther-Tech/plasma-evm/common/httpclient"
+ "github.com/Onther-Tech/plasma-evm/swarm/api/http"
 )
 client := httpclient.New()
 // for (private) swarm proxy running locally

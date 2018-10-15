@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
+	"github.com/Onther-Tech/plasma-evm/core/types"
 )
 
 // Tests that the account management snippets work correctly.

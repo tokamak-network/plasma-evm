@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/Onther-Tech/plasma-evm/common"
 )
 
 type keyStorePlain struct {
