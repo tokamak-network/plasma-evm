@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/Onther-Tech/plasma-evm/eth/tracers/internal/tracers"
+	"github.com/Onther-Tech/plasma-evm/pls/tracers/internal/tracers"
 )
 
 // all contains all the built in JavaScript tracers by name.

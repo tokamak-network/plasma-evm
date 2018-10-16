@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
-	"github.com/Onther-Tech/plasma-evm/eth/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/light"
 )
 

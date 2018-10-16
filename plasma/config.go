@@ -28,8 +28,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/eth/downloader"
-	"github.com/Onther-Tech/plasma-evm/eth/gasprice"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 

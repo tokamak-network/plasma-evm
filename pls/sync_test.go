@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Onther-Tech/plasma-evm/eth/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discover"
 )

@@ -35,7 +35,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
-	"github.com/Onther-Tech/plasma-evm/eth/filters"
+	"github.com/Onther-Tech/plasma-evm/pls/filters"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/params"

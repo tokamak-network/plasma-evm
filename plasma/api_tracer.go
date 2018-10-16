@@ -33,7 +33,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
-	"github.com/Onther-Tech/plasma-evm/eth/tracers"
+	"github.com/Onther-Tech/plasma-evm/pls/tracers"
 	"github.com/Onther-Tech/plasma-evm/internal/ethapi"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/rlp"
