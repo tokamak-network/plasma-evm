@@ -619,7 +619,7 @@ var (
 	PlasmaRootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
 		Usage: "JSONRPC endpoint of rootchain provider",
-		Value: "ws://localhost:8545",
+		Value: "ws://localhost:8546",
 	}
 	PlasmaRootChainContractFlag = cli.StringFlag{
 		Name:  "rootchain.contract",
