@@ -1259,6 +1259,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.Operator = account
 	}
 
+	if ctx.GlobalIsSet(PlasmaRootChainUrlFlag.Name) {
+		cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
+	}
+	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
+		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	}
+
 	cfg.Genesis = core.DefaultPlasmaGenesisBlock()
 
 	// TODO(fjl): move trie cache generations into config
