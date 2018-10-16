@@ -341,22 +341,22 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
 			utils.Fatalf("Light clients do not support mining")
 		}
-		var ethereum *pls.Ethereum
-		if err := stack.Service(&ethereum); err != nil {
-			utils.Fatalf("Ethereum service not running: %v", err)
+		var plasma *pls.Plasma
+		if err := stack.Service(&plasma); err != nil {
+			utils.Fatalf("Plasma service not running: %v", err)
 		}
 		// Set the gas price to the limits from the CLI and start mining
 		gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
 		if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
 			gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 		}
-		ethereum.TxPool().SetGasPrice(gasprice)
+		plasma.TxPool().SetGasPrice(gasprice)
 
 		threads := ctx.GlobalInt(utils.MinerLegacyThreadsFlag.Name)
 		if ctx.GlobalIsSet(utils.MinerThreadsFlag.Name) {
 			threads = ctx.GlobalInt(utils.MinerThreadsFlag.Name)
 		}
-		if err := ethereum.StartMining(threads); err != nil {
+		if err := plasma.StartMining(threads); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
 	}

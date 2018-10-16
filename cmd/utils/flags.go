@@ -1283,13 +1283,13 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 func RegisterEthStatsService(stack *node.Node, url string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both eth and les services
-		var ethServ *pls.Ethereum
-		ctx.Service(&ethServ)
+		var plsServ *pls.Plasma
+		ctx.Service(&plsServ)
 
 		var lesServ *les.LightEthereum
 		ctx.Service(&lesServ)
 
-		return ethstats.New(url, ethServ, lesServ)
+		return ethstats.New(url, plsServ, lesServ)
 	}); err != nil {
 		Fatalf("Failed to register the Ethereum Stats service: %v", err)
 	}

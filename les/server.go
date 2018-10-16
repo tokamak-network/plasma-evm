@@ -49,7 +49,7 @@ type LesServer struct {
 	quitSync    chan struct{}
 }
 
-func NewLesServer(pls *pls.Ethereum, config *pls.Config) (*LesServer, error) {
+func NewLesServer(pls *pls.Plasma, config *pls.Config) (*LesServer, error) {
 	quitSync := make(chan struct{})
 	pm, err := NewProtocolManager(pls.BlockChain().Config(), light.DefaultServerIndexerConfig, false, config.NetworkId, pls.EventMux(), pls.Engine(), newPeerSet(), pls.BlockChain(), pls.TxPool(), pls.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
 	if err != nil {
