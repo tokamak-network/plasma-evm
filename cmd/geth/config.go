@@ -30,7 +30,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
 	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/plasma"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
 	whisper "github.com/Onther-Tech/plasma-evm/whisper/whisperv6"
@@ -76,8 +75,7 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth       pls.Config
-	Pls       plasma.Config
+	Pls       pls.Config
 	Shh       whisper.Config
 	Node      node.Config
 	Ethstats  ethstatsConfig
@@ -112,8 +110,7 @@ func defaultNodeConfig() node.Config {
 func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:       pls.DefaultConfig,
-		Pls:       plasma.DefaultConfig,
+		Pls:       pls.DefaultConfig,
 		Shh:       whisper.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
@@ -132,11 +129,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
+	utils.SetPlsConfig(ctx, stack, &cfg.Pls)
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
 	}
-	utils.SetPlsConfig(ctx, stack, &cfg.Pls)
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
 
@@ -156,11 +152,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	if ctx.GlobalBool(utils.PlasmaEnabledFlag.Name) {
-		utils.RegisterPlsService(stack, &cfg.Pls)
-	} else {
-		utils.RegisterEthService(stack, &cfg.Eth)
-	}
+	utils.RegisterPlsService(stack, &cfg.Pls)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
@@ -193,8 +185,8 @@ func dumpConfig(ctx *cli.Context) error {
 	_, cfg := makeConfigNode(ctx)
 	comment := ""
 
-	if cfg.Eth.Genesis != nil {
-		cfg.Eth.Genesis = nil
+	if cfg.Pls.Genesis != nil {
+		cfg.Pls.Genesis = nil
 		comment += "# Note: this config doesn't contain the genesis block.\n\n"
 	}
 
