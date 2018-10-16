@@ -31,6 +31,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
@@ -39,6 +40,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/eth/downloader"
 	"github.com/Onther-Tech/plasma-evm/eth/filters"
 	"github.com/Onther-Tech/plasma-evm/eth/gasprice"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/internal/ethapi"
@@ -71,6 +73,10 @@ type Ethereum struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 	lesServer       LesServer
+
+	// Plasma
+	rootchainBackend  *ethclient.Client
+	rootchainContract *contract.RootChain
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -124,19 +130,33 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
+	// Dial rootchain provider
+	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Instantiate RootChain contract
+	rootchainContract, err := contract.NewRootChain(config.RootChainContract, rootchainBackend)
+	if err != nil {
+		return nil, err
+	}
+
 	eth := &Ethereum{
-		config:         config,
-		chainDb:        chainDb,
-		chainConfig:    chainConfig,
-		eventMux:       ctx.EventMux,
-		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
-		shutdownChan:   make(chan bool),
-		networkID:      config.NetworkId,
-		gasPrice:       config.MinerGasPrice,
-		etherbase:      config.Etherbase,
-		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		config:            config,
+		chainDb:           chainDb,
+		chainConfig:       chainConfig,
+		eventMux:          ctx.EventMux,
+		rootchainBackend:  rootchainBackend,
+		rootchainContract: rootchainContract,
+		accountManager:    ctx.AccountManager,
+		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
+		shutdownChan:      make(chan bool),
+		networkID:         config.NetworkId,
+		gasPrice:          config.MinerGasPrice,
+		etherbase:         config.Etherbase,
+		bloomRequests:     make(chan chan *bloombits.Retrieval),
+		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 
 	log.Info("Initialising Ethereum protocol", "versions", ProtocolVersions, "network", config.NetworkId)

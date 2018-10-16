@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
@@ -80,6 +81,11 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	// Plasma options
+	Operator          accounts.Account
+	RootChainURL      string
+	RootChainContract common.Address
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
