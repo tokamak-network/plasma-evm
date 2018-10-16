@@ -77,7 +77,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		{
 			Namespace: "pls",
 			Version:   "1.0",
-			Service:   NewPublicEthereumAPI(apiBackend),
+			Service:   NewPublicPlasmaAPI(apiBackend),
 			Public:    true,
 		}, {
 			Namespace: "pls",

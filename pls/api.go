@@ -41,29 +41,29 @@ import (
 	"github.com/Onther-Tech/plasma-evm/trie"
 )
 
-// PublicEthereumAPI provides an API to access Ethereum full node-related
+// PublicPlasmaAPI provides an API to access Ethereum full node-related
 // information.
-type PublicEthereumAPI struct {
+type PublicPlasmaAPI struct {
 	p *Plasma
 }
 
-// NewPublicEthereumAPI creates a new Ethereum protocol API for full nodes.
-func NewPublicEthereumAPI(p *Plasma) *PublicEthereumAPI {
-	return &PublicEthereumAPI{p}
+// NewPublicPlasmaAPI creates a new Ethereum protocol API for full nodes.
+func NewPublicPlasmaAPI(p *Plasma) *PublicPlasmaAPI {
+	return &PublicPlasmaAPI{p}
 }
 
 // Etherbase is the address that mining rewards will be send to
-func (api *PublicEthereumAPI) Etherbase() (common.Address, error) {
+func (api *PublicPlasmaAPI) Etherbase() (common.Address, error) {
 	return api.p.Etherbase()
 }
 
 // Coinbase is the address that mining rewards will be send to (alias for Etherbase)
-func (api *PublicEthereumAPI) Coinbase() (common.Address, error) {
+func (api *PublicPlasmaAPI) Coinbase() (common.Address, error) {
 	return api.Etherbase()
 }
 
 // Hashrate returns the POW hashrate
-func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
+func (api *PublicPlasmaAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.p.Miner().HashRate())
 }
 
