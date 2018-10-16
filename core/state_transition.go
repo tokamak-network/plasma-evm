@@ -25,6 +25,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 var (
@@ -150,7 +151,7 @@ func (st *StateTransition) useGas(amount uint64) error {
 }
 
 func (st *StateTransition) buyGas() error {
-	if addr := st.msg.From(); addr == common.NullAddress {
+	if addr := st.msg.From(); addr == params.NullAddress {
 		st.gas += st.msg.Gas()
 		st.initialGas = st.msg.Gas()
 		return nil
@@ -228,7 +229,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	// Do not refund gas in case of NullAddress Transaction
-	if addr := st.msg.From(); addr != common.NullAddress {
+	if addr := st.msg.From(); addr != params.NullAddress {
 		st.refundGas()
 	}
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))

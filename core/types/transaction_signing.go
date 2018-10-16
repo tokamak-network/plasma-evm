@@ -25,6 +25,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 var (
@@ -55,7 +56,7 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int) Signer {
 // SignTx signs the transaction using the given signer and private key
 func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
 	//In case of NullAddress Transaction, set V, R, S fields to 0.
-	if prv == crypto.NullKey {
+	if prv == params.NullKey {
 		tx.data.V = big.NewInt(0)
 		tx.data.R = big.NewInt(0)
 		tx.data.S = big.NewInt(0)
@@ -236,7 +237,7 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	// if the tx is from nullAddress, pass the validation process
 	zero := big.NewInt(0)
 	if Vb.Cmp(zero) == 0 && R.Cmp(zero) == 0 && S.Cmp(zero) == 0 {
-		return common.NullAddress, nil
+		return params.NullAddress, nil
 	}
 
 	if Vb.BitLen() > 8 {

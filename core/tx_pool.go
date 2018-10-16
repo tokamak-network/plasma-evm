@@ -33,6 +33,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 const (
@@ -595,7 +596,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if from == common.NullAddress {
+	if from == params.NullAddress {
 		return nil
 	} else {
 		if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
@@ -948,7 +949,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			pool.priced.Removed()
 		}
 		// Drop all transactions that are too costly (low balance or out of gas)
-		if addr == common.NullAddress {
+		if addr == params.NullAddress {
 			continue
 		} else {
 			drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)

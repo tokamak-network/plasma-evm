@@ -23,6 +23,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
+	"github.com/Onther-Tech/plasma-evm/plasma"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -87,7 +89,7 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
-	if addr == common.NullAddress {
+	if addr == params.NullAddress {
 		return true
 	} else {
 		return db.GetBalance(addr).Cmp(amount) >= 0
@@ -96,7 +98,7 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	if sender == common.NullAddress {
+	if sender == params.NullAddress {
 		db.AddBalance(recipient, amount)
 	} else {
 		db.SubBalance(sender, amount)

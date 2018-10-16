@@ -38,6 +38,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/event"
+	"github.com/Onther-Tech/plasma-evm/plasma"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 var (
@@ -273,8 +275,8 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx *types.Transaction, chainID *b
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 	// sign NullAddress Transaction with NullKey
-	if a.Address == common.NullAddress {
-		return types.SignTx(tx, types.HomesteadSigner{}, crypto.NullKey)
+	if a.Address == params.NullAddress {
+		return types.SignTx(tx, types.HomesteadSigner{}, params.NullKey)
 	}
 
 	unlockedKey, found := ks.unlocked[a.Address]

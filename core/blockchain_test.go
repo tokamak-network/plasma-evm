@@ -34,6 +34,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 // So we can deterministically seed different blockchains
@@ -1067,14 +1068,14 @@ func TestNullAddressTx(t *testing.T) {
 	// Configure and generate a sample block chain
 	var (
 		db         = ethdb.NewMemDatabase()
-		NullKey	   = crypto.NullKey
+		NullKey	   = params.NullKey
 		key, _     = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		address    = crypto.PubkeyToAddress(key.PublicKey)
 		funds      = big.NewInt(10000)
 		deleteAddr = common.Address{1}
 		gspec      = &Genesis{
 			Config: &params.ChainConfig{ChainID: big.NewInt(1), EIP155Block: big.NewInt(2), HomesteadBlock: new(big.Int)},
-			Alloc:  GenesisAlloc{address: {Balance: funds}, common.NullAddress: {Balance: funds}, deleteAddr: {Balance: new(big.Int)}},
+			Alloc:  GenesisAlloc{address: {Balance: funds}, params.NullAddress: {Balance: funds}, deleteAddr: {Balance: new(big.Int)}},
 		}
 		genesis = gspec.MustCommit(db)
 	)
@@ -1083,7 +1084,7 @@ func TestNullAddressTx(t *testing.T) {
 	defer blockchain.Stop()
 
 	state, _ := blockchain.State()
-	fmt.Println("balance of NullAddress before tx : ", state.GetBalance(common.NullAddress))
+	fmt.Println("balance of NullAddress before tx : ", state.GetBalance(params.NullAddress))
 	fmt.Println("balance of address before tx : ", state.GetBalance(address))
 
 	GenerateChain(gspec.Config, genesis, ethash.NewFaker(), db, 1, func(i int, block *BlockGen) {
@@ -1099,8 +1100,13 @@ func TestNullAddressTx(t *testing.T) {
 			t.Fatal(err)
 		}
 		block.AddTx(tx)
-		fmt.Println("balance of NullAddress after tx : ", block.statedb.GetBalance(common.NullAddress))
-		fmt.Println("balance of address after tx : ", block.statedb.GetBalance(address))
+		nullBalance := block.statedb.GetBalance(params.NullAddress)
+		userBalance := block.statedb.GetBalance(address)
+		fmt.Println("balance of NullAddress after tx : ", nullBalance)
+		fmt.Println("balance of address after tx : ", userBalance)
+		if nullBalance.Cmp(big.NewInt(10000)) != 0 || userBalance.Cmp(big.NewInt(20000)) != 0 {
+			t.Fatal()
+		}
 	})
 }
 
@@ -1108,7 +1114,7 @@ func TestEIP155Transition(t *testing.T) {
 	// Configure and generate a sample block chain
 	var (
 		db         = ethdb.NewMemDatabase()
-		NullKey	   = crypto.NullKey
+		NullKey	   = params.NullKey
 		key, _     = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		address    = crypto.PubkeyToAddress(key.PublicKey)
 		funds      = big.NewInt(1000000000)
