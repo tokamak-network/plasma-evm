@@ -25,7 +25,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 var (

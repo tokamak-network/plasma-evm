@@ -38,7 +38,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/event"
-	"github.com/Onther-Tech/plasma-evm/plasma"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 

@@ -34,7 +34,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/plasma"
 )
 
 // So we can deterministically seed different blockchains
