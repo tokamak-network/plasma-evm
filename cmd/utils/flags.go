@@ -1240,45 +1240,27 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
 
-	// Override any default configs for hard coded networks.
-	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 3
+	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
+		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
+		key, _ := crypto.HexToECDSA(hex)
+		if addr := crypto.PubkeyToAddress(key.PublicKey); addr != params.Operator {
+			Fatalf("Faild to convert operator account: %v is not operator %v", addr.Hex(), params.Operator.Hex())
 		}
-		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 4
-		}
-		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
-		}
-		// Create new developer account or reuse existing one
-		var (
-			developer accounts.Account
-			err       error
-		)
-		if accs := ks.Accounts(); len(accs) > 0 {
-			developer = ks.Accounts()[0]
-		} else {
-			developer, err = ks.NewAccount("")
-			if err != nil {
-				Fatalf("Failed to create developer account: %v", err)
-			}
-		}
-		if err := ks.Unlock(developer, ""); err != nil {
-			Fatalf("Failed to unlock developer account: %v", err)
-		}
-		log.Info("Using developer account", "address", developer.Address)
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-			cfg.MinerGasPrice = big.NewInt(1)
+		var (
+			account accounts.Account
+			err     error
+		)
+
+		if account, err = ks.ImportECDSA(key, ""); err != nil {
+			Fatalf("Faild to import operator account: %v", err)
 		}
+
+		cfg.Operator = account
 	}
+
+	cfg.Genesis = core.DefaultPlasmaGenesisBlock()
+
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
@@ -1354,13 +1336,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *plasma.Config) {
 		// TODO(fjl): force-enable this in --dev mode
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
 	}
- 	// Override any default configs for hard coded networks.
+	// Override any default configs for hard coded networks.
 	switch {
-	case ctx.GlobalBool(PlasmaEnabledFlag.Name):
-	if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-		cfg.NetworkId = 16
-	}
-	cfg.Genesis = core.DefaultPlasmaGenesisBlock()
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 3
@@ -1392,10 +1369,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *plasma.Config) {
 			Fatalf("Failed to unlock developer account: %v", err)
 		}
 		log.Info("Using developer account", "address", developer.Address)
- 		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
 		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
 			cfg.MinerGasPrice = big.NewInt(1)
 		}
+		cfg.Genesis = core.DefaultPlasmaGenesisBlock()
+
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
