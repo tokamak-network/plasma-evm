@@ -22,7 +22,7 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/eth"
+	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/light"
 	"github.com/Onther-Tech/plasma-evm/p2p"
@@ -32,7 +32,7 @@ import (
 
 // lesCommons contains fields needed by both server and client.
 type lesCommons struct {
-	config                       *eth.Config
+	config                       *pls.Config
 	iConfig                      *light.IndexerConfig
 	chainDb                      ethdb.Database
 	protocolManager              *ProtocolManager
