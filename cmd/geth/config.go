@@ -30,9 +30,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
 	"github.com/Onther-Tech/plasma-evm/eth"
-	"github.com/Onther-Tech/plasma-evm/plasma"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plasma"
 	whisper "github.com/Onther-Tech/plasma-evm/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
@@ -156,11 +156,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	if ctx.GlobalBool(utils.PlasmaEnabledFlag.Name) {
-		utils.RegisterPlsService(stack, &cfg.Pls)
-	} else {
-		utils.RegisterEthService(stack, &cfg.Eth)
-	}
+	utils.RegisterEthService(stack, &cfg.Eth)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)

@@ -613,9 +613,18 @@ var (
 	}
 
 	// Plasma flags
-	PlasmaEnabledFlag = cli.BoolFlag{
-		Name:  "pls",
-		Usage: "Enable Plasma",
+	PlasmaOperatorKeyFlag = cli.StringFlag{
+		Name:  "operatorKey",
+		Usage: "Plasma operator key as hex(for dev)",
+	}
+	PlasmaRootChainUrlFlag = cli.StringFlag{
+		Name:  "rootchain.url",
+		Usage: "JSONRPC endpoint of rootchain provider",
+		Value: "ws://localhost:8545",
+	}
+	PlasmaRootChainContractFlag = cli.StringFlag{
+		Name:  "rootchain.contract",
+		Usage: "Address of the RootChain contract",
 	}
 )
 
@@ -1280,12 +1289,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *plasma.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
- 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbaseForPlasma(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setEthashForPlasma(ctx, cfg)
- 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
+	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
 	if ctx.GlobalIsSet(LightServFlag.Name) {
@@ -1297,15 +1306,15 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *plasma.Config) {
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
- 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
- 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
+	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
- 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	if ctx.GlobalIsSet(MinerNotifyFlag.Name) {

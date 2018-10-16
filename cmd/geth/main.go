@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/gosigar"
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
@@ -39,6 +38,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/node"
+	"github.com/elastic/gosigar"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -148,8 +148,10 @@ var (
 	}
 
 	plasmaFlags = []cli.Flag{
- 		utils.PlasmaEnabledFlag,
- 	}
+		utils.PlasmaOperatorKeyFlag,
+		utils.PlasmaRootChainUrlFlag,
+		utils.PlasmaRootChainContractFlag,
+	}
 
 	whisperFlags = []cli.Flag{
 		utils.WhisperEnabledFlag,
