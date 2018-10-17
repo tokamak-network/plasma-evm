@@ -135,6 +135,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Rootchain provider connected", "url", config.RootChainURL)
 
 	// Instantiate RootChain contract
 	rootchainContract, err := contract.NewRootChain(config.RootChainContract, rootchainBackend)
