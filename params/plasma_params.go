@@ -10,6 +10,7 @@ var (
 	NullKey, _ 		= crypto.HexToECDSA("0x00")
 	NRBepochLength	= int32(4)
 	ORBepochLength	= int32(1)
+	// TODO: move to miner struct field or chainConfig. It should not be in params because it is not the constants.
 	IsNRB			= true
 	IsORB			= false
 	NumNRBmined 	= int32(0)
