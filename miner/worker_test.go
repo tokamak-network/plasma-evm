@@ -32,6 +32,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/consensus/cliqueplasma"
+	"fmt"
 )
 
 var (
@@ -69,6 +71,7 @@ func init() {
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
+// this is also miner.Backend.
 type testWorkerBackend struct {
 	db         ethdb.Database
 	txPool     *core.TxPool
@@ -91,6 +94,9 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 		gspec.ExtraData = make([]byte, 32+common.AddressLength+65)
 		copy(gspec.ExtraData[32:], testBankAddress[:])
 	case *ethash.Ethash:
+	case *cliqueplasma.Clique:
+		gspec.ExtraData = make([]byte, 32+common.AddressLength+65)
+		copy(gspec.ExtraData[32:], testBankAddress[:])
 	default:
 		t.Fatalf("unexpected consensus engine type: %T", engine)
 	}
@@ -136,6 +142,53 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit)
 	w.setEtherbase(testBankAddress)
 	return w, backend
+}
+
+func newTestMiner(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, blocks int) (*Miner, *testWorkerBackend) {
+	backend := newTestWorkerBackend(t, chainConfig, engine, blocks)
+	backend.txPool.AddLocals(pendingTxs)
+	m := New(backend, chainConfig, new(event.TypeMux), engine, time.Second, params.GenesisGasLimit, params.GenesisGasLimit)
+	return m, backend
+}
+
+func TestMiner(t *testing.T) {
+	m, _ := newTestMiner(t, cliqueChainConfig, cliqueplasma.New(cliqueChainConfig.Clique, ethdb.NewMemDatabase(), testBankAddress), 0)
+	defer m.engine.Close()
+
+	w := m.worker
+	defer w.close()
+
+	var (
+		taskCh    = make(chan struct{}, 2)
+		taskIndex int
+	)
+
+	w.newTaskHook = func(task *task) {
+			taskIndex += 1
+			taskCh <- struct{}{}
+	}
+	w.fullTaskHook = func() {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Ensure worker has finished initialization
+	for {
+		b := w.pendingBlock()
+		if b != nil && b.NumberU64() == 1 {
+			break
+		}
+	}
+
+	m.Start(testBankAddress)
+	fmt.Println(testBankAddress)
+	for i := 0; i < 10; i += 1 {
+		fmt.Println(i)
+		select {
+		case <-taskCh:
+		//case <-time.NewTimer(time.Second).C:
+		//	t.Error("new task timeout")
+		}
+	}
 }
 
 func TestPendingStateAndBlockEthash(t *testing.T) {
@@ -224,8 +277,8 @@ func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	for i := 0; i < 2; i += 1 {
 		select {
 		case <-taskCh:
-		case <-time.NewTimer(time.Second).C:
-			t.Error("new task timeout")
+			case <-time.NewTimer(time.Second).C:
+				t.Error("new task timeout")
 		}
 	}
 }

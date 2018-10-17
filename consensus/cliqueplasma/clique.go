@@ -39,7 +39,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/rpc"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
+	"sync/atomic"
+	"fmt"
 )
 
 const (
@@ -222,7 +224,7 @@ type Clique struct {
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
+func New(config *params.CliqueConfig, db ethdb.Database, signerAddr common.Address) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -238,6 +240,8 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 		recents:    recents,
 		signatures: signatures,
 		proposals:  make(map[common.Address]bool),
+		// this is only for test
+		signer:		signerAddr,
 	}
 }
 
@@ -607,8 +611,15 @@ func (c *Clique) Authorize(signer common.Address, signFn SignerFn) {
 // Seal implements consensus.Engine, attempting to create a sealed block using
 // the local signing credentials.
 func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+	fmt.Println("1: Seal() is called")
+	// add number of blocks for counting epoch.
+	if params.IsNRB {
+		atomic.AddInt32(&params.NumNRBmined, 1)
+	} else {
+		atomic.AddInt32(&params.NumORBmined, 1)
+	}
 	header := block.Header()
-
+	fmt.Println("2: Seal() is called")
 	// Sealing the genesis block is not supported
 	number := header.Number.Uint64()
 	if number == 0 {
@@ -618,19 +629,25 @@ func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results c
 	if c.config.Period == 0 && len(block.Transactions()) == 0 {
 		return errWaitTransactions
 	}
+	fmt.Println("3: Seal() is called")
 	// Don't hold the signer fields for the entire sealing procedure
 	c.lock.RLock()
 	signer, signFn := c.signer, c.signFn
+	fmt.Printf("c.signer: \n", c.signer)
 	c.lock.RUnlock()
-
+	fmt.Println("3.5: Seal() is called")
 	// Bail out if we're unauthorized to sign a block
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
 	if err != nil {
 		return err
 	}
+	fmt.Println("3.6: Seal() is called")
 	if _, authorized := snap.Signers[signer]; !authorized {
+		fmt.Println(snap.Signers[signer])
+		fmt.Println("err")
 		return errUnauthorizedSigner
 	}
+	fmt.Println("4: Seal() is called")
 	// If we're amongst the recent signers, wait for the next block
 	for seen, recent := range snap.Recents {
 		if recent == signer {
@@ -641,6 +658,7 @@ func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results c
 			}
 		}
 	}
+	fmt.Println("5: Seal() is called")
 	// Sweet, the protocol permits us to sign the block, wait for our time
 	delay := time.Unix(header.Time.Int64(), 0).Sub(time.Now()) // nolint: gosimple
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {
@@ -659,6 +677,7 @@ func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results c
 	// Wait until sealing is terminated or delay timeout.
 	log.Trace("Waiting for slot to sign and propagate", "delay", common.PrettyDuration(delay))
 	go func() {
+		fmt.Println("go func() insede Seal() is called")
 		select {
 		case <-stop:
 			return

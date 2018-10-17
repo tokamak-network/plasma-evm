@@ -39,7 +39,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/rpc"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 const (

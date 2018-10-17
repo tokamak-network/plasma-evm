@@ -30,6 +30,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 	"github.com/Onther-Tech/plasma-evm/rlp"
+	"fmt"
 )
 
 var (
@@ -342,6 +343,7 @@ func CalcUncleHash(uncles []*Header) common.Hash {
 // the sealed one.
 // TODO : should make another way to set td.
 func (b *Block) WithSeal(header *Header) *Block {
+	fmt.Println("WithSeal() is called")
 	cpy := *header
 
 	return &Block{

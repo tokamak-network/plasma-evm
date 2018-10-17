@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
@@ -35,6 +35,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"fmt"
 )
 
 const (
@@ -215,6 +216,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	go worker.resultLoop()
 	go worker.taskLoop()
 
+
 	// Submit first work to initialize pending state.
 	worker.startCh <- struct{}{}
 
@@ -261,6 +263,7 @@ func (w *worker) pendingBlock() *types.Block {
 
 // start sets the running status as 1 and triggers new work submitting.
 func (w *worker) start() {
+	fmt.Println("worker started")
 	atomic.StoreInt32(&w.running, 1)
 	w.startCh <- struct{}{}
 }
@@ -337,6 +340,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	for {
 		select {
 		case <-w.startCh:
+			fmt.Println("newWorkLoop() case <-w.startCh")
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
@@ -402,6 +406,7 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
+			fmt.Println("mainLoop() : <-w.newWorkCh")
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 
 		case ev := <-w.chainSideCh:

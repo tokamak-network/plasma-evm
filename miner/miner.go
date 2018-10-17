@@ -62,8 +62,34 @@ func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		canStart: 1,
 	}
 	go miner.update()
+	params.IsNRB = true
+	params.IsORB = false
+	go miner.operate()
 
 	return miner
+}
+
+func (self *Miner) operate() {
+	for {
+		if params.NumNRBmined == params.NRBepochLength {
+			atomic.StoreInt32(&params.NumNRBmined, 0)
+			params.IsNRB = false
+			params.IsORB = true
+			self.Stop()
+			// TODO: Do some magical things here.
+			self.Start(params.NullAddress)
+			log.Info("ORB mining is started")
+		}
+		if params.NumORBmined == params.ORBepochLength {
+			atomic.StoreInt32(&params.NumORBmined, 0)
+			params.IsNRB = true
+			params.IsORB = false
+			self.Stop()
+			// TODO: Do some magical things here.
+			self.Start(params.NullAddress)
+			log.Info("NRB mining is started")
+		}
+	}
 }
 
 // update keeps track of the downloader events. Please be aware that this is a one shot type of update loop.
@@ -106,6 +132,7 @@ func (self *Miner) update() {
 }
 
 func (self *Miner) Start(coinbase common.Address) {
+	fmt.Println("mining started")
 	atomic.StoreInt32(&self.shouldStart, 1)
 	self.SetEtherbase(coinbase)
 
