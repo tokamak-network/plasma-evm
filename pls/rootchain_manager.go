@@ -95,7 +95,23 @@ func (rcm *RootChainManager) watchEvents() error {
 	}
 
 	// rootchain block#1
-	startBlockNumber := uint64(0)
+	startBlockNumber := uint64(1)
+
+	filterOpts := &bind.FilterOpts{
+		Start:   startBlockNumber,
+		End:     nil,
+		Context: context.Background(),
+	}
+
+	iterator, err := filterer.FilterEpochPrepared(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	for iterator.Next() {
+		e := iterator.Event
+		log.Info("[Previous Event] RootChain epoch prepared", "forkNumber", e.ForkNumber, "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+	}
 
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
@@ -108,7 +124,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
-	log.Info("Watching RootChain.EpochPrepared event")
+	log.Info("Watching RootChain.EpochPrepared event", "startBlockNumber", startBlockNumber)
 
 	go func() {
 		for {
