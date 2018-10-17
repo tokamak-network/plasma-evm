@@ -199,8 +199,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
+	stopFn := func() { pls.Stop() }
+
 	pls.rootchainManager = NewRootChainManager(
 		config,
+		stopFn,
 		pls.txPool,
 		pls.blockchain,
 		rootchainBackend,

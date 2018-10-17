@@ -13,12 +13,11 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
-	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 type RootChainManager struct {
-	config      *Config
-	chainConfig *params.ChainConfig
+	config *Config
+	stopFn func()
 
 	txPool     *core.TxPool
 	blockchain *core.BlockChain
@@ -39,6 +38,7 @@ type RootChainManager struct {
 
 func NewRootChainManager(
 	config *Config,
+	stopFn func(),
 	txPool *core.TxPool,
 	blockchain *core.BlockChain,
 	backend *ethclient.Client,
@@ -49,6 +49,7 @@ func NewRootChainManager(
 ) *RootChainManager {
 	rcm := &RootChainManager{
 		config:            config,
+		stopFn:            stopFn,
 		txPool:            txPool,
 		blockchain:        blockchain,
 		backend:           backend,
@@ -73,6 +74,7 @@ func (rcm *RootChainManager) Start() error {
 }
 
 func (rcm *RootChainManager) Stop() error {
+	rcm.backend.Close()
 	close(rcm.quit)
 	return nil
 }
@@ -87,13 +89,13 @@ func (rcm *RootChainManager) run() error {
 
 // watch RootChain contract events
 func (rcm *RootChainManager) watchEvents() error {
-	// rootchain block#1
-	var startBlockNumber uint64 = 1
-
 	filterer, err := contract.NewRootChainFilterer(rcm.config.RootChainContract, rcm.backend)
 	if err != nil {
 		return err
 	}
+
+	// rootchain block#1
+	startBlockNumber := uint64(0)
 
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
@@ -118,6 +120,7 @@ func (rcm *RootChainManager) watchEvents() error {
 
 			case err := <-epochPrepareSub.Err():
 				log.Error("EpochPrepared event subscription error", "err", err)
+				rcm.stopFn()
 				return
 
 			case <-rcm.quit:
@@ -134,12 +137,18 @@ func (rcm *RootChainManager) pingBackend() {
 	ticker := time.NewTicker(3 * time.Second)
 
 	for {
-		<-ticker.C
-		if _, err := rcm.backend.SyncProgress(context.Background()); err != nil {
-			log.Error("Rootchain provider doesn't respond", "err", err)
+		select {
+		case <-ticker.C:
+			if _, err := rcm.backend.SyncProgress(context.Background()); err != nil {
+				log.Error("Rootchain provider doesn't respond", "err", err)
+				ticker.Stop()
+				rcm.stopFn()
+				return
+			}
+		case <-rcm.quit:
 			ticker.Stop()
-			rcm.Stop()
 			return
 		}
+
 	}
 }
