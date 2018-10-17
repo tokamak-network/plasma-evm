@@ -131,9 +131,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	// Dial rootchain provider
-	if config.RootChainURL == "" {
-		config.RootChainURL = "ws://localhost:8546"
-	}
 	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
 	if err != nil {
 		return nil, err
