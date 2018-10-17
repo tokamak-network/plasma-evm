@@ -467,6 +467,8 @@ func (s *Plasma) Start(srvr *p2p.Server) error {
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
+
+	s.StartMining(runtime.NumCPU())
 	return nil
 }
 
