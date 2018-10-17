@@ -470,9 +470,9 @@ func (s *Plasma) Start(srvr *p2p.Server) error {
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
-	// if err := s.rootchainManager.Start(); err != nil {
-	// 	return err
-	// }
+	if err := s.rootchainManager.Start(); err != nil {
+		return err
+	}
 
 	return nil
 }

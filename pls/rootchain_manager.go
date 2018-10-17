@@ -106,6 +106,8 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
+	log.Info("Watching RootChain.EpochPrepared event")
+
 	go func() {
 		for {
 			select {
@@ -115,7 +117,7 @@ func (rcm *RootChainManager) watchEvents() error {
 				}
 
 			case err := <-epochPrepareSub.Err():
-				log.Error("EpochPrepared event subscription error", err)
+				log.Error("EpochPrepared event subscription error", "err", err)
 				return
 
 			case <-rcm.quit:
@@ -134,7 +136,7 @@ func (rcm *RootChainManager) pingBackend() {
 	for {
 		<-ticker.C
 		if _, err := rcm.backend.SyncProgress(context.Background()); err != nil {
-			log.Error("Rootchain provider doesn't respond", err)
+			log.Error("Rootchain provider doesn't respond", "err", err)
 			ticker.Stop()
 			rcm.Stop()
 			return
