@@ -61,9 +61,38 @@ func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil),
 		canStart: 1,
 	}
+	log.Info("NRB mining is started")
 	go miner.update()
+	params.IsNRB = true
+	params.IsORB = false
+	go miner.operate()
 
 	return miner
+}
+
+func (self *Miner) operate() {
+	for {
+		timer := time.NewTimer(time.Millisecond * 50)
+		if params.NumNRBmined == params.NRBepochLength {
+			log.Info("ORB mining is started")
+			atomic.StoreInt32(&params.NumNRBmined, 0)
+			params.IsNRB = false
+			params.IsORB = true
+			self.Stop()
+			// TODO: Do some magical things here.
+			self.Start(params.Operator)
+		}
+		if params.NumORBmined == params.ORBepochLength {
+			log.Info("NRB mining is started")
+			atomic.StoreInt32(&params.NumORBmined, 0)
+			params.IsNRB = true
+			params.IsORB = false
+			self.Stop()
+			// TODO: Do some magical things here.
+			self.Start(params.Operator)
+		}
+		<- timer.C
+	}
 }
 
 // update keeps track of the downloader events. Please be aware that this is a one shot type of update loop.
