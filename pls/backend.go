@@ -69,14 +69,11 @@ type Plasma struct {
 	shutdownChan chan bool // Channel for shutting down the Plasma
 
 	// Handlers
-	txPool          *core.TxPool
-	blockchain      *core.BlockChain
-	protocolManager *ProtocolManager
-	lesServer       LesServer
-
-	// Plasma
-	rootchainBackend  *ethclient.Client
-	rootchainContract *contract.RootChain
+	txPool           *core.TxPool
+	blockchain       *core.BlockChain
+	protocolManager  *ProtocolManager
+	lesServer        LesServer
+	rootchainManager *RootChainManager
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -130,34 +127,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
-	// Dial rootchain provider
-	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
-	if err != nil {
-		return nil, err
-	}
-	log.Info("Rootchain provider connected", "url", config.RootChainURL)
-
-	// Instantiate RootChain contract
-	rootchainContract, err := contract.NewRootChain(config.RootChainContract, rootchainBackend)
-	if err != nil {
-		return nil, err
-	}
-
 	pls := &Plasma{
-		config:            config,
-		chainDb:           chainDb,
-		chainConfig:       chainConfig,
-		eventMux:          ctx.EventMux,
-		rootchainBackend:  rootchainBackend,
-		rootchainContract: rootchainContract,
-		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
-		shutdownChan:      make(chan bool),
-		networkID:         config.NetworkId,
-		gasPrice:          config.MinerGasPrice,
-		etherbase:         config.Etherbase,
-		bloomRequests:     make(chan chan *bloombits.Retrieval),
-		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		config:         config,
+		chainDb:        chainDb,
+		chainConfig:    chainConfig,
+		eventMux:       ctx.EventMux,
+		accountManager: ctx.AccountManager,
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb),
+		shutdownChan:   make(chan bool),
+		networkID:      config.NetworkId,
+		gasPrice:       config.MinerGasPrice,
+		etherbase:      config.Etherbase,
+		bloomRequests:  make(chan chan *bloombits.Retrieval),
+		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 
 	log.Info("Initialising Plasma protocol", "versions", ProtocolVersions, "network", config.NetworkId)
@@ -204,6 +186,29 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	}
 	pls.APIBackend.gpo = gasprice.NewOracle(pls.APIBackend, gpoParams)
 
+	// Dial rootchain provider
+	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("Rootchain provider connected", "url", config.RootChainURL)
+
+	// Instantiate RootChain contract
+	rootchainContract, err := contract.NewRootChain(config.RootChainContract, rootchainBackend)
+	if err != nil {
+		return nil, err
+	}
+
+	pls.rootchainManager = NewRootChainManager(
+		config,
+		pls.txPool,
+		pls.blockchain,
+		rootchainBackend,
+		rootchainContract,
+		pls.eventMux,
+		pls.accountManager,
+		pls.miner,
+	)
 	return pls, nil
 }
 
@@ -465,6 +470,10 @@ func (s *Plasma) Start(srvr *p2p.Server) error {
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
+	// if err := s.rootchainManager.Start(); err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
 
@@ -483,6 +492,7 @@ func (s *Plasma) Stop() error {
 	s.eventMux.Stop()
 
 	s.chainDb.Close()
+	s.rootchainManager.Stop()
 	close(s.shutdownChan)
 	return nil
 }
