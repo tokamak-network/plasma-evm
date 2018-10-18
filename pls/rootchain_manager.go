@@ -164,7 +164,7 @@ func (rcm *RootChainManager) runHandlers() {
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
-			log.Info("RootChain epoch prepared", "forkNumber", e.ForkNumber, "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+			log.Info("RootChain epoch prepared", "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
 			rcm.eventMux.Post(miner.EpochPrepared{Payload: e})
 		case <-rcm.quit:
 			return
