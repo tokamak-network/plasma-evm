@@ -31,12 +31,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"math/big"
 )
 
 var (
-	isNRB       = true
-	numNRBmined int32
-	numORBmined int32
+	isRequest      = false
+	numNRBmined    = big.NewInt(0)
+	numORBmined    = big.NewInt(0)
+	NRBepochLength = big.NewInt(2)
+	ORBepochLength = big.NewInt(2)
 )
 
 // Backend wraps all methods required for mining.
@@ -82,25 +85,34 @@ func (self *Miner) operate() {
 		case ev := <-events.Chan():
 			switch ev.Data.(type) {
 			case NRBEpochCompleted:
-				log.Info("NRB epoch is completed")
 				self.Stop()
-				isNRB = false
-				atomic.StoreInt32(&numNRBmined, 0)
-				self.Start(params.Operator)
-				log.Info("ORB mining is started")
-
+				numNRBmined.Set(big.NewInt(0))
+				log.Info("NRB epoch is completed, Waiting for preparing next epoch")
 			case ORBEpochCompleted:
-				log.Info("ORB epoch is completed")
 				self.Stop()
-				isNRB = true
-				atomic.StoreInt32(&numORBmined, 0)
-				self.Start(params.Operator)
-				log.Info("NRB mining is started")
+				numORBmined.Set(big.NewInt(0))
+				log.Info("ORB epoch is completed, Waiting for preparing next epoch")
 			case EpochPrepared:
 				payload := ev.Data.(EpochPrepared).Payload
-				log.Info("miner.go: new epoch prepared event", "epochNumber", payload.EpochNumber, "isEmpty", payload.IsEmpty)
+				switch payload.IsRequest {
+				case true:
+					ORBepochLength.Set(big.NewInt(0))
+					if payload.EpochIsEmpty == true {
+						isRequest = false
+						self.Start(params.Operator)
+						log.Info("ORB epoch is empty, NRB epoch is started")
+					} else {
+						isRequest = true
+						ORBepochLength.Add(payload.EndBlockNumber.Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
+						self.Start(params.Operator)
+						log.Info("ORB epoch is prepared, ORB epoch is started")
+					}
+				case false:
+					isRequest = false
+					self.Start(params.Operator)
+					log.Info("NRB epoch is prepared, NRB epoch is started")
+				}
 			}
-
 		case <-self.exitCh:
 			return
 		}
