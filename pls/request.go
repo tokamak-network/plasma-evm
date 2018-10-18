@@ -15,6 +15,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -193,7 +194,7 @@ func (req *RequestTransaction) From() error {
 	if hash := req.from.Load(); hash != nil {
 		return fmt.Errorf("This is Not Nil, address is : %s.", hash)
 	}
-	req.from.Store(common.NullAddress)
+	req.from.Store(params.NullAddress)
 	return nil
 }
 
@@ -233,7 +234,7 @@ func (req *RequestTransaction) AsMessage() (Message, error) {
 	}
 
 	var err error
-	msg.from, err = common.NullAddress, nil
+	msg.from, err = params.NullAddress, nil
 	return msg, err
 }
 
@@ -369,7 +370,7 @@ func (t *TransactionsByPriceAndNonce) Peek() *RequestTransaction {
 // Shift replaces the current best head with the next one from the same account.
 func (t *TransactionsByPriceAndNonce) Shift() {
 	// acc is always NullAddress
-	acc := common.NullAddress
+	acc := params.NullAddress
 	if txs, ok := t.txs[acc]; ok && len(txs) > 0 {
 		t.heads[0], t.txs[acc] = txs[0], txs[1:]
 		heap.Fix(&t.heads, 0)
