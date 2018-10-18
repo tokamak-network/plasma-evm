@@ -584,16 +584,16 @@ func (w *worker) resultLoop() {
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 			// add 1 to number of block mined
-			if isNRB {
-				atomic.AddInt32(&numNRBmined, 1)
+			if isRequest {
+				numORBmined.Add(numORBmined, big.NewInt(1))
 			} else {
-				atomic.AddInt32(&numORBmined, 1)
+				numNRBmined.Add(numNRBmined, big.NewInt(1))
 			}
 			// announce if the epoch is completed
-			if numNRBmined == params.NRBepochLength {
+			if numNRBmined.Cmp(NRBepochLength) == 0 {
 				w.mux.Post(NRBEpochCompleted{})
 			}
-			if numORBmined == params.ORBepochLength {
+			if numORBmined.Cmp(ORBepochLength) == 0 {
 				w.mux.Post(ORBEpochCompleted{})
 			}
 		case <-w.exitCh:
