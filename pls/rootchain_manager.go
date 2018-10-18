@@ -15,6 +15,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/miner"
 )
 
+const MAX_EPOCH_EVENTS = 128
+
 type RootChainManager struct {
 	config *Config
 	stopFn func()
@@ -31,7 +33,8 @@ type RootChainManager struct {
 	miner *miner.Miner
 
 	// channels
-	quit chan struct{}
+	quit            chan struct{}
+	epochPreparedCh chan *contract.RootChainEpochPrepared
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
@@ -58,6 +61,7 @@ func NewRootChainManager(
 		accountManager:    accountManager,
 		miner:             miner,
 		quit:              make(chan struct{}),
+		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 	}
 
 	return rcm
@@ -80,6 +84,8 @@ func (rcm *RootChainManager) Stop() error {
 }
 
 func (rcm *RootChainManager) run() error {
+	go rcm.runHandlers()
+
 	if err := rcm.watchEvents(); err != nil {
 		return err
 	}
@@ -103,35 +109,41 @@ func (rcm *RootChainManager) watchEvents() error {
 		Context: context.Background(),
 	}
 
+	// iterate previous events
 	iterator, err := filterer.FilterEpochPrepared(filterOpts)
 	if err != nil {
 		return err
 	}
 
+	log.Info("Iterating EpochPrepared event")
+
 	for iterator.Next() {
 		e := iterator.Event
-		log.Info("[Previous Event] RootChain epoch prepared", "forkNumber", e.ForkNumber, "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+		if e != nil {
+			rcm.epochPreparedCh <- e
+		}
 	}
 
+	// watch events from now
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
 		Start:   &startBlockNumber, // read events from rootchain block#1
 	}
 
-	epochPrepareEventCh := make(chan *contract.RootChainEpochPrepared)
-	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareEventCh)
+	epochPrepareWatchCh := make(chan *contract.RootChainEpochPrepared)
+	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Watching RootChain.EpochPrepared event", "startBlockNumber", startBlockNumber)
+	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
 
 	go func() {
 		for {
 			select {
-			case e := <-epochPrepareEventCh:
+			case e := <-epochPrepareWatchCh:
 				if e != nil {
-					log.Info("RootChain epoch prepared", "forkNumber", e.ForkNumber, "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+					rcm.epochPreparedCh <- e
 				}
 
 			case err := <-epochPrepareSub.Err():
@@ -146,6 +158,17 @@ func (rcm *RootChainManager) watchEvents() error {
 	}()
 
 	return nil
+}
+
+func (rcm *RootChainManager) runHandlers() {
+	for {
+		select {
+		case e := <-rcm.epochPreparedCh:
+			log.Info("RootChain epoch prepared", "forkNumber", e.ForkNumber, "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+		case <-rcm.quit:
+			return
+		}
+	}
 }
 
 // pingBackend checks rootchain backend is alive.
