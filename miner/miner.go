@@ -33,6 +33,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 )
 
+var (
+	isNRB       = true
+	numNRBmined int32
+	numORBmined int32
+)
+
 // Backend wraps all methods required for mining.
 type Backend interface {
 	BlockChain() *core.BlockChain
@@ -62,8 +68,39 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		canStart: 1,
 	}
 	go miner.update()
+	go miner.operate()
 
 	return miner
+}
+
+func (self *Miner) operate() {
+	events := self.mux.Subscribe(core.NRBEpochCompleted{}, core.ORBEpochCompleted{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			switch ev.Data.(type) {
+			case core.NRBEpochCompleted:
+				log.Info("NRB epoch is completed")
+				self.Stop()
+				isNRB = false
+				atomic.StoreInt32(&numNRBmined, 0)
+				self.Start(params.Operator)
+				log.Info("ORB mining is started")
+
+			case core.ORBEpochCompleted:
+				log.Info("ORB epoch is completed")
+				self.Stop()
+				isNRB = true
+				atomic.StoreInt32(&numORBmined, 0)
+				self.Start(params.Operator)
+				log.Info("NRB mining is started")
+			}
+		case <-self.exitCh:
+			return
+		}
+	}
 }
 
 // update keeps track of the downloader events. Please be aware that this is a one shot type of update loop.
