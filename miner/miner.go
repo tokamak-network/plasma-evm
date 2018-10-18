@@ -33,6 +33,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
+var (
+	isNRB = true
+	numNRBmined	int32
+	numORBmined int32
+)
+
 // Backend wraps all methods required for mining.
 type Backend interface {
 	BlockChain() *core.BlockChain
@@ -61,37 +67,39 @@ func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil),
 		canStart: 1,
 	}
-	log.Info("NRB mining is started")
 	go miner.update()
-	params.IsNRB = true
-	params.IsORB = false
 	go miner.operate()
 
 	return miner
 }
 
 func (self *Miner) operate() {
+	events := self.mux.Subscribe(core.NRBEpochCompleted{}, core.ORBEpochCompleted{})
+	defer events.Unsubscribe()
+
 	for {
-		timer := time.NewTimer(time.Millisecond * 50)
-		if params.NumNRBmined == params.NRBepochLength {
-			log.Info("ORB mining is started")
-			atomic.StoreInt32(&params.NumNRBmined, 0)
-			params.IsNRB = false
-			params.IsORB = true
-			self.Stop()
-			// TODO: Do some magical things here.
-			self.Start(params.Operator)
+		select {
+		case ev := <-events.Chan():
+			switch ev.Data.(type) {
+			case core.NRBEpochCompleted:
+				log.Info("NRB epoch is completed")
+				self.Stop()
+				isNRB = false
+				atomic.StoreInt32(&numNRBmined, 0)
+				self.Start(params.Operator)
+				log.Info("ORB mining is started")
+
+			case core.ORBEpochCompleted:
+				log.Info("ORB epoch is completed")
+				self.Stop()
+				isNRB = true
+				atomic.StoreInt32(&numORBmined, 0)
+				self.Start(params.Operator)
+				log.Info("NRB mining is started")
+			}
+		case <-self.exitCh:
+			return
 		}
-		if params.NumORBmined == params.ORBepochLength {
-			log.Info("NRB mining is started")
-			atomic.StoreInt32(&params.NumORBmined, 0)
-			params.IsNRB = true
-			params.IsORB = false
-			self.Stop()
-			// TODO: Do some magical things here.
-			self.Start(params.Operator)
-		}
-		<- timer.C
 	}
 }
 
