@@ -35,11 +35,11 @@ import (
 )
 
 var (
-	isRequest = false
-	numNRBmined *big.Int
-	numORBmined *big.Int
-	NRBepochLength	*big.Int
-	ORBepochLength	*big.Int
+	isRequest      = false
+	numNRBmined    = big.NewInt(0)
+	numORBmined    = big.NewInt(0)
+	NRBepochLength = big.NewInt(2)
+	ORBepochLength = big.NewInt(2)
 )
 
 // Backend wraps all methods required for mining.
