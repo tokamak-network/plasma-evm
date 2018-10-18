@@ -83,6 +83,9 @@ func (self *Miner) operate() {
 	for {
 		select {
 		case ev := <-events.Chan():
+			if ev == nil {
+				return
+			}
 			switch ev.Data.(type) {
 			case NRBEpochCompleted:
 				self.Stop()
