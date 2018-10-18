@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package miner implements Ethereum block creation and mining.
+// Package miner implements Plasma block creation and mining.
 package miner
 
 import (
@@ -27,10 +27,16 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+)
+
+var (
+	isNRB       = true
+	numNRBmined int32
+	numORBmined int32
 )
 
 // Backend wraps all methods required for mining.
@@ -44,7 +50,7 @@ type Miner struct {
 	mux      *event.TypeMux
 	worker   *worker
 	coinbase common.Address
-	eth      Backend
+	pls      Backend
 	engine   consensus.Engine
 	exitCh   chan struct{}
 
@@ -52,18 +58,53 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
+func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
 	miner := &Miner{
-		eth:      eth,
+		pls:      pls,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil),
+		worker:   newWorker(config, engine, pls, mux, recommit, gasFloor, gasCeil),
 		canStart: 1,
 	}
 	go miner.update()
+	go miner.operate()
 
 	return miner
+}
+
+func (self *Miner) operate() {
+	events := self.mux.Subscribe(NRBEpochCompleted{}, ORBEpochCompleted{}, EpochPrepared{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			switch ev.Data.(type) {
+			case NRBEpochCompleted:
+				log.Info("NRB epoch is completed")
+				self.Stop()
+				isNRB = false
+				atomic.StoreInt32(&numNRBmined, 0)
+				self.Start(params.Operator)
+				log.Info("ORB mining is started")
+
+			case ORBEpochCompleted:
+				log.Info("ORB epoch is completed")
+				self.Stop()
+				isNRB = true
+				atomic.StoreInt32(&numORBmined, 0)
+				self.Start(params.Operator)
+				log.Info("NRB mining is started")
+			case EpochPrepared:
+				payload := ev.Data.(EpochPrepared).Payload
+				log.Info("miner.go: new epoch prepared event", "epochNumber", payload.EpochNumber, "isEmpty", payload.IsEmpty)
+			}
+
+		case <-self.exitCh:
+			return
+		}
+	}
 }
 
 // update keeps track of the downloader events. Please be aware that this is a one shot type of update loop.

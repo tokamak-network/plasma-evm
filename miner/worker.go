@@ -125,7 +125,7 @@ type intervalAdjust struct {
 type worker struct {
 	config *params.ChainConfig
 	engine consensus.Engine
-	eth    Backend
+	pls    Backend
 	chain  *core.BlockChain
 
 	gasFloor uint64
@@ -175,17 +175,17 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
-		eth:                eth,
+		pls:                pls,
 		mux:                mux,
-		chain:              eth.BlockChain(),
+		chain:              pls.BlockChain(),
 		gasFloor:           gasFloor,
 		gasCeil:            gasCeil,
 		possibleUncles:     make(map[common.Hash]*types.Block),
-		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
+		unconfirmed:        newUnconfirmedBlocks(pls.BlockChain(), miningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
 		txsCh:              make(chan core.NewTxsEvent, txChanSize),
 		chainHeadCh:        make(chan core.ChainHeadEvent, chainHeadChanSize),
@@ -199,10 +199,10 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
 	}
 	// Subscribe NewTxsEvent for tx pool
-	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
+	worker.txsSub = pls.TxPool().SubscribeNewTxsEvent(worker.txsCh)
 	// Subscribe events for blockchain
-	worker.chainHeadSub = eth.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
-	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
+	worker.chainHeadSub = pls.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
+	worker.chainSideSub = pls.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
 	// Sanitize recommit interval if the user-specified one is too short.
 	if recommit < minRecommitInterval {
@@ -583,7 +583,19 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-
+			// add 1 to number of block mined
+			if isNRB {
+				atomic.AddInt32(&numNRBmined, 1)
+			} else {
+				atomic.AddInt32(&numORBmined, 1)
+			}
+			// announce if the epoch is completed
+			if numNRBmined == params.NRBepochLength {
+				w.mux.Post(NRBEpochCompleted{})
+			}
+			if numORBmined == params.ORBepochLength {
+				w.mux.Post(ORBEpochCompleted{})
+			}
 		case <-w.exitCh:
 			return
 		}
@@ -884,7 +896,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	// Fill the block with all available pending transactions.
-	pending, err := w.eth.TxPool().Pending()
+	pending, err := w.pls.TxPool().Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
@@ -896,7 +908,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
-	for _, account := range w.eth.TxPool().Locals() {
+	for _, account := range w.pls.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)
 			localTxs[account] = txs

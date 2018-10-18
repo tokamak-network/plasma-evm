@@ -1218,12 +1218,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Operator = account
 	}
 
-	if ctx.GlobalIsSet(PlasmaRootChainUrlFlag.Name) {
-		cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
+	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
+
+	if !ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
+		Fatalf("RootChain contract address must be set, using --rootchain.contract")
 	}
-	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
-		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
-	}
+	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
 
 	cfg.Genesis = core.DefaultGenesisBlock()
 

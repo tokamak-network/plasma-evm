@@ -99,7 +99,7 @@ func main() {
 	time.Sleep(3 * time.Second)
 
 	for _, node := range nodes {
-		var ethereum *eth.Ethereum
+		var ethereum *pls.Plasma
 		if err := node.Service(&ethereum); err != nil {
 			panic(err)
 		}
@@ -115,7 +115,7 @@ func main() {
 		index := rand.Intn(len(faucets))
 
 		// Fetch the accessor for the relevant signer
-		var ethereum *eth.Ethereum
+		var ethereum *pls.Plasma
 		if err := nodes[index%len(nodes)].Service(&ethereum); err != nil {
 			panic(err)
 		}
@@ -156,7 +156,7 @@ func makeGenesis(faucets []*ecdsa.PrivateKey) *core.Genesis {
 }
 
 func makeMiner(genesis *core.Genesis, nodes []string) (*node.Node, error) {
-	// Define the basic configurations for the Ethereum node
+	// Define the basic configurations for the Plasma node
 	datadir, _ := ioutil.TempDir("", "")
 
 	config := &node.Config{
@@ -171,21 +171,21 @@ func makeMiner(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 		NoUSB:             true,
 		UseLightweightKDF: true,
 	}
-	// Start the node and configure a full Ethereum node on it
+	// Start the node and configure a full Plasma node on it
 	stack, err := node.New(config)
 	if err != nil {
 		return nil, err
 	}
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return eth.New(ctx, &eth.Config{
+		return pls.New(ctx, &pls.Config{
 			Genesis:         genesis,
 			NetworkId:       genesis.Config.ChainID.Uint64(),
 			SyncMode:        downloader.FullSync,
 			DatabaseCache:   256,
 			DatabaseHandles: 256,
 			TxPool:          core.DefaultTxPoolConfig,
-			GPO:             eth.DefaultConfig.GPO,
-			Ethash:          eth.DefaultConfig.Ethash,
+			GPO:             pls.DefaultConfig.GPO,
+			Ethash:          pls.DefaultConfig.Ethash,
 			MinerGasFloor:   genesis.GasLimit * 9 / 10,
 			MinerGasCeil:    genesis.GasLimit * 11 / 10,
 			MinerGasPrice:   big.NewInt(1),
