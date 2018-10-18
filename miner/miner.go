@@ -74,7 +74,7 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 }
 
 func (self *Miner) operate() {
-	events := self.mux.Subscribe(NRBEpochCompleted{}, ORBEpochCompleted{})
+	events := self.mux.Subscribe(NRBEpochCompleted{}, ORBEpochCompleted{}, EpochPrepared{})
 	defer events.Unsubscribe()
 
 	for {
@@ -96,7 +96,11 @@ func (self *Miner) operate() {
 				atomic.StoreInt32(&numORBmined, 0)
 				self.Start(params.Operator)
 				log.Info("NRB mining is started")
+			case EpochPrepared:
+				payload := ev.Data.(EpochPrepared).Payload
+				log.Info("miner.go: new epoch prepared event", "epochNumber", payload.EpochNumber, "isEmpty", payload.IsEmpty)
 			}
+
 		case <-self.exitCh:
 			return
 		}
