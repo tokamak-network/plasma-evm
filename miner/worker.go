@@ -808,6 +808,86 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	return false
 }
 
+func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase common.Address, interrupt *int32) bool {
+	// Short circuit if current is nil
+	if w.current == nil {
+		return true
+	}
+
+	if w.current.gasPool == nil {
+		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+	}
+
+	var coalescedLogs []*types.Log
+
+	for _, rtx := range rtxs {
+		// In the following three cases, we will interrupt the execution of the transaction.
+		// (1) new head block event arrival, the interrupt signal is 1
+		// (2) worker start or restart, the interrupt signal is 1
+		// (3) worker recreate the mining block with any newly arrived transactions, the interrupt signal is 2.
+		// For the first two cases, the semi-finished work will be discarded.
+		// For the third case, the semi-finished work will be submitted to the consensus engine.
+		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
+			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
+			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
+				ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				if ratio < 0.1 {
+					ratio = 0.1
+				}
+				w.resubmitAdjustCh <- &intervalAdjust{
+					ratio: ratio,
+					inc:   true,
+				}
+			}
+			return atomic.LoadInt32(interrupt) == commitInterruptNewHead
+		}
+
+		// If we don't have enough gas for any further transactions then we're done
+		if w.current.gasPool.Gas() < params.TxGas {
+			log.Trace("Not enough gas for further transactions", "have", w.current.gasPool, "want", params.TxGas)
+			break
+		}
+
+		// Check whether the rtx is replay protected. If we're not in the EIP155 hf
+		// phase, start ignoring the sender until we do.
+		if rtx.Protected() && !w.config.IsEIP155(w.current.header.Number) {
+			log.Trace("Ignoring reply protected transaction", "hash", rtx.Hash(), "eip155", w.config.EIP155Block)
+
+			continue
+		}
+		// Start executing the transaction
+		w.current.state.Prepare(rtx.Hash(), common.Hash{}, w.current.tcount)
+
+		logs, err := w.commitTransaction(rtx, coinbase)
+		if err != nil {
+			coalescedLogs = append(coalescedLogs, logs...)
+			w.current.tcount++
+		}
+	}
+
+	if !w.isRunning() && len(coalescedLogs) > 0 {
+		// We don't push the pendingLogsEvent while we are mining. The reason is that
+		// when we are mining, the worker will regenerate a mining block every 3 seconds.
+		// In order to avoid pushing the repeated pendingLog, we disable the pending log pushing.
+
+		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
+		// logs by filling in the block hash when the block was mined by the local miner. This can
+		// cause a race condition if a log was "upgraded" before the PendingLogsEvent is processed.
+		cpy := make([]*types.Log, len(coalescedLogs))
+		for i, l := range coalescedLogs {
+			cpy[i] = new(types.Log)
+			*cpy[i] = *l
+		}
+		go w.mux.Post(core.PendingLogsEvent{Logs: cpy})
+	}
+	// Notify resubmit loop to decrease resubmitting interval if current interval is larger
+	// than the user-specified one.
+	if interrupt != nil {
+		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
+	}
+	return false
+}
+
 // commitNewWork generates several new sealing tasks based on the parent block.
 func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) {
 	w.mu.RLock()
@@ -929,7 +1009,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
-// commitNewWork generates several new sealing tasks based on the parent block.
+// commitNewWorkForORB generates several new sealing tasks based on the parent block.
 func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp int64) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -1021,20 +1101,13 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 		w.commit(uncles, nil, false, tstart)
 	}
 
-	requestTxs, err := w.pls.TxPool().Requests()
-	if err != nil {
-		log.Error("Failed to fetch request transactions", "err", err)
-		return
-	}
-
-	// Short circuit if there is no available pending transactions
+	requestTxs := w.pls.TxPool().Requests()
 	if len(requestTxs) == 0 {
 		w.updateSnapshot()
 		return
 	}
 
-	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, requestTxs)
-	if w.commitTransactions(txs, w.coinbase, interrupt) {
+	if w.commitRequestTransactions(requestTxs, w.coinbase, interrupt) {
 		return
 	}
 

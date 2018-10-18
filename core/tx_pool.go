@@ -203,7 +203,7 @@ type TxPool struct {
 
 	pending map[common.Address]*txList   // All currently processable transactions
 	queue   map[common.Address]*txList   // Queued but non-processable transactions
-	request map[common.Address]*txList   // Queued request transactions
+	request types.Transactions           // Queued request transactions
 	beats   map[common.Address]time.Time // Last heartbeat from each known account
 	all     *txLookup                    // All transactions to allow lookups
 	priced  *txPricedList                // All transactions sorted by price
@@ -227,7 +227,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
-		request:     make(map[common.Address]*txList),
+		request:     types.Transactions{},
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
@@ -550,15 +550,11 @@ func (pool *TxPool) Locals() []common.Address {
 }
 
 // Requests retrieves all request transactions
-func (pool *TxPool) Requests() (map[common.Address]types.Transactions, error) {
+func (pool *TxPool) Requests() (types.Transactions) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	request := make(map[common.Address]types.Transactions)
-	for addr, list := range pool.request {
-		request[addr] = list.Flatten()
-	}
-	return request, nil
+	return pool.request
 }
 
 // local retrieves all currently known local transactions, groupped by origin
@@ -736,15 +732,7 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 }
 
 func (pool *TxPool) enqueueReqeustTx(rtx *types.Transaction) (bool, error) {
-	from, _ := types.Sender(pool.signer, rtx)
-	if pool.request[from] == nil {
-		pool.request[from] = newTxList(false)
-	}
-	inserted, _ := pool.request[from].Add(rtx, pool.config.PriceBump)
-	if !inserted {
-		return false, ErrReplaceUnderpriced
-	}
-
+	pool.request = append(pool.request, rtx)
 	return true, nil
 }
 
