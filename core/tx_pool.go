@@ -203,6 +203,7 @@ type TxPool struct {
 
 	pending map[common.Address]*txList   // All currently processable transactions
 	queue   map[common.Address]*txList   // Queued but non-processable transactions
+	request types.Transactions           // Queued request transactions
 	beats   map[common.Address]time.Time // Last heartbeat from each known account
 	all     *txLookup                    // All transactions to allow lookups
 	priced  *txPricedList                // All transactions sorted by price
@@ -226,6 +227,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
+		request:     types.Transactions{},
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
@@ -547,6 +549,14 @@ func (pool *TxPool) Locals() []common.Address {
 	return pool.locals.flatten()
 }
 
+// Requests retrieves all request transactions
+func (pool *TxPool) Requests() types.Transactions {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	return pool.request
+}
+
 // local retrieves all currently known local transactions, groupped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
@@ -719,6 +729,18 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 		pool.priced.Put(tx)
 	}
 	return old != nil, nil
+}
+
+func (pool *TxPool) EnqueueReqeustTx(rtx *types.Transaction) (bool, error) {
+	pool.request = append(pool.request, rtx)
+	return true, nil
+}
+
+func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (bool, error) {
+	for _, rtx := range rtxs {
+		pool.EnqueueReqeustTx(rtx)
+	}
+	return true, nil
 }
 
 // journalTx adds the specified transaction to the local disk journal if it is

@@ -238,9 +238,10 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
 		}
 		log.Error("num boies", "EpochNumber", e.EpochNumber, "len", len(bodies), "e.IsRequest", e.IsRequest, "e.EpochIsEmpty", e.EpochIsEmpty)
+
 	}
 
-	rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
 
 	return nil
 }
