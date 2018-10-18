@@ -402,7 +402,11 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
-			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+			if isRequest == true {
+				w.commitNewWorkForORB(req.interrupt, req.noempty, req.timestamp)
+			} else {
+				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+			}
 
 		case ev := <-w.chainSideCh:
 			if _, exist := w.possibleUncles[ev.Block.Hash()]; exist {
