@@ -97,7 +97,7 @@ func (self *Miner) operate() {
 				switch payload.IsRequest {
 				case true:
 					ORBepochLength.Set(big.NewInt(0))
-					if payload.IsEmpty == true {
+					if payload.EpochIsEmpty == true {
 						isRequest = false
 						self.Start(params.Operator)
 						log.Info("ORB epoch is empty, NRB epoch is started")
