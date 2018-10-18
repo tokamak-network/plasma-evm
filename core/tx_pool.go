@@ -549,6 +549,18 @@ func (pool *TxPool) Locals() []common.Address {
 	return pool.locals.flatten()
 }
 
+// Requests retrieves all request transactions
+func (pool *TxPool) Requests() (map[common.Address]types.Transactions, error) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	request := make(map[common.Address]types.Transactions)
+	for addr, list := range pool.request {
+		request[addr] = list.Flatten()
+	}
+	return request, nil
+}
+
 // local retrieves all currently known local transactions, groupped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.

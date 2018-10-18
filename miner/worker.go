@@ -929,6 +929,118 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
+// commitNewWork generates several new sealing tasks based on the parent block.
+func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp int64) {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	tstart := time.Now()
+	parent := w.chain.CurrentBlock()
+
+	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
+		timestamp = parent.Time().Int64() + 1
+	}
+	// this will ensure we're not going off too far in the future
+	if now := time.Now().Unix(); timestamp > now+1 {
+		wait := time.Duration(timestamp-now) * time.Second
+		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+		time.Sleep(wait)
+	}
+
+	num := parent.Number()
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     num.Add(num, common.Big1),
+		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		Extra:      w.extra,
+		Time:       big.NewInt(timestamp),
+	}
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return
+		}
+		// NOTE: change w.coinbase to params.NullAddress
+		header.Coinbase = params.NullAddress
+	}
+	if err := w.engine.Prepare(w.chain, header); err != nil {
+		log.Error("Failed to prepare header for mining", "err", err)
+		return
+	}
+
+	// TODO: delete because pls block is frontier spec
+	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
+	if daoBlock := w.config.DAOForkBlock; daoBlock != nil {
+		// Check whether the block is among the fork extra-override range
+		limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
+		if header.Number.Cmp(daoBlock) >= 0 && header.Number.Cmp(limit) < 0 {
+			// Depending whether we support or oppose the fork, override differently
+			if w.config.DAOForkSupport {
+				header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
+			} else if bytes.Equal(header.Extra, params.DAOForkBlockExtra) {
+				header.Extra = []byte{} // If miner opposes, don't let it use the reserved extra-data
+			}
+		}
+	}
+	// Could potentially happen if starting to mine in an odd state.
+	err := w.makeCurrent(parent, header)
+	if err != nil {
+		log.Error("Failed to create mining context", "err", err)
+		return
+	}
+	// Create the current work task and check any fork transitions needed
+	env := w.current
+	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
+		misc.ApplyDAOHardFork(env.state)
+	}
+	// // Accumulate the uncles for the current block
+	// for hash, uncle := range w.possibleUncles {
+	// 	if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
+	// 		delete(w.possibleUncles, hash)
+	// 	}
+	// }
+
+	// TODO: delete uncle because POA don't have uncles
+	uncles := make([]*types.Header, 0, 2)
+	for hash, uncle := range w.possibleUncles {
+		if len(uncles) == 2 {
+			break
+		}
+		if err := w.commitUncle(env, uncle.Header()); err != nil {
+			log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
+		} else {
+			log.Debug("Committing new uncle to block", "hash", hash)
+			uncles = append(uncles, uncle.Header())
+		}
+	}
+
+	if !noempty {
+		// Create an empty block based on temporary copied state for sealing in advance without waiting block
+		// execution finished.
+		w.commit(uncles, nil, false, tstart)
+	}
+
+	requestTxs, err := w.pls.TxPool().Requests()
+	if err != nil {
+		log.Error("Failed to fetch request transactions", "err", err)
+		return
+	}
+
+	// Short circuit if there is no available pending transactions
+	if len(requestTxs) == 0 {
+		w.updateSnapshot()
+		return
+	}
+
+	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, requestTxs)
+	if w.commitTransactions(txs, w.coinbase, interrupt) {
+		return
+	}
+
+	w.commit(uncles, w.fullTaskHook, true, tstart)
+}
+
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(uncles []*types.Header, interval func(), update bool, start time.Time) error {
