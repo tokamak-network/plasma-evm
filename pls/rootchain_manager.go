@@ -2,20 +2,23 @@ package pls
 
 import (
 	"context"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
 )
 
-const MAX_EPOCH_EVENTS = 128
+const MAX_EPOCH_EVENTS = 0
 
 type RootChainManager struct {
 	config *Config
@@ -120,7 +123,7 @@ func (rcm *RootChainManager) watchEvents() error {
 	for iterator.Next() {
 		e := iterator.Event
 		if e != nil {
-			rcm.epochPreparedCh <- e
+			rcm.handleEpochPrepared(e)
 		}
 	}
 
@@ -164,12 +167,107 @@ func (rcm *RootChainManager) runHandlers() {
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
-			log.Info("RootChain epoch prepared", "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
-			rcm.eventMux.Post(miner.EpochPrepared{Payload: e})
+			if err := rcm.handleEpochPrepared(e); err != nil {
+				log.Error("Failed to handle epoch prepared", "err", err)
+			}
 		case <-rcm.quit:
 			return
 		}
 	}
+}
+
+func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrepared) error {
+	rcm.lock.Lock()
+	defer rcm.lock.Unlock()
+
+	e := *ev
+
+	log.Info("RootChain epoch prepared", "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated)
+
+	// prepare request tx for ORBs
+	if e.IsRequest && !e.EpochIsEmpty {
+		numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
+		numORBs = new(big.Int).Add(numORBs, big.NewInt(1))
+
+		bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
+
+		log.Error("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
+
+		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
+			callOpts := &bind.CallOpts{
+				Pending: false,
+				Context: context.Background(),
+			}
+
+			currentFork, err := rcm.rootchainContract.CurrentFork(callOpts)
+			if err != nil {
+				return err
+			}
+
+			pb, err := rcm.rootchainContract.Blocks(callOpts, currentFork, blockNumber)
+			if err != nil {
+				return err
+			}
+
+			orb, err := rcm.rootchainContract.ORBs(callOpts, big.NewInt(int64(pb.RequestBlockId)))
+			if err != nil {
+				return err
+			}
+
+			numRequests := orb.RequestEnd - orb.RequestStart + 1
+			log.Error("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
+
+			body := make(types.Transactions, 0, numRequests)
+
+			for requestId := orb.RequestStart; requestId <= orb.RequestEnd; {
+				request, err := rcm.rootchainContract.EROs(callOpts, big.NewInt(int64(requestId)))
+				if err != nil {
+					return err
+				}
+
+				requestTx := rcm.toTransaction(request)
+				body = append(body, requestTx)
+
+				requestId += 1
+			}
+
+			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", pb.RequestBlockId, "body", body)
+
+			bodies = append(bodies, body)
+
+			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
+		}
+		log.Error("num boies", "EpochNumber", e.EpochNumber, "len", len(bodies), "e.IsRequest", e.IsRequest, "e.EpochIsEmpty", e.EpochIsEmpty)
+	}
+
+	rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+
+	return nil
+}
+
+func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction {
+	request, ok := data.(Request)
+
+	if !ok {
+		return &types.Transaction{}
+	}
+
+	isTransfer := request.Requestor.Hex() == request.To.Hex()
+	var to common.Address
+
+	if isTransfer {
+		to = request.Requestor
+	} else {
+		callOpts := &bind.CallOpts{
+			Pending: false,
+			Context: context.Background(),
+		}
+
+		to, _ = rcm.rootchainContract.RequestableContracts(callOpts, request.To)
+	}
+
+	// TODO: check data field
+	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), nil)
 }
 
 // pingBackend checks rootchain backend is alive.
@@ -191,4 +289,17 @@ func (rcm *RootChainManager) pingBackend() {
 		}
 
 	}
+}
+
+type Request struct {
+	Timestamp  uint64
+	IsExit     bool
+	Applied    bool
+	Finalized  bool
+	Challenged bool
+	Value      *big.Int
+	Requestor  common.Address
+	To         common.Address
+	TrieKey    [32]byte
+	TrieValue  [32]byte
 }
