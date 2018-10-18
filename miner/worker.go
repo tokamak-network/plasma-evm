@@ -591,10 +591,10 @@ func (w *worker) resultLoop() {
 			}
 			// announce if the epoch is completed
 			if numNRBmined == params.NRBepochLength {
-				w.mux.Post(core.NRBEpochCompleted{})
+				w.mux.Post(NRBEpochCompleted{})
 			}
 			if numORBmined == params.ORBepochLength {
-				w.mux.Post(core.ORBEpochCompleted{})
+				w.mux.Post(ORBEpochCompleted{})
 			}
 		case <-w.exitCh:
 			return

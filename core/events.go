@@ -32,10 +32,6 @@ type PendingLogsEvent struct {
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
-type NRBEpochCompleted struct {}
-
-type ORBEpochCompleted struct {}
-
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }
 

@@ -74,14 +74,14 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 }
 
 func (self *Miner) operate() {
-	events := self.mux.Subscribe(core.NRBEpochCompleted{}, core.ORBEpochCompleted{})
+	events := self.mux.Subscribe(NRBEpochCompleted{}, ORBEpochCompleted{})
 	defer events.Unsubscribe()
 
 	for {
 		select {
 		case ev := <-events.Chan():
 			switch ev.Data.(type) {
-			case core.NRBEpochCompleted:
+			case NRBEpochCompleted:
 				log.Info("NRB epoch is completed")
 				self.Stop()
 				isNRB = false
@@ -89,7 +89,7 @@ func (self *Miner) operate() {
 				self.Start(params.Operator)
 				log.Info("ORB mining is started")
 
-			case core.ORBEpochCompleted:
+			case ORBEpochCompleted:
 				log.Info("ORB epoch is completed")
 				self.Stop()
 				isNRB = true
