@@ -170,8 +170,9 @@ func TestScenario1(t *testing.T) {
 func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
 	opt := makeTxOpt(key, 0, nil, ether(1))
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	isTransfer := true
 
-	if _, err = rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes); err != nil {
+	if _, err := rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an enter (deposit) request: %v", err)
 	}
 }
