@@ -16,6 +16,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const MAX_EPOCH_EVENTS = 0
@@ -90,6 +91,7 @@ func (rcm *RootChainManager) Stop() error {
 
 func (rcm *RootChainManager) run() error {
 	go rcm.runHandlers()
+	go rcm.runSubmitter()
 
 	if err := rcm.watchEvents(); err != nil {
 		return err
@@ -165,7 +167,45 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
+func (rcm *RootChainManager) runSubmitter() {
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	defer events.Unsubscribe()
+
+	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	if err != nil {
+		log.Error("failed to get operator private key")
+		return
+	}
+	transactOpts := bind.NewKeyedTransactor(privKey)
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			blockInfo := ev.Data.(miner.BlockMined).Payload
+
+			// send block to root chain contract
+			if  blockInfo.IsRequest == false {
+				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				if err != nil {
+					log.Warn("failed to submit block", "error", err)
+				}
+			} else {
+				_, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				if err != nil {
+					log.Warn("failed to submit block", "error", err)
+				}
+			}
+		case <-rcm.quit:
+			return
+		}
+	}
+}
+
 func (rcm *RootChainManager) runHandlers() {
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	defer events.Unsubscribe()
+
+	var epoch []miner.BlockMined
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
