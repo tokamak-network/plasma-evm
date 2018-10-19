@@ -3,7 +3,6 @@ package pls
 import (
 	"crypto/ecdsa"
 	"flag"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
