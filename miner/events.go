@@ -2,8 +2,8 @@ package miner
 
 import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
-	"math/big"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"math/big"
 )
 
 type NRBEpochCompleted struct{}
@@ -15,12 +15,8 @@ type EpochPrepared struct {
 }
 
 type BlockMined struct {
-	Payload *blockMined
-}
-
-type blockMined struct {
-	IsRequest bool
+	IsRequest   bool
 	BlockNumber *big.Int
-	Remaining *big.Int
-	Header *types.Header
+	Remaining   *big.Int
+	Header      *types.Header
 }

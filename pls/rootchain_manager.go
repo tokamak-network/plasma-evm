@@ -193,7 +193,11 @@ func (rcm *RootChainManager) runSubmitter() {
 	for {
 		select {
 		case ev := <-events.Chan():
-			blockInfo := ev.Data.(miner.BlockMined).Payload
+			if ev == nil {
+				return
+			}
+
+			blockInfo := ev.Data.(miner.BlockMined)
 
 			// send block to root chain contract
 			if blockInfo.IsRequest == false {

@@ -106,9 +106,18 @@ func TestScenario1(t *testing.T) {
 	}
 
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	defer events.Unsubscribe()
+
 	if err = rcm.Start(); err != nil {
 		t.Fatal("Failed to start rootchain manager: %v", err)
 	}
+
+	fmt.Println("Time is ticking")
+	timer := time.NewTimer(1 * time.Minute)
+	go func() {
+		<-timer.C
+		t.Fatal("Out of time")
+	}()
 
 	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
 	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
@@ -119,18 +128,38 @@ func TestScenario1(t *testing.T) {
 
 	for i = 0; i < NRBEpochLength.Uint64(); {
 		i++
-		ev := <-events.Chan()
-		block := ev.Data.(miner.BlockMined).Payload
+		ev, ok := <-events.Chan()
+		if !ok {
+			t.Fatal("Expected BlockMined event not fired")
+		}
 
-		if block.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", block.BlockNumber.Uint64())
+		fmt.Println("%d th event", i)
+
+		blockInfo, ok := ev.Data.(miner.BlockMined)
+
+		if !ok {
+			t.Fatal("Invalid BlockMined event")
+		}
+
+		if blockInfo.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
 		}
 	}
 
 	ev := <-events.Chan()
-	block := ev.Data.(miner.BlockMined).Payload
-	if !block.IsRequest {
-		t.Fatal("Block should be request block", "blockNumber", block.BlockNumber.Uint64())
+	blockInfo := ev.Data.(miner.BlockMined)
+	if !blockInfo.IsRequest {
+		t.Fatal("Block should be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
+	}
+
+	for i = 0; i < NRBEpochLength.Uint64(); {
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(miner.BlockMined)
+
+		if blockInfo.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
+		}
 	}
 
 	fmt.Println("test finished")

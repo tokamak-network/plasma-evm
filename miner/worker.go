@@ -608,8 +608,8 @@ func (w *worker) resultLoop() {
 			if numORBmined.Cmp(ORBepochLength) == 0 {
 				w.mux.Post(ORBEpochCompleted{})
 			}
-			payload := blockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: NRBepochLength.Sub(NRBepochLength, numNRBmined), Header: block.Header()}
-			w.mux.Post(payload)
+
+			w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: NRBepochLength.Sub(NRBepochLength, numNRBmined), Header: block.Header()})
 		case <-w.exitCh:
 			return
 		}
