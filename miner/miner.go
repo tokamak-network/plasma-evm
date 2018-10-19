@@ -59,6 +59,8 @@ type Miner struct {
 
 	canStart    int32 // can start indicates whether we can start the mining operation
 	shouldStart int32 // should start indicates whether we should start after sync
+
+	epochLength *big.Int // NRB epoch length
 }
 
 func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
@@ -231,4 +233,9 @@ func (self *Miner) PendingBlock() *types.Block {
 func (self *Miner) SetEtherbase(addr common.Address) {
 	self.coinbase = addr
 	self.worker.setEtherbase(addr)
+}
+
+func (self *Miner) SetEpochLength(epochLength *big.Int) {
+	self.epochLength = epochLength
+	self.worker.setEpochLength(epochLength)
 }

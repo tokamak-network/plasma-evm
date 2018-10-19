@@ -173,6 +173,8 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
+
+	epochLength *big.Int // NRB epoch length
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
@@ -238,6 +240,12 @@ func (w *worker) setExtra(extra []byte) {
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
 	w.resubmitIntervalCh <- interval
+}
+
+func (w *worker) setEpochLength(epochLength *big.Int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.epochLength = epochLength
 }
 
 // pending returns the pending state and corresponding block.
@@ -594,7 +602,7 @@ func (w *worker) resultLoop() {
 				numNRBmined.Add(numNRBmined, big.NewInt(1))
 			}
 			// announce if the epoch is completed
-			if numNRBmined.Cmp(NRBepochLength) == 0 {
+			if numNRBmined.Cmp(w.epochLength) == 0 {
 				w.mux.Post(NRBEpochCompleted{})
 			}
 			if numORBmined.Cmp(ORBepochLength) == 0 {
