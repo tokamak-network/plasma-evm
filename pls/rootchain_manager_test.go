@@ -4,11 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	// "io/ioutil"
 	"math/big"
-	// "math/rand"
-	// "os"
-	// "sync"
 	"testing"
 	"time"
 
@@ -20,7 +16,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
 
-	// "github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -31,7 +26,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls" // what a stupid...
 )
 
 var (
@@ -70,7 +64,7 @@ var (
 	}
 
 	// pls
-	testPlsConfig     = pls.DefaultConfig
+	testPlsConfig     = DefaultConfig
 	testClientBackend *ethclient.Client
 
 	testTxPoolConfig   = core.DefaultTxPoolConfig
@@ -80,7 +74,7 @@ var (
 	NRBEpochLength = big.NewInt(2)
 
 	// transaction
-	defaultGasPrice        = big.NewInt(1000000000) // 1e9
+	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
 	defaultValue           = big.NewInt(0)
 	defaultGasLimit uint64 = 2000000
 
@@ -192,7 +186,7 @@ func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchai
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
-func makeManager() (*pls.RootChainManager, func(), error) {
+func makeManager() (*RootChainManager, func(), error) {
 	db, blockchain, _ := newCanonical(0, true)
 	contractAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 	if err != nil {
@@ -226,7 +220,7 @@ func makeManager() (*pls.RootChainManager, func(), error) {
 	mux := new(event.TypeMux)
 	miner := miner.New(minerBackend, params.TestChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
 
-	var rcm *pls.RootChainManager
+	var rcm *RootChainManager
 
 	stopFn := func() {
 		blockchain.Stop()
@@ -236,7 +230,7 @@ func makeManager() (*pls.RootChainManager, func(), error) {
 		rcm.Stop()
 	}
 
-	rcm = pls.NewRootChainManager(
+	rcm = NewRootChainManager(
 		&testPlsConfig,
 		stopFn,
 		txPool,
