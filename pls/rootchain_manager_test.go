@@ -1,14 +1,9 @@
 package pls
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
-	// "io/ioutil"
 	"math/big"
-	// "math/rand"
-	// "os"
-	// "sync"
 	"testing"
 	"time"
 
@@ -20,27 +15,22 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
 
-	// "github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
-	// "github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls" // what a stupid...
 )
 
 var (
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	opt0           = bind.NewKeyedTransactor(operatorKey)
-
-	baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
@@ -71,7 +61,7 @@ var (
 	}
 
 	// pls
-	testPlsConfig     = pls.DefaultConfig
+	testPlsConfig     = DefaultConfig
 	testClientBackend *ethclient.Client
 
 	testTxPoolConfig   = core.DefaultTxPoolConfig
@@ -81,9 +71,9 @@ var (
 	NRBEpochLength = big.NewInt(2)
 
 	// transaction
-	defaultGasLimit uint64 = 5000000
-	defaultGasPrice        = big.NewInt(1000000000) // 1e9
+	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
 	defaultValue           = big.NewInt(0)
+	defaultGasLimit uint64 = 2000000
 
 	err error
 )
@@ -93,25 +83,65 @@ func init() {
 	testPlsConfig.TxPool = testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
 
-	testPlsConfig.RootChainURL = "http://localhost:8545"
+	testPlsConfig.RootChainURL = "ws://localhost:8546"
 
-	testClientBackend, err = ethclient.Dial("ws://localhost:8546")
+	testClientBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
 		fmt.Println("Failed to connect rootchian provider", err)
 	}
 }
 
 func TestScenario1(t *testing.T) {
-	rcm, err := makeManager()
+	rcm, stopFn, err := makeManager()
+	defer stopFn()
+
 	if err != nil {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
 
-	opt := makeTxOpt(key1, 0, nil, ether(1))
+	NRBEpochLength, err := rcm.NRBEpochLength()
 
-	_, err = rcm.RootchainContract().StartEnter(opt, addr1, empty32Bytes, empty32Bytes)
 	if err != nil {
-		t.Fatalf("Failed to make a enter request: %v", err)
+		t.Fatalf("Failed to get NRBEpochLength: %v", err)
+	}
+
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	if err = rcm.Start(); err != nil {
+		t.Fatal("Failed to start rootchain manager: %v", err)
+	}
+
+	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
+
+	var i uint64
+
+	for i = 0; i < NRBEpochLength.Uint64(); {
+		i++
+		ev := <-events.Chan()
+		block := ev.Data.(miner.BlockMined).Payload
+
+		if block.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", block.BlockNumber.Uint64())
+		}
+	}
+
+	ev := <-events.Chan()
+	block := ev.Data.(miner.BlockMined).Payload
+	if !block.IsRequest {
+		t.Fatal("Block should be request block", "blockNumber", block.BlockNumber.Uint64())
+	}
+
+	fmt.Println("test finished")
+}
+
+func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
+	opt := makeTxOpt(key, 0, nil, ether(1))
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	if _, err = rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes); err != nil {
+		t.Fatalf("Failed to make an enter (deposit) request: %v", err)
 	}
 }
 
@@ -192,15 +222,15 @@ func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchai
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
-func makeManager() (*pls.RootChainManager, error) {
+func makeManager() (*RootChainManager, func(), error) {
 	db, blockchain, _ := newCanonical(0, true)
 	contractAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 	if err != nil {
-		return nil, err
+		return nil, func() {}, err
 	}
-	timer := time.NewTimer(time.Second)
+	timer := time.NewTimer(3 * time.Second)
 	<-timer.C
-	fmt.Println("Contract deployed at", contractAddress)
+	fmt.Println("Contract deployed at", contractAddress.Hex())
 
 	testPlsConfig.RootChainContract = contractAddress
 
@@ -226,7 +256,7 @@ func makeManager() (*pls.RootChainManager, error) {
 	mux := new(event.TypeMux)
 	miner := miner.New(minerBackend, params.TestChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
 
-	var rcm *pls.RootChainManager
+	var rcm *RootChainManager
 
 	stopFn := func() {
 		blockchain.Stop()
@@ -236,7 +266,7 @@ func makeManager() (*pls.RootChainManager, error) {
 		rcm.Stop()
 	}
 
-	rcm = pls.NewRootChainManager(
+	rcm = NewRootChainManager(
 		&testPlsConfig,
 		stopFn,
 		txPool,
@@ -249,8 +279,7 @@ func makeManager() (*pls.RootChainManager, error) {
 	)
 
 	go miner.Start(operator)
-	rcm.Start()
-	return rcm, nil
+	return rcm, stopFn, nil
 }
 
 func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int) *bind.TransactOpts {
@@ -259,73 +288,19 @@ func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int)
 	opt.GasPrice = defaultGasPrice
 	opt.Value = defaultValue
 
-	if gasLimit == 0 {
+	if gasLimit != 0 {
 		opt.GasLimit = gasLimit
 	}
 
-	if gasPrice == nil {
+	if gasPrice != nil {
 		opt.GasPrice = gasPrice
 	}
 
-	if value == nil {
+	if value != nil {
 		opt.Value = value
 	}
 
 	return opt
-}
-
-type rootchainParameters struct {
-	costERO        *big.Int
-	costERU        *big.Int
-	costURBPrepare *big.Int
-	costURB        *big.Int
-	costORB        *big.Int
-	costNRB        *big.Int
-	maxRequests    *big.Int
-	requestGas     *big.Int
-	currentEpoch   *big.Int
-	currentFork    *big.Int
-}
-
-func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
-	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
-	return rp.costERO
-}
-func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
-	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
-	return rp.costERU
-}
-func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
-	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
-	return rp.costURBPrepare
-}
-func (rp *rootchainParameters) setCostURB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
-	return rp.costURB
-}
-func (rp *rootchainParameters) setCostORB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
-	return rp.costORB
-}
-func (rp *rootchainParameters) setCostNRB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
-	return rp.costNRB
-}
-func (rp *rootchainParameters) setMaxRequests(rootchainContract *contract.RootChain) *big.Int {
-	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
-	return rp.maxRequests
-}
-func (rp *rootchainParameters) setRequestGas(rootchainContract *contract.RootChain) *big.Int {
-	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
-	return rp.requestGas
-}
-func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootChain) *big.Int {
-	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
-	return rp.currentEpoch
-}
-func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
-	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
-	return rp.currentFork
 }
 
 func ether(v float64) *big.Int {
