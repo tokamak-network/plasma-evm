@@ -181,8 +181,8 @@ func (rcm *RootChainManager) runSubmitter() {
 		case ev := <-events.Chan():
 			blockInfo := ev.Data.(miner.BlockMined).Payload
 
-			// send completed epoch to root chain contract
-			if  blockInfo.IsRequest == false{
+			// send block to root chain contract
+			if  blockInfo.IsRequest == false {
 				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("failed to submit block", "error", err)
