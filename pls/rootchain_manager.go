@@ -17,6 +17,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 const MAX_EPOCH_EVENTS = 0
@@ -44,8 +45,12 @@ type RootChainManager struct {
 }
 
 func (rcm *RootChainManager) RootchainContract() *contract.RootChain { return rcm.rootchainContract }
-func (rcm *RootChainManager) NRBEpochLength() (*big.Int, err) {
-	opt := &bind.CallOpts{}
+func (rcm *RootChainManager) NRBEpochLength() (*big.Int, error) {
+	opt := &bind.CallOpts{
+		Context: context.Background(),
+		From:    params.Operator,
+	}
+
 	return rcm.rootchainContract.NRBEpochLength(opt)
 }
 
