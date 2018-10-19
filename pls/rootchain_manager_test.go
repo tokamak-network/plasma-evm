@@ -32,7 +32,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls" // what a stupid...
 )
 
 var (
@@ -71,7 +70,7 @@ var (
 	}
 
 	// pls
-	testPlsConfig     = pls.DefaultConfig
+	testPlsConfig     = DefaultConfig
 	testClientBackend *ethclient.Client
 
 	testTxPoolConfig   = core.DefaultTxPoolConfig
@@ -192,7 +191,7 @@ func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchai
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
-func makeManager() (*pls.RootChainManager, error) {
+func makeManager() (*RootChainManager, error) {
 	db, blockchain, _ := newCanonical(0, true)
 	contractAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 	if err != nil {
@@ -226,7 +225,7 @@ func makeManager() (*pls.RootChainManager, error) {
 	mux := new(event.TypeMux)
 	miner := miner.New(minerBackend, params.TestChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
 
-	var rcm *pls.RootChainManager
+	var rcm *RootChainManager
 
 	stopFn := func() {
 		blockchain.Stop()
@@ -236,7 +235,7 @@ func makeManager() (*pls.RootChainManager, error) {
 		rcm.Stop()
 	}
 
-	rcm = pls.NewRootChainManager(
+	rcm = NewRootChainManager(
 		&testPlsConfig,
 		stopFn,
 		txPool,
