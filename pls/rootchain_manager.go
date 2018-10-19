@@ -2,7 +2,6 @@ package pls
 
 import (
 	"context"
-	"github.com/Onther-Tech/plasma-evm/params"
 	"math/big"
 	"sync"
 	"time"
@@ -18,9 +17,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
-const MAX_EPOCH_EVENTS = 0
+const MAX_EPOCH_EVENTS = 2
 
 var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 
@@ -194,7 +194,7 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 
 	transactOpts := bind.NewKeyedTransactor(privKey)
-
+	transactOpts.GasLimit = 4000000
 
 	for {
 		select {
@@ -202,7 +202,6 @@ func (rcm *RootChainManager) runSubmitter() {
 			if ev == nil {
 				return
 			}
-
 			rcm.lock.Lock()
 
 			blockInfo := ev.Data.(miner.BlockMined)
@@ -212,17 +211,24 @@ func (rcm *RootChainManager) runSubmitter() {
 			// send block to root chain contract
 			if blockInfo.IsRequest == false {
 				transactOpts.Value = rcm.contractParams.costNRB
-				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
+				} else {
+					// TODO: check TX are not reverted
+					log.Info("NRB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
 				}
 
 				rcm.contractParams.incNonce()
 			} else {
 				transactOpts.Value = rcm.contractParams.costORB
-				_, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit request block", "error", err)
+				} else {
+					// TODO: check TX are not reverted
+					log.Info("ORB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
 				}
 				rcm.contractParams.incNonce()
 			}

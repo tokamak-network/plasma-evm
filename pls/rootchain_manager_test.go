@@ -2,6 +2,7 @@ package pls
 
 import (
 	"crypto/ecdsa"
+	"flag"
 	"fmt"
 	"math/big"
 	"testing"
@@ -14,20 +15,23 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
-
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
+	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/mattn/go-colorable"
 )
 
 var (
+	loglevel = flag.Int("loglevel", 4, "verbosity of logs")
+
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	opt0           = bind.NewKeyedTransactor(operatorKey)
@@ -78,6 +82,9 @@ var (
 )
 
 func init() {
+	log.PrintOrigins(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
@@ -86,7 +93,7 @@ func init() {
 
 	testClientBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
-		fmt.Println("Failed to connect rootchian provider", err)
+		log.Error("Failed to connect rootchian provider", err)
 	}
 }
 
@@ -109,7 +116,6 @@ func TestScenario1(t *testing.T) {
 	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
 	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
 
-
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
 
@@ -117,13 +123,11 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Failed to start rootchain manager: %v", err)
 	}
 
-	fmt.Println("Time is ticking")
 	timer := time.NewTimer(1 * time.Minute)
 	go func() {
 		<-timer.C
 		t.Fatal("Out of time")
 	}()
-
 
 	var i uint64
 
@@ -133,8 +137,6 @@ func TestScenario1(t *testing.T) {
 		if !ok {
 			t.Fatal("Expected BlockMined event not fired")
 		}
-
-		fmt.Println("%d th event", i)
 
 		blockInfo, ok := ev.Data.(miner.BlockMined)
 
@@ -146,8 +148,6 @@ func TestScenario1(t *testing.T) {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
 		}
 	}
-
-	fmt.Println("NRBs are all mined")
 
 	ev := <-events.Chan()
 	blockInfo := ev.Data.(miner.BlockMined)
@@ -165,7 +165,7 @@ func TestScenario1(t *testing.T) {
 		}
 	}
 
-	fmt.Println("test finished")
+	log.Info("test finished")
 }
 
 func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
@@ -262,7 +262,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 	timer := time.NewTimer(3 * time.Second)
 	<-timer.C
-	fmt.Println("Contract deployed at", contractAddress.Hex())
+	log.Info("Contract deployed at", contractAddress.Hex())
 
 	testPlsConfig.RootChainContract = contractAddress
 
