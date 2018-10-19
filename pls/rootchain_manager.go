@@ -212,7 +212,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			// send block to root chain contract
 			if blockInfo.IsRequest == false {
 				transactOpts.Value = rcm.contractParams.costNRB
-				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
 				}
