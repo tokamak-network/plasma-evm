@@ -104,6 +104,12 @@ func TestScenario1(t *testing.T) {
 		t.Fatalf("Failed to get NRBEpochLength: %v", err)
 	}
 
+	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
+
+
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
 
@@ -118,10 +124,6 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Out of time")
 	}()
 
-	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
-	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
-	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
-	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
 
 	var i uint64
 
@@ -144,6 +146,8 @@ func TestScenario1(t *testing.T) {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
 		}
 	}
+
+	fmt.Println("NRBs are all mined")
 
 	ev := <-events.Chan()
 	blockInfo := ev.Data.(miner.BlockMined)

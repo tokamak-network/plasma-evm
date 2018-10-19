@@ -2,6 +2,7 @@ package pls
 
 import (
 	"context"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"math/big"
 	"sync"
 	"time"
@@ -73,7 +74,7 @@ func NewRootChainManager(
 		eventMux:          eventMux,
 		accountManager:    accountManager,
 		miner:             miner,
-		contractParams:    newRootchainParameters(rootchainContract),
+		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 	}
@@ -191,7 +192,9 @@ func (rcm *RootChainManager) runSubmitter() {
 		log.Error("Failed to get operator private key")
 		return
 	}
+
 	transactOpts := bind.NewKeyedTransactor(privKey)
+
 
 	for {
 		select {
@@ -200,22 +203,30 @@ func (rcm *RootChainManager) runSubmitter() {
 				return
 			}
 
+			rcm.lock.Lock()
+
 			blockInfo := ev.Data.(miner.BlockMined)
+
+			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.nonce))
 
 			// send block to root chain contract
 			if blockInfo.IsRequest == false {
 				transactOpts.Value = rcm.contractParams.costNRB
-				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
 				}
+
+				rcm.contractParams.incNonce()
 			} else {
 				transactOpts.Value = rcm.contractParams.costORB
 				_, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit request block", "error", err)
 				}
+				rcm.contractParams.incNonce()
 			}
+			rcm.lock.Unlock()
 		case <-rcm.quit:
 			return
 		}
@@ -253,22 +264,17 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 		log.Error("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
-			callOpts := &bind.CallOpts{
-				Pending: false,
-				Context: context.Background(),
-			}
-
-			currentFork, err := rcm.rootchainContract.CurrentFork(callOpts)
+			currentFork, err := rcm.rootchainContract.CurrentFork(baseCallOpt)
 			if err != nil {
 				return err
 			}
 
-			pb, err := rcm.rootchainContract.Blocks(callOpts, currentFork, blockNumber)
+			pb, err := rcm.rootchainContract.Blocks(baseCallOpt, currentFork, blockNumber)
 			if err != nil {
 				return err
 			}
 
-			orb, err := rcm.rootchainContract.ORBs(callOpts, big.NewInt(int64(pb.RequestBlockId)))
+			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, big.NewInt(int64(pb.RequestBlockId)))
 			if err != nil {
 				return err
 			}
@@ -279,7 +285,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 			body := make(types.Transactions, 0, numRequests)
 
 			for requestId := orb.RequestStart; requestId <= orb.RequestEnd; {
-				request, err := rcm.rootchainContract.EROs(callOpts, big.NewInt(int64(requestId)))
+				request, err := rcm.rootchainContract.EROs(baseCallOpt, big.NewInt(int64(requestId)))
 				if err != nil {
 					return err
 				}
@@ -363,12 +369,7 @@ func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction 
 	if isTransfer {
 		to = request.Requestor
 	} else {
-		callOpts := &bind.CallOpts{
-			Pending: false,
-			Context: context.Background(),
-		}
-
-		to, _ = rcm.rootchainContract.RequestableContracts(callOpts, request.To)
+		to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
 	}
 
 	// TODO: check data field
@@ -376,6 +377,7 @@ func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction 
 }
 
 type rootchainParameters struct {
+	// contract parameters
 	costERO        *big.Int
 	costERU        *big.Int
 	costURBPrepare *big.Int
@@ -386,9 +388,14 @@ type rootchainParameters struct {
 	requestGas     *big.Int
 	currentEpoch   *big.Int
 	currentFork    *big.Int
+
+	// operator tx parameters
+	nonce uint64
+
+	lock sync.Mutex
 }
 
-func newRootchainParameters(rootchainContract *contract.RootChain) *rootchainParameters {
+func newRootchainParameters(rootchainContract *contract.RootChain, backend *ethclient.Client) *rootchainParameters {
 	rParams := &rootchainParameters{}
 
 	rParams.setCostERO(rootchainContract)
@@ -401,6 +408,8 @@ func newRootchainParameters(rootchainContract *contract.RootChain) *rootchainPar
 	rParams.setRequestGas(rootchainContract)
 	rParams.setCurrentEpoch(rootchainContract)
 	rParams.setCurrentFork(rootchainContract)
+
+	rParams.setNonce(backend)
 
 	return rParams
 }
@@ -444,4 +453,14 @@ func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootC
 func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
 	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
 	return rp.currentFork
+}
+func (rp *rootchainParameters) setNonce(backend *ethclient.Client) uint64 {
+	rp.nonce, _ = backend.NonceAt(context.Background(), params.Operator, nil)
+	return rp.nonce
+}
+func (rp *rootchainParameters) incNonce() {
+	rp.lock.Lock()
+	defer rp.lock.Unlock()
+
+	rp.nonce += 1
 }
