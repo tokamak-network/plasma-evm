@@ -1,8 +1,8 @@
 package pls
 
 import (
-	// "context"
-	// "crypto/ecdsa"
+	"context"
+	"crypto/ecdsa"
 	"fmt"
 	// "io/ioutil"
 	"math/big"
@@ -40,6 +40,8 @@ var (
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	opt0           = bind.NewKeyedTransactor(operatorKey)
 
+	baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
+
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
 	addr3 = common.HexToAddress("0x57ab89f4eabdffce316809d790d5c93a49908510")
@@ -72,10 +74,16 @@ var (
 	testPlsConfig     = pls.DefaultConfig
 	testClientBackend *ethclient.Client
 
-	testTxPoolConfig = core.DefaultTxPoolConfig
+	testTxPoolConfig   = core.DefaultTxPoolConfig
+	testContractParams rootchainParameters
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
+
+	// transaction
+	defaultGasLimit uint64 = 5000000
+	defaultGasPrice        = big.NewInt(1000000000) // 1e9
+	defaultValue           = big.NewInt(0)
 
 	err error
 )
@@ -99,7 +107,9 @@ func TestScenario1(t *testing.T) {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
 
-	_, err = rcm.RootchainContract().StartEnter(opt1, addr1, empty32Bytes, empty32Bytes)
+	opt := makeTxOpt(key1, 0, nil, ether(1))
+
+	_, err = rcm.RootchainContract().StartEnter(opt, addr1, empty32Bytes, empty32Bytes)
 	if err != nil {
 		t.Fatalf("Failed to make a enter request: %v", err)
 	}
@@ -194,6 +204,17 @@ func makeManager() (*pls.RootChainManager, error) {
 
 	testPlsConfig.RootChainContract = contractAddress
 
+	testContractParams.setCostERO(rootchainContract)
+	testContractParams.setCostERU(rootchainContract)
+	testContractParams.setCostURBPrepare(rootchainContract)
+	testContractParams.setCostURB(rootchainContract)
+	testContractParams.setCostORB(rootchainContract)
+	testContractParams.setCostNRB(rootchainContract)
+	testContractParams.setMaxRequests(rootchainContract)
+	testContractParams.setRequestGas(rootchainContract)
+	testContractParams.setCurrentEpoch(rootchainContract)
+	testContractParams.setCurrentFork(rootchainContract)
+
 	txPool := newTxPool(blockchain)
 	minerBackend := &testPlsBackend{
 		acm:        nil,
@@ -230,4 +251,85 @@ func makeManager() (*pls.RootChainManager, error) {
 	go miner.Start(operator)
 	rcm.Start()
 	return rcm, nil
+}
+
+func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int) *bind.TransactOpts {
+	opt := bind.NewKeyedTransactor(key)
+	opt.GasLimit = defaultGasLimit
+	opt.GasPrice = defaultGasPrice
+	opt.Value = defaultValue
+
+	if gasLimit == 0 {
+		opt.GasLimit = gasLimit
+	}
+
+	if gasPrice == nil {
+		opt.GasPrice = gasPrice
+	}
+
+	if value == nil {
+		opt.Value = value
+	}
+
+	return opt
+}
+
+type rootchainParameters struct {
+	costERO        *big.Int
+	costERU        *big.Int
+	costURBPrepare *big.Int
+	costURB        *big.Int
+	costORB        *big.Int
+	costNRB        *big.Int
+	maxRequests    *big.Int
+	requestGas     *big.Int
+	currentEpoch   *big.Int
+	currentFork    *big.Int
+}
+
+func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
+	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
+	return rp.costERO
+}
+func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
+	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
+	return rp.costERU
+}
+func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
+	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
+	return rp.costURBPrepare
+}
+func (rp *rootchainParameters) setCostURB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
+	return rp.costURB
+}
+func (rp *rootchainParameters) setCostORB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
+	return rp.costORB
+}
+func (rp *rootchainParameters) setCostNRB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
+	return rp.costNRB
+}
+func (rp *rootchainParameters) setMaxRequests(rootchainContract *contract.RootChain) *big.Int {
+	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
+	return rp.maxRequests
+}
+func (rp *rootchainParameters) setRequestGas(rootchainContract *contract.RootChain) *big.Int {
+	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
+	return rp.requestGas
+}
+func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootChain) *big.Int {
+	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
+	return rp.currentEpoch
+}
+func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
+	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
+	return rp.currentFork
+}
+
+func ether(v float64) *big.Int {
+	f := new(big.Float).Mul(big.NewFloat(v), big.NewFloat(1e18))
+	out, _ := f.Int(nil)
+	return out
 }
