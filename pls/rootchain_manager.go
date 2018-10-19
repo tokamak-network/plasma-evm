@@ -211,10 +211,6 @@ func (rcm *RootChainManager) runSubmitter() {
 }
 
 func (rcm *RootChainManager) runHandlers() {
-	events := rcm.eventMux.Subscribe(miner.BlockMined{})
-	defer events.Unsubscribe()
-
-	// var epoch []miner.BlockMined
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
