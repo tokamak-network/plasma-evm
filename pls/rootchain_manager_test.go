@@ -64,8 +64,7 @@ var (
 	testPlsConfig     = DefaultConfig
 	testClientBackend *ethclient.Client
 
-	testTxPoolConfig   = core.DefaultTxPoolConfig
-	testContractParams rootchainParameters
+	testTxPoolConfig = core.DefaultTxPoolConfig
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
@@ -262,17 +261,6 @@ func makeManager() (*RootChainManager, func(), error) {
 	fmt.Println("Contract deployed at", contractAddress.Hex())
 
 	testPlsConfig.RootChainContract = contractAddress
-
-	testContractParams.setCostERO(rootchainContract)
-	testContractParams.setCostERU(rootchainContract)
-	testContractParams.setCostURBPrepare(rootchainContract)
-	testContractParams.setCostURB(rootchainContract)
-	testContractParams.setCostORB(rootchainContract)
-	testContractParams.setCostNRB(rootchainContract)
-	testContractParams.setMaxRequests(rootchainContract)
-	testContractParams.setRequestGas(rootchainContract)
-	testContractParams.setCurrentEpoch(rootchainContract)
-	testContractParams.setCurrentFork(rootchainContract)
 
 	txPool := newTxPool(blockchain)
 	minerBackend := &testPlsBackend{

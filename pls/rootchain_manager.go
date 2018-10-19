@@ -38,6 +38,8 @@ type RootChainManager struct {
 
 	miner *miner.Miner
 
+	contractParams *rootchainParameters
+
 	// channels
 	quit            chan struct{}
 	epochPreparedCh chan *contract.RootChainEpochPrepared
@@ -71,6 +73,7 @@ func NewRootChainManager(
 		eventMux:          eventMux,
 		accountManager:    accountManager,
 		miner:             miner,
+		contractParams:    newRootchainParameters(rootchainContract),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 	}
@@ -201,11 +204,13 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			// send block to root chain contract
 			if blockInfo.IsRequest == false {
+				transactOpts.Value = rcm.contractParams.costNRB
 				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
 				}
 			} else {
+				transactOpts.Value = rcm.contractParams.costORB
 				_, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit request block", "error", err)
@@ -383,13 +388,30 @@ type rootchainParameters struct {
 	currentFork    *big.Int
 }
 
-func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
-	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
-	return rp.costERO
+func newRootchainParameters(rootchainContract *contract.RootChain) *rootchainParameters {
+	rParams := &rootchainParameters{}
+
+	rParams.setCostERO(rootchainContract)
+	rParams.setCostERU(rootchainContract)
+	rParams.setCostURBPrepare(rootchainContract)
+	rParams.setCostURB(rootchainContract)
+	rParams.setCostORB(rootchainContract)
+	rParams.setCostNRB(rootchainContract)
+	rParams.setMaxRequests(rootchainContract)
+	rParams.setRequestGas(rootchainContract)
+	rParams.setCurrentEpoch(rootchainContract)
+	rParams.setCurrentFork(rootchainContract)
+
+	return rParams
 }
+
 func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
 	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
 	return rp.costERU
+}
+func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
+	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
+	return rp.costERO
 }
 func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
 	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
