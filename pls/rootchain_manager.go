@@ -12,11 +12,11 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const MAX_EPOCH_EVENTS = 0
@@ -184,7 +184,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			blockInfo := ev.Data.(miner.BlockMined).Payload
 
 			// send block to root chain contract
-			if  blockInfo.IsRequest == false {
+			if blockInfo.IsRequest == false {
 				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
 					log.Warn("failed to submit block", "error", err)
@@ -205,7 +205,7 @@ func (rcm *RootChainManager) runHandlers() {
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
 
-	var epoch []miner.BlockMined
+	// var epoch []miner.BlockMined
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
