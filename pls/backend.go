@@ -212,6 +212,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		pls.accountManager,
 		pls.miner,
 	)
+
+	epochLength, err := pls.rootchainManager.NRBEpochLength()
+	if err != nil {
+		return nil, err
+	}
+	log.Info("get NRB epoch length", "length", epochLength)
+	pls.miner.SetEpochLength(epochLength)
+
 	return pls, nil
 }
 
@@ -477,13 +485,6 @@ func (s *Plasma) Start(srvr *p2p.Server) error {
 	if err := s.rootchainManager.Start(); err != nil {
 		return err
 	}
-
-	epochLength, err := s.rootchainManager.NRBEpochLength()
-	if err != nil {
-		return fmt.Errorf("fail to get NRB epoch length")
-	}
-	log.Info("get NRB epoch length", "length", epochLength)
-	s.miner.SetEpochLength(epochLength)
 
 	s.StartMining(runtime.NumCPU())
 
