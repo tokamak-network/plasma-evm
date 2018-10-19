@@ -174,7 +174,7 @@ func (self *Miner) Start(coinbase common.Address) {
 		return
 	}
 	if atomic.LoadInt32(&self.canStart) == 2 {
-		log.Error("Preparing epoch, will start miner afterwards")
+		log.Info("Preparing epoch, will start miner afterwards")
 		return
 	}
 	self.worker.start()
