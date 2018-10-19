@@ -164,6 +164,10 @@ func (rcm *RootChainManager) watchEvents() error {
 }
 
 func (rcm *RootChainManager) runHandlers() {
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	defer events.Unsubscribe()
+
+	var epoch []miner.BlockMined
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
@@ -172,6 +176,12 @@ func (rcm *RootChainManager) runHandlers() {
 			}
 		case <-rcm.quit:
 			return
+		case ev := <-events.Chan():
+			blockMined := ev.Data.(miner.BlockMined)
+			epoch = append(epoch, blockMined)
+			if blockMined.Payload.Remaining.Cmp(big.NewInt(0)) == 0 {
+				// send rootchain contract
+			}
 		}
 	}
 }
