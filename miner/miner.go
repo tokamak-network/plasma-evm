@@ -68,7 +68,7 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		engine:   engine,
 		exitCh:   make(chan struct{}),
 		worker:   newWorker(config, engine, pls, mux, recommit, gasFloor, gasCeil),
-		canStart: 1,
+		canStart: 2,
 	}
 	go miner.update()
 	go miner.operate()
@@ -90,12 +90,16 @@ func (self *Miner) operate() {
 			case NRBEpochCompleted:
 				self.Stop()
 				numNRBmined.Set(big.NewInt(0))
+				atomic.StoreInt32(&self.canStart, 2)
 				log.Info("NRB epoch is completed, Waiting for preparing next epoch")
 			case ORBEpochCompleted:
 				self.Stop()
 				numORBmined.Set(big.NewInt(0))
+				atomic.StoreInt32(&self.canStart, 2)
 				log.Info("ORB epoch is completed, Waiting for preparing next epoch")
 			case EpochPrepared:
+				// start mining only when the epoch is prepared
+				atomic.StoreInt32(&self.canStart, 1)
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
 				case true:
@@ -167,6 +171,10 @@ func (self *Miner) Start(coinbase common.Address) {
 
 	if atomic.LoadInt32(&self.canStart) == 0 {
 		log.Info("Network syncing, will start miner afterwards")
+		return
+	}
+	if atomic.LoadInt32(&self.canStart) == 2 {
+		log.Error("Preparing epoch, will start miner afterwards")
 		return
 	}
 	self.worker.start()
