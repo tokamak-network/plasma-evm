@@ -27,7 +27,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
-	// "github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
@@ -81,9 +80,9 @@ var (
 	NRBEpochLength = big.NewInt(2)
 
 	// transaction
-	defaultGasLimit uint64 = 5000000
 	defaultGasPrice        = big.NewInt(1000000000) // 1e9
 	defaultValue           = big.NewInt(0)
+	defaultGasLimit uint64 = 2000000
 
 	err error
 )
@@ -93,16 +92,16 @@ func init() {
 	testPlsConfig.TxPool = testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
 
-	testPlsConfig.RootChainURL = "http://localhost:8545"
+	testPlsConfig.RootChainURL = "ws://localhost:8546"
 
-	testClientBackend, err = ethclient.Dial("ws://localhost:8546")
+	testClientBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
 		fmt.Println("Failed to connect rootchian provider", err)
 	}
 }
 
 func TestScenario1(t *testing.T) {
-	rcm, err := makeManager()
+	rcm, _, err := makeManager()
 	if err != nil {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
@@ -110,6 +109,7 @@ func TestScenario1(t *testing.T) {
 	opt := makeTxOpt(key1, 0, nil, ether(1))
 
 	_, err = rcm.RootchainContract().StartEnter(opt, addr1, empty32Bytes, empty32Bytes)
+
 	if err != nil {
 		t.Fatalf("Failed to make a enter request: %v", err)
 	}
@@ -192,15 +192,15 @@ func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchai
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
-func makeManager() (*pls.RootChainManager, error) {
+func makeManager() (*pls.RootChainManager, func(), error) {
 	db, blockchain, _ := newCanonical(0, true)
 	contractAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 	if err != nil {
-		return nil, err
+		return nil, func() {}, err
 	}
-	timer := time.NewTimer(time.Second)
+	timer := time.NewTimer(1 * time.Second)
 	<-timer.C
-	fmt.Println("Contract deployed at", contractAddress)
+	fmt.Println("Contract deployed at", contractAddress.Hex())
 
 	testPlsConfig.RootChainContract = contractAddress
 
@@ -250,7 +250,7 @@ func makeManager() (*pls.RootChainManager, error) {
 
 	go miner.Start(operator)
 	rcm.Start()
-	return rcm, nil
+	return rcm, stopFn, nil
 }
 
 func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int) *bind.TransactOpts {
@@ -259,15 +259,15 @@ func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int)
 	opt.GasPrice = defaultGasPrice
 	opt.Value = defaultValue
 
-	if gasLimit == 0 {
+	if gasLimit != 0 {
 		opt.GasLimit = gasLimit
 	}
 
-	if gasPrice == nil {
+	if gasPrice != nil {
 		opt.GasPrice = gasPrice
 	}
 
-	if value == nil {
+	if value != nil {
 		opt.Value = value
 	}
 
