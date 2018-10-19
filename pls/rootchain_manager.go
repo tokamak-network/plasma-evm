@@ -60,7 +60,7 @@ func NewRootChainManager(
 	eventMux *event.TypeMux,
 	accountManager *accounts.Manager,
 	miner *miner.Miner,
-) *RootChainManager {
+) (*RootChainManager, error) {
 	rcm := &RootChainManager{
 		config:            config,
 		stopFn:            stopFn,
@@ -75,7 +75,14 @@ func NewRootChainManager(
 		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 	}
 
-	return rcm
+	epochLength, err := rcm.NRBEpochLength()
+	if err != nil {
+		return nil, err
+	}
+
+	miner.SetEpochLength(epochLength)
+
+	return rcm, nil
 }
 
 func (rcm *RootChainManager) Start() error {

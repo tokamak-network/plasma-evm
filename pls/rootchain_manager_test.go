@@ -266,7 +266,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		rcm.Stop()
 	}
 
-	rcm = NewRootChainManager(
+	rcm, err = NewRootChainManager(
 		&testPlsConfig,
 		stopFn,
 		txPool,
@@ -277,6 +277,10 @@ func makeManager() (*RootChainManager, func(), error) {
 		nil,
 		miner,
 	)
+
+	if err != nil {
+		return nil, func() {}, err
+	}
 
 	go miner.Start(operator)
 	return rcm, stopFn, nil

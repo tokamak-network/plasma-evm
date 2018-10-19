@@ -24,7 +24,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
@@ -35,6 +34,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (

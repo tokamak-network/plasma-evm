@@ -201,7 +201,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 
 	stopFn := func() { pls.Stop() }
 
-	pls.rootchainManager = NewRootChainManager(
+	if pls.rootchainManager, err = NewRootChainManager(
 		config,
 		stopFn,
 		pls.txPool,
@@ -211,14 +211,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		pls.eventMux,
 		pls.accountManager,
 		pls.miner,
-	)
-
-	epochLength, err := pls.rootchainManager.NRBEpochLength()
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
-	log.Info("get NRB epoch length", "length", epochLength)
-	pls.miner.SetEpochLength(epochLength)
 
 	return pls, nil
 }
