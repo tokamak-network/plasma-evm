@@ -183,10 +183,15 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			// send completed epoch to root chain contract
 			if  blockInfo.IsRequest == false{
-				rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
-			}
-			if  blockInfo.IsRequest == true {
-				rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				if err != nil {
+					log.Error("failed to submit block", tx)
+				}
+			} else {
+				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				if err != nil {
+					log.Error("failed to submit block", tx)
+				}
 			}
 		case <-rcm.quit:
 			return
