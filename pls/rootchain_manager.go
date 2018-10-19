@@ -16,6 +16,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const MAX_EPOCH_EVENTS = 0
@@ -168,14 +169,24 @@ func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
 
-	var epoch []miner.BlockMined
+	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	if err != nil {
+		log.Error("failed to get operator private key")
+		return
+	}
+	transactOpts := bind.NewKeyedTransactor(privKey)
+
 	for {
 		select {
 		case ev := <-events.Chan():
-			blockMined := ev.Data.(miner.BlockMined)
-			epoch = append(epoch, blockMined)
-			if blockMined.Payload.Remaining.Cmp(big.NewInt(0)) == 0 {
-				// send rootchain contract
+			blockInfo := ev.Data.(miner.BlockMined).Payload
+
+			// send completed epoch to root chain contract
+			if  blockInfo.IsRequest == false{
+				rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+			}
+			if  blockInfo.IsRequest == true {
+				rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 			}
 		case <-rcm.quit:
 			return
