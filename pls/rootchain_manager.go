@@ -88,6 +88,7 @@ func (rcm *RootChainManager) Stop() error {
 
 func (rcm *RootChainManager) run() error {
 	go rcm.runHandlers()
+	go rcm.runSubmitter()
 
 	if err := rcm.watchEvents(); err != nil {
 		return err
@@ -163,6 +164,25 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
+func (rcm *RootChainManager) runSubmitter() {
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	defer events.Unsubscribe()
+
+	var epoch []miner.BlockMined
+	for {
+		select {
+		case ev := <-events.Chan():
+			blockMined := ev.Data.(miner.BlockMined)
+			epoch = append(epoch, blockMined)
+			if blockMined.Payload.Remaining.Cmp(big.NewInt(0)) == 0 {
+				// send rootchain contract
+			}
+		case <-rcm.quit:
+			return
+		}
+	}
+}
+
 func (rcm *RootChainManager) runHandlers() {
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
@@ -176,12 +196,6 @@ func (rcm *RootChainManager) runHandlers() {
 			}
 		case <-rcm.quit:
 			return
-		case ev := <-events.Chan():
-			blockMined := ev.Data.(miner.BlockMined)
-			epoch = append(epoch, blockMined)
-			if blockMined.Payload.Remaining.Cmp(big.NewInt(0)) == 0 {
-				// send rootchain contract
-			}
 		}
 	}
 }
