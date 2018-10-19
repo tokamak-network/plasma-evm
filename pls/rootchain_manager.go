@@ -178,7 +178,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	if err != nil {
-		log.Error("failed to get operator private key")
+		log.Error("Failed to get operator private key")
 		return
 	}
 	transactOpts := bind.NewKeyedTransactor(privKey)
@@ -192,12 +192,12 @@ func (rcm *RootChainManager) runSubmitter() {
 			if blockInfo.IsRequest == false {
 				_, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
-					log.Warn("failed to submit block", "error", err)
+					log.Warn("Failed to submit non request block", "error", err)
 				}
 			} else {
 				_, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
 				if err != nil {
-					log.Warn("failed to submit block", "error", err)
+					log.Warn("Failed to submit request block", "error", err)
 				}
 			}
 		case <-rcm.quit:
@@ -280,38 +280,24 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 
 			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
 		}
-		log.Error("num boies", "EpochNumber", e.EpochNumber, "len", len(bodies), "e.IsRequest", e.IsRequest, "e.EpochIsEmpty", e.EpochIsEmpty)
 
+		events := rcm.eventMux.Subscribe(miner.BlockMined{})
+		defer events.Unsubscribe()
+
+		var numMinedORBs uint64 = 0
+
+		for numMinedORBs < numORBs.Uint64() {
+			go rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
+
+			<-events.Chan()
+
+			numMinedORBs += 1
+		}
 	}
 
 	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
 
 	return nil
-}
-
-func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction {
-	request, ok := data.(Request)
-
-	if !ok {
-		return &types.Transaction{}
-	}
-
-	isTransfer := request.Requestor.Hex() == request.To.Hex()
-	var to common.Address
-
-	if isTransfer {
-		to = request.Requestor
-	} else {
-		callOpts := &bind.CallOpts{
-			Pending: false,
-			Context: context.Background(),
-		}
-
-		to, _ = rcm.rootchainContract.RequestableContracts(callOpts, request.To)
-	}
-
-	// TODO: check data field
-	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), nil)
 }
 
 // pingBackend checks rootchain backend is alive.
@@ -346,4 +332,83 @@ type Request struct {
 	To         common.Address
 	TrieKey    [32]byte
 	TrieValue  [32]byte
+}
+
+func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction {
+	request, ok := data.(Request)
+
+	if !ok {
+		return &types.Transaction{}
+	}
+
+	isTransfer := request.Requestor.Hex() == request.To.Hex()
+	var to common.Address
+
+	if isTransfer {
+		to = request.Requestor
+	} else {
+		callOpts := &bind.CallOpts{
+			Pending: false,
+			Context: context.Background(),
+		}
+
+		to, _ = rcm.rootchainContract.RequestableContracts(callOpts, request.To)
+	}
+
+	// TODO: check data field
+	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), nil)
+}
+
+type rootchainParameters struct {
+	costERO        *big.Int
+	costERU        *big.Int
+	costURBPrepare *big.Int
+	costURB        *big.Int
+	costORB        *big.Int
+	costNRB        *big.Int
+	maxRequests    *big.Int
+	requestGas     *big.Int
+	currentEpoch   *big.Int
+	currentFork    *big.Int
+}
+
+func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
+	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
+	return rp.costERO
+}
+func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
+	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
+	return rp.costERU
+}
+func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
+	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
+	return rp.costURBPrepare
+}
+func (rp *rootchainParameters) setCostURB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
+	return rp.costURB
+}
+func (rp *rootchainParameters) setCostORB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
+	return rp.costORB
+}
+func (rp *rootchainParameters) setCostNRB(rootchainContract *contract.RootChain) *big.Int {
+	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
+	return rp.costNRB
+}
+func (rp *rootchainParameters) setMaxRequests(rootchainContract *contract.RootChain) *big.Int {
+	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
+	return rp.maxRequests
+}
+func (rp *rootchainParameters) setRequestGas(rootchainContract *contract.RootChain) *big.Int {
+	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
+	return rp.requestGas
+}
+func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootChain) *big.Int {
+	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
+	return rp.currentEpoch
+}
+func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
+	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
+	return rp.currentFork
 }

@@ -92,17 +92,56 @@ func init() {
 }
 
 func TestScenario1(t *testing.T) {
-	rcm, _, err := makeManager()
+	rcm, stopFn, err := makeManager()
+	defer stopFn()
+
 	if err != nil {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
 
-	opt := makeTxOpt(key1, 0, nil, ether(1))
-
-	_, err = rcm.RootchainContract().StartEnter(opt, addr1, empty32Bytes, empty32Bytes)
+	NRBEpochLength, err := rcm.NRBEpochLength()
 
 	if err != nil {
-		t.Fatalf("Failed to make a enter request: %v", err)
+		t.Fatalf("Failed to get NRBEpochLength: %v", err)
+	}
+
+	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	if err = rcm.Start(); err != nil {
+		t.Fatal("Failed to start rootchain manager: %v", err)
+	}
+
+	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
+
+	var i uint64
+
+	for i = 0; i < NRBEpochLength.Uint64(); {
+		i++
+		ev := <-events.Chan()
+		block := ev.Data.(miner.BlockMined).Payload
+
+		if block.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", block.BlockNumber.Uint64())
+		}
+	}
+
+	ev := <-events.Chan()
+	block := ev.Data.(miner.BlockMined).Payload
+	if !block.IsRequest {
+		t.Fatal("Block should be request block", "blockNumber", block.BlockNumber.Uint64())
+	}
+
+	fmt.Println("test finished")
+}
+
+func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
+	opt := makeTxOpt(key, 0, nil, ether(1))
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	if _, err = rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes); err != nil {
+		t.Fatalf("Failed to make an enter (deposit) request: %v", err)
 	}
 }
 
@@ -189,7 +228,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	timer := time.NewTimer(1 * time.Second)
+	timer := time.NewTimer(3 * time.Second)
 	<-timer.C
 	fmt.Println("Contract deployed at", contractAddress.Hex())
 
@@ -240,7 +279,6 @@ func makeManager() (*RootChainManager, func(), error) {
 	)
 
 	go miner.Start(operator)
-	rcm.Start()
 	return rcm, stopFn, nil
 }
 
@@ -263,60 +301,6 @@ func makeTxOpt(key *ecdsa.PrivateKey, gasLimit uint64, gasPrice, value *big.Int)
 	}
 
 	return opt
-}
-
-type rootchainParameters struct {
-	costERO        *big.Int
-	costERU        *big.Int
-	costURBPrepare *big.Int
-	costURB        *big.Int
-	costORB        *big.Int
-	costNRB        *big.Int
-	maxRequests    *big.Int
-	requestGas     *big.Int
-	currentEpoch   *big.Int
-	currentFork    *big.Int
-}
-
-func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
-	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
-	return rp.costERO
-}
-func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
-	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
-	return rp.costERU
-}
-func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
-	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
-	return rp.costURBPrepare
-}
-func (rp *rootchainParameters) setCostURB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
-	return rp.costURB
-}
-func (rp *rootchainParameters) setCostORB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
-	return rp.costORB
-}
-func (rp *rootchainParameters) setCostNRB(rootchainContract *contract.RootChain) *big.Int {
-	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
-	return rp.costNRB
-}
-func (rp *rootchainParameters) setMaxRequests(rootchainContract *contract.RootChain) *big.Int {
-	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
-	return rp.maxRequests
-}
-func (rp *rootchainParameters) setRequestGas(rootchainContract *contract.RootChain) *big.Int {
-	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
-	return rp.requestGas
-}
-func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootChain) *big.Int {
-	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
-	return rp.currentEpoch
-}
-func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
-	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
-	return rp.currentFork
 }
 
 func ether(v float64) *big.Int {
