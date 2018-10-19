@@ -44,6 +44,10 @@ type RootChainManager struct {
 }
 
 func (rcm *RootChainManager) RootchainContract() *contract.RootChain { return rcm.rootchainContract }
+func (rcm *RootChainManager) NRBEpochLength() (*big.Int, err) {
+	opt := &bind.CallOpts{}
+	return rcm.rootchainContract.NRBEpochLength(opt)
+}
 
 func NewRootChainManager(
 	config *Config,
