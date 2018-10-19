@@ -42,6 +42,8 @@ type RootChainManager struct {
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
+func (rcm *RootChainManager) RootchainContract() *contract.RootChain { return rcm.rootchainContract }
+
 func NewRootChainManager(
 	config *Config,
 	stopFn func(),
