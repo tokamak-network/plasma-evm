@@ -1,7 +1,6 @@
 package pls
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
@@ -32,8 +31,6 @@ var (
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	opt0           = bind.NewKeyedTransactor(operatorKey)
-
-	baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
