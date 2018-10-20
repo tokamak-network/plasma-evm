@@ -737,8 +737,11 @@ func (pool *TxPool) EnqueueReqeustTx(rtx *types.Transaction) (bool, error) {
 }
 
 func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (bool, error) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	for _, rtx := range rtxs {
-		pool.EnqueueReqeustTx(rtx)
+		pool.request = append(pool.request, rtx)
 	}
 	return true, nil
 }
