@@ -84,7 +84,7 @@ func NewRootChainManager(
 		return nil, err
 	}
 
-	miner.SetEpochLength(epochLength)
+	miner.SetNRBepochLength(epochLength)
 
 	return rcm, nil
 }

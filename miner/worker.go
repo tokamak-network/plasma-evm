@@ -128,6 +128,8 @@ type worker struct {
 	pls    Backend
 	chain  *core.BlockChain
 
+	env *epochEnvironment
+
 	gasFloor uint64
 	gasCeil  uint64
 
@@ -177,11 +179,12 @@ type worker struct {
 	epochLength *big.Int // NRB epoch length
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *epochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
 		pls:                pls,
+		env:                env,
 		mux:                mux,
 		chain:              pls.BlockChain(),
 		gasFloor:           gasFloor,
@@ -240,12 +243,6 @@ func (w *worker) setExtra(extra []byte) {
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
 	w.resubmitIntervalCh <- interval
-}
-
-func (w *worker) setEpochLength(epochLength *big.Int) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.epochLength = epochLength
 }
 
 // pending returns the pending state and corresponding block.
@@ -410,7 +407,7 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
-			if isRequest == true {
+			if w.env.IsRequest == true {
 				w.commitNewWorkForORB(req.interrupt, req.noempty, req.timestamp)
 			} else {
 				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
@@ -595,21 +592,31 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-			// announce if the epoch is completed
-			if numNRBmined.Cmp(w.epochLength) == 0 {
-				w.mux.Post(NRBEpochCompleted{})
-			}
-			if numORBmined.Cmp(ORBepochLength) == 0 {
-				w.mux.Post(ORBEpochCompleted{})
-			}
 
 			// add 1 to number of block mined
-			if isRequest {
-				numORBmined.Add(numORBmined, big.NewInt(1))
-				w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: ORBepochLength.Sub(ORBepochLength, numORBmined), Header: block.Header()})
+			if w.env.IsRequest {
+				w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
+				w.mux.Post(BlockMined{
+					IsRequest:   w.env.IsRequest,
+					BlockNumber: block.Number(),
+					Remaining:   new(big.Int).Sub(w.env.ORBepochLength, w.env.NumORBmined),
+					Header:      block.Header(),
+				})
 			} else {
-				numNRBmined.Add(numNRBmined, big.NewInt(1))
-				w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: NRBepochLength.Sub(NRBepochLength, numNRBmined), Header: block.Header()})
+				w.env.setNumORBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
+				w.mux.Post(BlockMined{
+					IsRequest:   w.env.IsRequest,
+					BlockNumber: block.Number(),
+					Remaining:   new(big.Int).Sub(w.env.NRBepochLength, w.env.NumNRBmined),
+					Header:      block.Header(),
+				})
+			}
+
+			// announce if the epoch is completed
+			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
+				w.mux.Post(NRBEpochCompleted{})
+			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 {
+				w.mux.Post(ORBEpochCompleted{})
 			}
 
 		case <-w.exitCh:
@@ -863,6 +870,8 @@ func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase com
 			log.Trace("Not enough gas for further transactions", "have", w.current.gasPool, "want", params.TxGas)
 			break
 		}
+
+		log.Error("RTX?", "rtx", rtx)
 
 		// Check whether the rtx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
