@@ -115,8 +115,7 @@ func TestScenario1(t *testing.T) {
 	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
 	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
 
-	timer := time.NewTimer(3 * time.Second)
-	<-timer.C
+	wait(3)
 
 	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
 
@@ -131,7 +130,7 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Failed to start rootchain manager: %v", err)
 	}
 
-	timer = time.NewTimer(1 * time.Minute)
+	timer := time.NewTimer(1 * time.Minute)
 	go func() {
 		<-timer.C
 		t.Fatal("Out of time")
@@ -141,19 +140,13 @@ func TestScenario1(t *testing.T) {
 
 	for i = 0; i < NRBEpochLength.Uint64(); {
 		i++
-		ev, ok := <-events.Chan()
-		if !ok {
-			t.Fatal("Expected BlockMined event not fired")
-		}
+		ev:= <-events.Chan()
 
-		blockInfo, ok := ev.Data.(miner.BlockMined)
+		blockInfo := ev.Data.(miner.BlockMined)
 
-		if !ok {
-			t.Fatal("Invalid BlockMined event")
-		}
 
 		if blockInfo.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
+			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.BlockNumber.Uint64())
 		}
 	}
 
@@ -174,6 +167,7 @@ func TestScenario1(t *testing.T) {
 	}
 
 	log.Info("test finished")
+	return
 }
 
 func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
@@ -270,8 +264,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	if err != nil {
 		return nil, func() {}, err
 	}
-	timer := time.NewTimer(3 * time.Second)
-	<-timer.C
+	wait(3)
 	log.Info("Contract deployed at", "address", contractAddress)
 
 	testPlsConfig.RootChainContract = contractAddress
@@ -342,4 +335,9 @@ func ether(v float64) *big.Int {
 	f := new(big.Float).Mul(big.NewFloat(v), big.NewFloat(1e18))
 	out, _ := f.Int(nil)
 	return out
+}
+
+func wait(t time.Duration) {
+	timer := time.NewTimer(t * time.Second)
+	<-timer.C
 }

@@ -220,7 +220,6 @@ func (rcm *RootChainManager) runSubmitter() {
 					log.Info("NRB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
 				}
 
-				rcm.contractParams.incNonce()
 			} else {
 				transactOpts.Value = rcm.contractParams.costORB
 				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
@@ -230,8 +229,8 @@ func (rcm *RootChainManager) runSubmitter() {
 					// TODO: check TX are not reverted
 					log.Info("ORB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
 				}
-				rcm.contractParams.incNonce()
 			}
+			rcm.contractParams.incNonce()
 			rcm.lock.Unlock()
 		case <-rcm.quit:
 			return
@@ -262,6 +261,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
+		events := rcm.eventMux.Subscribe(miner.BlockMined{})
+		defer events.Unsubscribe()
+
 		numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
 		numORBs = new(big.Int).Add(numORBs, big.NewInt(1))
 
@@ -297,6 +299,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 				}
 
 				requestTx := rcm.toTransaction(request)
+				if requestTx == nil {
+					log.Error("Requeust tx is nil", "request", request)
+				}
 				body = append(body, requestTx)
 
 				requestId += 1
@@ -309,13 +314,12 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
 		}
 
-		events := rcm.eventMux.Subscribe(miner.BlockMined{})
-		defer events.Unsubscribe()
-
 		var numMinedORBs uint64 = 0
 
 		for numMinedORBs < numORBs.Uint64() {
-			go rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
+			rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
+
+			log.Info("Waiting new block mined event...")
 
 			<-events.Chan()
 
@@ -379,7 +383,7 @@ func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction 
 	}
 
 	// TODO: check data field
-	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), nil)
+	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), []byte{})
 }
 
 type rootchainParameters struct {
