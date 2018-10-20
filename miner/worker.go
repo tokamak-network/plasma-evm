@@ -595,12 +595,6 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-			// add 1 to number of block mined
-			if isRequest {
-				numORBmined.Add(numORBmined, big.NewInt(1))
-			} else {
-				numNRBmined.Add(numNRBmined, big.NewInt(1))
-			}
 			// announce if the epoch is completed
 			if numNRBmined.Cmp(w.epochLength) == 0 {
 				w.mux.Post(NRBEpochCompleted{})
@@ -609,7 +603,15 @@ func (w *worker) resultLoop() {
 				w.mux.Post(ORBEpochCompleted{})
 			}
 
-			w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: NRBepochLength.Sub(NRBepochLength, numNRBmined), Header: block.Header()})
+			// add 1 to number of block mined
+			if isRequest {
+				numORBmined.Add(numORBmined, big.NewInt(1))
+				w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: ORBepochLength.Sub(ORBepochLength, numORBmined), Header: block.Header()})
+			} else {
+				numNRBmined.Add(numNRBmined, big.NewInt(1))
+				w.mux.Post(BlockMined{IsRequest: isRequest, BlockNumber: block.Number(), Remaining: NRBepochLength.Sub(NRBepochLength, numNRBmined), Header: block.Header()})
+			}
+
 		case <-w.exitCh:
 			return
 		}

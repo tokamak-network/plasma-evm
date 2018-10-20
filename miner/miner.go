@@ -105,14 +105,14 @@ func (self *Miner) operate() {
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
 				case true:
-					ORBepochLength.Set(big.NewInt(0))
+					NRBepochLength.Set(big.NewInt(0))
 					if payload.EpochIsEmpty == true {
 						isRequest = false
 						self.Start(params.Operator)
 						log.Info("ORB epoch is empty, NRB epoch is started")
 					} else {
 						isRequest = true
-						ORBepochLength.Add(payload.EndBlockNumber.Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
+						NRBepochLength.Add(payload.EndBlockNumber.Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
 						self.Start(params.Operator)
 						log.Info("ORB epoch is prepared, ORB epoch is started")
 					}
