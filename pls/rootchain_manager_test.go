@@ -75,7 +75,7 @@ var (
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
 	defaultValue           = big.NewInt(0)
-	defaultGasLimit uint64 = 2000000
+	defaultGasLimit uint64 = 4000000
 
 	err error
 )
@@ -115,6 +115,15 @@ func TestScenario1(t *testing.T) {
 	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
 	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
 
+	timer := time.NewTimer(3 * time.Second)
+	<-timer.C
+
+	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
+
+	if numEROs.Cmp(big.NewInt(0)) == 0 {
+		t.Fatal("numEROs should not be 0")
+	}
+
 	events := rcm.eventMux.Subscribe(miner.BlockMined{})
 	defer events.Unsubscribe()
 
@@ -122,7 +131,7 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Failed to start rootchain manager: %v", err)
 	}
 
-	timer := time.NewTimer(1 * time.Minute)
+	timer = time.NewTimer(1 * time.Minute)
 	go func() {
 		<-timer.C
 		t.Fatal("Out of time")
@@ -175,6 +184,7 @@ func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key 
 	if _, err := rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an enter (deposit) request: %v", err)
 	}
+
 }
 
 func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *contract.RootChain, err error) {
@@ -262,7 +272,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 	timer := time.NewTimer(3 * time.Second)
 	<-timer.C
-	log.Info("Contract deployed at", contractAddress.Hex())
+	log.Info("Contract deployed at", "address", contractAddress)
 
 	testPlsConfig.RootChainContract = contractAddress
 
