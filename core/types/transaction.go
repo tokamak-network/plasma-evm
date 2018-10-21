@@ -17,6 +17,7 @@
 package types
 
 import (
+	"bytes"
 	"container/heap"
 	"errors"
 	"io"
@@ -26,6 +27,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -209,6 +211,7 @@ func (tx *Transaction) Size() common.StorageSize {
 
 // AsMessage returns the transaction as a core.Message.
 //
+
 // AsMessage requires a signer to derive the sender.
 //
 // XXX Rename message to something less arbitrary?
@@ -223,6 +226,10 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		checkNonce: true,
 	}
 
+	if bytes.Compare(msg.From().Bytes(), params.NullAddress.Bytes()) == 0 {
+		msg.checkNonce = false
+	}
+
 	var err error
 	msg.from, err = Sender(s, tx)
 	return msg, err
@@ -231,6 +238,13 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 // WithSignature returns a new transaction with the given signature.
 // This signature needs to be formatted as described in the yellow paper (v+27).
 func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, error) {
+	// with null address signature
+	if len(sig) == 0 {
+		cpy := &Transaction{data: tx.data}
+		cpy.data.V = new(big.Int).Add(params.PlasmaChainConfig.ChainID, big.NewInt(27))
+		return cpy, nil
+	}
+
 	r, s, v, err := signer.SignatureValues(tx, sig)
 	if err != nil {
 		return nil, err
@@ -260,8 +274,6 @@ func (t *Transaction) GetRlp() []byte {
 	enc, _ := rlp.EncodeToBytes(t)
 	return enc
 }
-
-
 
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction

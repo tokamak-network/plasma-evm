@@ -136,17 +136,16 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}
+	if tx.data.V.Cmp(common.Big0) == 0 && tx.data.R.Cmp(common.Big0) == 0 && tx.data.S.Cmp(common.Big0) == 0 {
+		return params.NullAddress, nil
+	}
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
-	if tx.data.V.Cmp(big.NewInt(0)) == 0 {
-		V := tx.data.V
-		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
-	} else {
-		V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
-		V.Sub(V, big8)
-		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
-	}
+
+	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
+	V.Sub(V, big8)
+	return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
 }
 
 // WithSignature returns a new transaction with the given signature. This signature
@@ -233,12 +232,6 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
-	// if the tx is from nullAddress, pass the validation process
-	zero := big.NewInt(0)
-	if Vb.Cmp(zero) == 0 && R.Cmp(zero) == 0 && S.Cmp(zero) == 0 {
-		return params.NullAddress, nil
-	}
-
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
 	}
@@ -264,7 +257,6 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil
 }
-
 
 // deriveChainId derives the chain id from the given v parameter
 func deriveChainId(v *big.Int) *big.Int {
