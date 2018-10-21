@@ -45,6 +45,12 @@ var (
 	key3, _ = crypto.HexToECDSA("067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc")
 	key4, _ = crypto.HexToECDSA("ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66")
 
+	operatorNonce uint64 = 0
+	addr1Nonce    uint64 = 0
+	addr2Nonce    uint64 = 0
+	addr3Nonce    uint64 = 0
+	addr4Nonce    uint64 = 0
+
 	opt1 = bind.NewKeyedTransactor(key1)
 	opt2 = bind.NewKeyedTransactor(key2)
 	opt3 = bind.NewKeyedTransactor(key3)
@@ -71,6 +77,7 @@ var (
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
+	development    = false
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
@@ -139,11 +146,11 @@ func TestScenario1(t *testing.T) {
 	var i uint64
 
 	for i = 0; i < NRBEpochLength.Uint64(); {
+		makeSampleTx(rcm)
 		i++
-		ev:= <-events.Chan()
+		ev := <-events.Chan()
 
 		blockInfo := ev.Data.(miner.BlockMined)
-
 
 		if blockInfo.IsRequest {
 			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.BlockNumber.Uint64())
@@ -157,6 +164,7 @@ func TestScenario1(t *testing.T) {
 	}
 
 	for i = 0; i < NRBEpochLength.Uint64(); {
+		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(miner.BlockMined)
@@ -171,7 +179,7 @@ func TestScenario1(t *testing.T) {
 }
 
 func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
-	opt := makeTxOpt(key, 0, nil, ether(1))
+	opt := makeTxOpt(key, 0, nil, ether(10))
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	isTransfer := true
 
@@ -183,7 +191,6 @@ func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key 
 
 func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *contract.RootChain, err error) {
 	opt := bind.NewKeyedTransactor(operatorKey)
-	development := false
 
 	address, _, rootchainContract, err = contract.DeployRootChain(
 		opt,
@@ -234,14 +241,14 @@ func makeHeaderChain(parent *types.Header, n int, engine consensus.Engine, db et
 }
 
 func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethdb.Database, seed int) []*types.Block {
-	blocks, _ := core.GenerateChain(params.TestChainConfig, parent, engine, db, n, func(i int, b *core.BlockGen) {
+	blocks, _ := core.GenerateChain(params.PlasmaChainConfig, parent, engine, db, n, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(seed), 19: byte(i)})
 	})
 	return blocks
 }
 
 func newTxPool(blockchain *core.BlockChain) *core.TxPool {
-	pool := core.NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+	pool := core.NewTxPool(testTxPoolConfig, params.PlasmaChainConfig, blockchain)
 
 	return pool
 }
@@ -278,7 +285,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 
 	mux := new(event.TypeMux)
-	miner := miner.New(minerBackend, params.TestChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
+	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
 
 	var rcm *RootChainManager
 
@@ -340,4 +347,32 @@ func ether(v float64) *big.Int {
 func wait(t time.Duration) {
 	timer := time.NewTimer(t * time.Second)
 	<-timer.C
+}
+
+// TODO: any user sends tx
+func makeSampleTx(rcm *RootChainManager) error {
+	pool := rcm.txPool
+	nonce := operatorNonce
+	operatorNonce += 1
+
+	// self transfer
+	var err error
+
+	tx := types.NewTransaction(nonce, operator, nil, 21000, nil, []byte{})
+
+	signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
+
+	tx, err = types.SignTx(tx, signer, operatorKey)
+	if err != nil {
+		log.Error("Failed to sign sample tx", "err", err)
+		return err
+	}
+
+	if err = pool.AddLocal(tx); err != nil {
+		log.Error("Failed to insert sample tx to tx pool", "err", err)
+
+		return err
+	}
+
+	return nil
 }
