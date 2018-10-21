@@ -77,7 +77,7 @@ var (
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
-	development    = false
+	development    = true
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
@@ -163,11 +163,12 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Block should be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
 	}
 
-	for i = 0; i < NRBEpochLength.Uint64(); {
+	for i = 0; i < NRBEpochLength.Uint64() * 2; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(miner.BlockMined)
+		makeSampleTx(rcm)
 
 		if blockInfo.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())

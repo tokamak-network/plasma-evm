@@ -34,7 +34,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -228,9 +228,9 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend,
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
 func (w *worker) setEtherbase(addr common.Address) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.coinbase = addr
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.coinbase = addr
 }
 
 // setExtra sets the content used to initialize the block extra field.
@@ -580,16 +580,6 @@ func (w *worker) resultLoop() {
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 
-			var events []interface{}
-			switch stat {
-			case core.CanonStatTy:
-				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				events = append(events, core.ChainHeadEvent{Block: block})
-			case core.SideStatTy:
-				events = append(events, core.ChainSideEvent{Block: block})
-			}
-			w.chain.PostChainEvents(events, logs)
-
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
@@ -603,7 +593,7 @@ func (w *worker) resultLoop() {
 					Header:      block.Header(),
 				})
 			} else {
-				w.env.setNumORBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
+				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
 				w.mux.Post(BlockMined{
 					IsRequest:   w.env.IsRequest,
 					BlockNumber: block.Number(),
@@ -614,10 +604,24 @@ func (w *worker) resultLoop() {
 
 			// announce if the epoch is completed
 			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
+				w.env.setCompletedTrue()
 				w.mux.Post(NRBEpochCompleted{})
-			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 {
+			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest{
+				w.env.setCompletedTrue()
 				w.mux.Post(ORBEpochCompleted{})
 			}
+
+			var events []interface{}
+			switch stat {
+			case core.CanonStatTy:
+				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+				if w.env.Completed == false {
+					events = append(events, core.ChainHeadEvent{Block: block})
+				}
+			case core.SideStatTy:
+				events = append(events, core.ChainSideEvent{Block: block})
+			}
+			w.chain.PostChainEvents(events, logs)
 
 		case <-w.exitCh:
 			return

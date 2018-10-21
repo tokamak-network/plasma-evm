@@ -263,9 +263,8 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 
 	e := *ev
 
-	log.Info("RootChain epoch prepared", "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
+	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
 	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
-
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
 		events := rcm.eventMux.Subscribe(miner.BlockMined{})

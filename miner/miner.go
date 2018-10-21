@@ -101,6 +101,7 @@ func (self *Miner) operate() {
 
 			case EpochPrepared:
 				// start mining only when the epoch is prepared
+				self.env.setCompletedFalse()
 				atomic.StoreInt32(&self.canStart, 1)
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
@@ -241,11 +242,12 @@ func (self *Miner) SetNRBepochLength(NRBepochLength *big.Int) {
 }
 
 type epochEnvironment struct {
-	IsRequest      bool
-	NumNRBmined    *big.Int
-	NumORBmined    *big.Int
-	NRBepochLength *big.Int
-	ORBepochLength *big.Int
+	IsRequest      	bool
+	NumNRBmined    	*big.Int
+	NumORBmined    	*big.Int
+	NRBepochLength 	*big.Int
+	ORBepochLength 	*big.Int
+	Completed 		bool
 
 	lock sync.Mutex
 }
@@ -257,7 +259,20 @@ func newEpochEnvironment() *epochEnvironment {
 		NumORBmined:    big.NewInt(0),
 		NRBepochLength: big.NewInt(0),
 		ORBepochLength: big.NewInt(0),
+		Completed:		false,
 	}
+}
+
+func (env *epochEnvironment) setCompletedTrue() {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+	env.Completed = true
+}
+
+func (env *epochEnvironment) setCompletedFalse() {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+	env.Completed = false
 }
 
 func (env *epochEnvironment) setIsRequest(IsRequest bool) {
