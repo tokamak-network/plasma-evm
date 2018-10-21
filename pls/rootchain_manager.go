@@ -1,12 +1,15 @@
 package pls
 
 import (
+	"bytes"
 	"context"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
@@ -22,7 +25,10 @@ import (
 
 const MAX_EPOCH_EVENTS = 2
 
-var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
+var (
+	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
+	requestableContractABI, _ = abi.JSON(strings.NewReader(contract.RequestableContractIABI))
+)
 
 type RootChainManager struct {
 	config *Config
@@ -227,7 +233,7 @@ func (rcm *RootChainManager) runSubmitter() {
 					log.Warn("Failed to submit request block", "error", err)
 				} else {
 					// TODO: check TX are not reverted
-					log.Info("ORB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
+					log.Info("ORB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex(), "minedTransactionsRoot", blockInfo.Header.TxHash.Hex())
 				}
 			}
 			rcm.contractParams.incNonce()
@@ -258,6 +264,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 	e := *ev
 
 	log.Info("RootChain epoch prepared", "epochNunber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
+	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
@@ -269,7 +276,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 
 		bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
 
-		log.Error("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
+		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
 			currentFork, err := rcm.rootchainContract.CurrentFork(baseCallOpt)
@@ -288,7 +295,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 			}
 
 			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Error("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
+			log.Debug("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests, "transactionsRoot", common.BytesToHash(orb.TransactionsRoot[:]).Hex())
 
 			body := make(types.Transactions, 0, numRequests)
 
@@ -298,10 +305,30 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 					return err
 				}
 
-				requestTx := rcm.toTransaction(request)
-				if requestTx == nil {
-					log.Error("Requeust tx is nil", "request", request)
+				var to common.Address
+				var input []byte
+
+				if request.IsTransfer {
+					to = request.Requestor
+				} else {
+					to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
+					input, err = requestableContractABI.Pack("applyRequestInChildChain", request.IsExit, requestId, request.Requestor, request.TrieKey, request.TrieValue)
+					if err != nil {
+						log.Error("Failed to pack applyRequestInChildChain", "err", err)
+					}
 				}
+
+				requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
+
+				eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
+				if err != nil {
+					log.Error("Failed to get ERO bytes", "err", err)
+				}
+
+				if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
+					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", eroBytes, "requestTx.GetRlp()", requestTx.GetRlp())
+				}
+
 				body = append(body, requestTx)
 
 				requestId += 1
@@ -327,8 +354,6 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 		}
 	}
 
-	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
-
 	return nil
 }
 
@@ -351,39 +376,6 @@ func (rcm *RootChainManager) pingBackend() {
 		}
 
 	}
-}
-
-type Request struct {
-	Timestamp  uint64
-	IsExit     bool
-	Applied    bool
-	Finalized  bool
-	Challenged bool
-	Value      *big.Int
-	Requestor  common.Address
-	To         common.Address
-	TrieKey    [32]byte
-	TrieValue  [32]byte
-}
-
-func (rcm *RootChainManager) toTransaction(data interface{}) *types.Transaction {
-	request, ok := data.(Request)
-
-	if !ok {
-		return &types.Transaction{}
-	}
-
-	isTransfer := request.Requestor.Hex() == request.To.Hex()
-	var to common.Address
-
-	if isTransfer {
-		to = request.Requestor
-	} else {
-		to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
-	}
-
-	// TODO: check data field
-	return types.NewTransaction(0, to, request.Value, uint64(100000), big.NewInt(1000000000), []byte{})
 }
 
 type rootchainParameters struct {
