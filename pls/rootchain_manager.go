@@ -44,7 +44,7 @@ type RootChainManager struct {
 	accountManager *accounts.Manager
 
 	miner *miner.Miner
-	env *miner.EpochEnvironment
+	env   *miner.EpochEnvironment
 
 	contractParams *rootchainParameters
 
@@ -82,7 +82,7 @@ func NewRootChainManager(
 		eventMux:          eventMux,
 		accountManager:    accountManager,
 		miner:             miner,
-		env:			   env,
+		env:               env,
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),

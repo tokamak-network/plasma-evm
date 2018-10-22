@@ -163,7 +163,7 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
 	}
 
-	for i = 0; i < NRBEpochLength.Uint64() * 2; {
+	for i = 0; i < NRBEpochLength.Uint64()*2; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
@@ -286,7 +286,8 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 
 	mux := new(event.TypeMux)
-	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
+	epochEnv := miner.NewEpochEnvironment()
+	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
 
 	var rcm *RootChainManager
 
@@ -307,7 +308,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		mux,
 		nil,
 		miner,
-		miner.Env,
+		epochEnv,
 	)
 
 	if err != nil {

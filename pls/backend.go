@@ -176,7 +176,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
+	epochEnv := miner.NewEpochEnvironment()
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
@@ -211,7 +212,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		pls.eventMux,
 		pls.accountManager,
 		pls.miner,
-		pls.miner.Env,
+		epochEnv,
 	); err != nil {
 		return nil, err
 	}
