@@ -7,26 +7,26 @@ import (
 
 // TODO : needs to be refactored because of performance issue.
 func getBinaryMerkleRoot(level [][]byte) common.Hash {
-	if (len(level) == 1) {
+	if len(level) == 1 {
 		root := common.BytesToHash(level[0])
 		return root
 	}
-	var nextlevel = make([][]byte, (len(level) + 1) / 2)
+	var nextlevel = make([][]byte, (len(level)+1)/2)
 	var i int
 
-	for i = 0; i + 1 < len(level); i += 2 {
+	for i = 0; i+1 < len(level); i += 2 {
 		hash := crypto.Keccak256(level[i], level[i+1])
 		nextlevel[i/2] = hash
 	}
 
-	if (len(level) % 2 == 1) {
-		nextlevel[i/2] = crypto.Keccak256(level[len(level) - 1], level[len(level) - 1])
+	if len(level)%2 == 1 {
+		nextlevel[i/2] = crypto.Keccak256(level[len(level)-1], level[len(level)-1])
 	}
 
 	return getBinaryMerkleRoot(nextlevel)
 }
 
-//GetTransactionRoot is getter for Merkle Root of transaction hashes.
+// GetTransactionRoot is getter for Merkle Root of transaction hashes.
 func GetTransactionRoot(txs []*Transaction) common.Hash {
 	var level [][]byte
 	for _, tx := range txs {
@@ -35,7 +35,7 @@ func GetTransactionRoot(txs []*Transaction) common.Hash {
 	return getBinaryMerkleRoot(level)
 }
 
-//GetIntermediateStateRoot is getter for Merkle Root of intermediateState hashes.
+// GetIntermediateStateRoot is getter for Merkle Root of intermediateState hashes.
 func GetIntermediateStateRoot(receipts []*Receipt) common.Hash {
 	var level [][]byte
 	for _, receipt := range receipts {

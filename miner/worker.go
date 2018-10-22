@@ -228,9 +228,9 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend,
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
 func (w *worker) setEtherbase(addr common.Address) {
-		w.mu.Lock()
-		defer w.mu.Unlock()
-		w.coinbase = addr
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.coinbase = addr
 }
 
 // setExtra sets the content used to initialize the block extra field.
@@ -592,7 +592,7 @@ func (w *worker) resultLoop() {
 			// check if the epoch is completed
 			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
 				w.env.setCompletedTrue()
-			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest{
+			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest {
 				w.env.setCompletedTrue()
 			}
 
@@ -864,7 +864,7 @@ func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase com
 			break
 		}
 
-		log.Error("RTX?", "rtx", rtx)
+		log.Error("RTX?", "rtx", rtx, "hash", rtx.Hash().Hex())
 
 		// Check whether the rtx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.

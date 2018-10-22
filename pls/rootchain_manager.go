@@ -297,7 +297,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 			}
 
 			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Debug("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests, "transactionsRoot", common.BytesToHash(orb.TransactionsRoot[:]).Hex())
+			log.Debug("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
 
 			body := make(types.Transactions, 0, numRequests)
 
@@ -306,6 +306,8 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 				if err != nil {
 					return err
 				}
+
+				log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]))
 
 				var to common.Address
 				var input []byte

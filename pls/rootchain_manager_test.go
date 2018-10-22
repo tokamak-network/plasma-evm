@@ -77,7 +77,7 @@ var (
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
-	development    = true
+	development    = false
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
