@@ -44,6 +44,7 @@ type RootChainManager struct {
 	accountManager *accounts.Manager
 
 	miner *miner.Miner
+	env *miner.EpochEnvironment
 
 	contractParams *rootchainParameters
 
@@ -69,6 +70,7 @@ func NewRootChainManager(
 	eventMux *event.TypeMux,
 	accountManager *accounts.Manager,
 	miner *miner.Miner,
+	env *miner.EpochEnvironment,
 ) (*RootChainManager, error) {
 	rcm := &RootChainManager{
 		config:            config,
@@ -80,6 +82,7 @@ func NewRootChainManager(
 		eventMux:          eventMux,
 		accountManager:    accountManager,
 		miner:             miner,
+		env:			   env,
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
@@ -190,7 +193,7 @@ func (rcm *RootChainManager) watchEvents() error {
 }
 
 func (rcm *RootChainManager) runSubmitter() {
-	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
 	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -210,30 +213,30 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 			rcm.lock.Lock()
 
-			blockInfo := ev.Data.(miner.BlockMined)
+			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
 			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.nonce))
 
 			// send block to root chain contract
-			if blockInfo.IsRequest == false {
+			if !rcm.env.IsRequest {
 				transactOpts.Value = rcm.contractParams.costNRB
-				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().IntermediateStateHash)
 
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
 				} else {
 					// TODO: check TX are not reverted
-					log.Info("NRB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex())
+					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex())
 				}
 
 			} else {
 				transactOpts.Value = rcm.contractParams.costORB
-				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Header.Root, blockInfo.Header.TxHash, blockInfo.Header.IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().IntermediateStateHash)
 				if err != nil {
 					log.Warn("Failed to submit request block", "error", err)
 				} else {
 					// TODO: check TX are not reverted
-					log.Info("ORB is submitted", "blockNumber", blockInfo.BlockNumber, "hash", tx.Hash().Hex(), "minedTransactionsRoot", blockInfo.Header.TxHash.Hex())
+					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex(), "minedTransactionsRoot", blockInfo.Block.Header().TxHash.Hex())
 				}
 			}
 			rcm.contractParams.incNonce()
@@ -267,7 +270,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrep
 	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
-		events := rcm.eventMux.Subscribe(miner.BlockMined{})
+		events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 		defer events.Unsubscribe()
 
 		numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)

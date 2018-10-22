@@ -53,19 +53,19 @@ type Miner struct {
 	canStart    int32 // can start indicates whether we can start the mining operation
 	shouldStart int32 // should start indicates whether we should start after sync
 
-	env *epochEnvironment
+	Env *EpochEnvironment
 
 	lock sync.Mutex
 }
 
 func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
-	env := newEpochEnvironment()
+	env := NewEpochEnvironment()
 
 	miner := &Miner{
 		pls:      pls,
 		mux:      mux,
 		engine:   engine,
-		env:      env,
+		Env:      env,
 		exitCh:   make(chan struct{}),
 		worker:   newWorker(config, engine, pls, env, mux, recommit, gasFloor, gasCeil),
 		canStart: 2,
@@ -77,7 +77,7 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 }
 
 func (self *Miner) operate() {
-	events := self.mux.Subscribe(NRBEpochCompleted{}, ORBEpochCompleted{}, EpochPrepared{})
+	events := self.mux.Subscribe(core.NewMinedBlockEvent{}, EpochPrepared{})
 	defer events.Unsubscribe()
 
 	for {
@@ -87,39 +87,40 @@ func (self *Miner) operate() {
 				return
 			}
 			switch ev.Data.(type) {
-			case NRBEpochCompleted:
-				self.Stop()
-				self.env.setNumNRBmined(big.NewInt(0))
-				atomic.StoreInt32(&self.canStart, 2)
-				log.Info("NRB epoch is completed, Waiting for preparing next epoch")
-
-			case ORBEpochCompleted:
-				self.Stop()
-				self.env.setNumORBmined(big.NewInt(0))
-				atomic.StoreInt32(&self.canStart, 2)
-				log.Info("ORB epoch is completed, Waiting for preparing next epoch")
-
+			case core.NewMinedBlockEvent:
+				if self.Env.Completed == true {
+					self.Stop()
+					atomic.StoreInt32(&self.canStart, 2)
+					switch self.Env.IsRequest {
+					case true:
+						self.Env.setNumORBmined(big.NewInt(0))
+						log.Info("ORB epoch is completed, Waiting for preparing next epoch")
+					case false:
+						self.Env.setNumNRBmined(big.NewInt(0))
+						log.Info("NRB epoch is completed, Waiting for preparing next epoch")
+					}
+				}
 			case EpochPrepared:
 				// start mining only when the epoch is prepared
-				self.env.setCompletedFalse()
 				atomic.StoreInt32(&self.canStart, 1)
+				self.Env.setCompletedFalse()
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
 				case true:
-					self.env.setORBepochLength(big.NewInt(0))
+					self.Env.setORBepochLength(big.NewInt(0))
 					if payload.EpochIsEmpty == true {
-						self.env.setIsRequest(false)
+						self.Env.setIsRequest(false)
 						self.Start(params.Operator)
 						log.Info("ORB epoch is empty, NRB epoch is started")
 					} else {
-						self.env.setIsRequest(true)
+						self.Env.setIsRequest(true)
 						ORBepochLength := new(big.Int).Add(new(big.Int).Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
-						self.env.setORBepochLength(ORBepochLength)
+						self.Env.setORBepochLength(ORBepochLength)
 						self.Start(params.Operator)
 						log.Info("ORB epoch is prepared, ORB epoch is started")
 					}
 				case false:
-					self.env.setIsRequest(false)
+					self.Env.setIsRequest(false)
 					self.Start(params.Operator)
 					log.Info("NRB epoch is prepared, NRB epoch is started")
 				}
@@ -238,10 +239,10 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 }
 
 func (self *Miner) SetNRBepochLength(NRBepochLength *big.Int) {
-	self.env.setNRBepochLength(NRBepochLength)
+	self.Env.setNRBepochLength(NRBepochLength)
 }
 
-type epochEnvironment struct {
+type EpochEnvironment struct {
 	IsRequest      	bool
 	NumNRBmined    	*big.Int
 	NumORBmined    	*big.Int
@@ -252,8 +253,8 @@ type epochEnvironment struct {
 	lock sync.Mutex
 }
 
-func newEpochEnvironment() *epochEnvironment {
-	return &epochEnvironment{
+func NewEpochEnvironment() *EpochEnvironment {
+	return &EpochEnvironment{
 		IsRequest:      false,
 		NumNRBmined:    big.NewInt(0),
 		NumORBmined:    big.NewInt(0),
@@ -263,39 +264,39 @@ func newEpochEnvironment() *epochEnvironment {
 	}
 }
 
-func (env *epochEnvironment) setCompletedTrue() {
+func (env *EpochEnvironment) setCompletedTrue() {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.Completed = true
 }
 
-func (env *epochEnvironment) setCompletedFalse() {
+func (env *EpochEnvironment) setCompletedFalse() {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.Completed = false
 }
 
-func (env *epochEnvironment) setIsRequest(IsRequest bool) {
+func (env *EpochEnvironment) setIsRequest(IsRequest bool) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.IsRequest = IsRequest
 }
-func (env *epochEnvironment) setNumNRBmined(NumNRBmined *big.Int) {
+func (env *EpochEnvironment) setNumNRBmined(NumNRBmined *big.Int) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.NumNRBmined = NumNRBmined
 }
-func (env *epochEnvironment) setNumORBmined(NumORBmined *big.Int) {
+func (env *EpochEnvironment) setNumORBmined(NumORBmined *big.Int) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.NumORBmined = NumORBmined
 }
-func (env *epochEnvironment) setNRBepochLength(NRBepochLength *big.Int) {
+func (env *EpochEnvironment) setNRBepochLength(NRBepochLength *big.Int) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.NRBepochLength = NRBepochLength
 }
-func (env *epochEnvironment) setORBepochLength(ORBepochLength *big.Int) {
+func (env *EpochEnvironment) setORBepochLength(ORBepochLength *big.Int) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.ORBepochLength = ORBepochLength

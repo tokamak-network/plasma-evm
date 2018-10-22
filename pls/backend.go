@@ -211,6 +211,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		pls.eventMux,
 		pls.accountManager,
 		pls.miner,
+		pls.miner.Env,
 	); err != nil {
 		return nil, err
 	}

@@ -130,7 +130,7 @@ func TestScenario1(t *testing.T) {
 		t.Fatal("numEROs should not be 0")
 	}
 
-	events := rcm.eventMux.Subscribe(miner.BlockMined{})
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
 	if err = rcm.Start(); err != nil {
@@ -150,28 +150,28 @@ func TestScenario1(t *testing.T) {
 		i++
 		ev := <-events.Chan()
 
-		blockInfo := ev.Data.(miner.BlockMined)
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
-		if blockInfo.IsRequest {
-			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.BlockNumber.Uint64())
+		if rcm.env.IsRequest {
+			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
 		}
 	}
 
 	ev := <-events.Chan()
-	blockInfo := ev.Data.(miner.BlockMined)
-	if !blockInfo.IsRequest {
-		t.Fatal("Block should be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
+	blockInfo := ev.Data.(core.NewMinedBlockEvent)
+	if !rcm.env.IsRequest {
+		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
 	}
 
 	for i = 0; i < NRBEpochLength.Uint64() * 2; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
-		blockInfo := ev.Data.(miner.BlockMined)
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		makeSampleTx(rcm)
 
-		if blockInfo.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.BlockNumber.Uint64())
+		if rcm.env.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
 
@@ -297,7 +297,6 @@ func makeManager() (*RootChainManager, func(), error) {
 		mux.Stop()
 		rcm.Stop()
 	}
-
 	rcm, err = NewRootChainManager(
 		&testPlsConfig,
 		stopFn,
@@ -308,6 +307,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		mux,
 		nil,
 		miner,
+		miner.Env,
 	)
 
 	if err != nil {

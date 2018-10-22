@@ -128,7 +128,7 @@ type worker struct {
 	pls    Backend
 	chain  *core.BlockChain
 
-	env *epochEnvironment
+	env *EpochEnvironment
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -179,7 +179,7 @@ type worker struct {
 	epochLength *big.Int // NRB epoch length
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *epochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *EpochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
@@ -347,9 +347,14 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			commit(true, commitInterruptNewHead)
 
 		case head := <-w.chainHeadCh:
-			clearPending(head.Block.NumberU64())
-			timestamp = time.Now().Unix()
-			commit(true, commitInterruptNewHead)
+			// commit new mining work again only when the epoch is not completed.
+			if w.env.Completed == false {
+				clearPending(head.Block.NumberU64())
+				timestamp = time.Now().Unix()
+				commit(true, commitInterruptNewHead)
+			} else {
+				log.Info("epoch is completed. stop committing new mining work")
+			}
 
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
@@ -407,7 +412,7 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
-			if w.env.IsRequest == true {
+			if w.env.IsRequest {
 				w.commitNewWorkForORB(req.interrupt, req.noempty, req.timestamp)
 			} else {
 				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
@@ -577,47 +582,31 @@ func (w *worker) resultLoop() {
 			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
 				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
 
-			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			// add 1 to number of block mined
+			if w.env.IsRequest {
+				w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
+			} else {
+				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
+			}
+
+			// check if the epoch is completed
+			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
+				w.env.setCompletedTrue()
+			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest{
+				w.env.setCompletedTrue()
+			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
-			// add 1 to number of block mined
-			if w.env.IsRequest {
-				w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
-				w.mux.Post(BlockMined{
-					IsRequest:   w.env.IsRequest,
-					BlockNumber: block.Number(),
-					Remaining:   new(big.Int).Sub(w.env.ORBepochLength, w.env.NumORBmined),
-					Header:      block.Header(),
-				})
-			} else {
-				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
-				w.mux.Post(BlockMined{
-					IsRequest:   w.env.IsRequest,
-					BlockNumber: block.Number(),
-					Remaining:   new(big.Int).Sub(w.env.NRBepochLength, w.env.NumNRBmined),
-					Header:      block.Header(),
-				})
-			}
-
-			// announce if the epoch is completed
-			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
-				w.env.setCompletedTrue()
-				w.mux.Post(NRBEpochCompleted{})
-			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest{
-				w.env.setCompletedTrue()
-				w.mux.Post(ORBEpochCompleted{})
-			}
+			// Broadcast the block and announce chain insertion event
+			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 
 			var events []interface{}
 			switch stat {
 			case core.CanonStatTy:
 				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				if w.env.Completed == false {
-					events = append(events, core.ChainHeadEvent{Block: block})
-				}
+				events = append(events, core.ChainHeadEvent{Block: block})
 			case core.SideStatTy:
 				events = append(events, core.ChainSideEvent{Block: block})
 			}
