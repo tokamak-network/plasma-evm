@@ -26,6 +26,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/mattn/go-colorable"
+	"context"
 )
 
 var (
@@ -179,6 +180,164 @@ func TestScenario1(t *testing.T) {
 	return
 }
 
+// TestScenario2 tests enter and exit between root chain & plasma chain
+func TestScenario2(t *testing.T) {
+	rcm, stopFn, err := makeManager()
+	defer stopFn()
+
+	ctx := context.Background()
+
+	if err != nil {
+		t.Fatalf("Failed to make rootchian manager: %v", err)
+	}
+
+	NRBEpochLength, err := rcm.NRBEpochLength()
+
+	if err != nil {
+		t.Fatalf("Failed to get NRBEpochLength: %v", err)
+	}
+
+	// balance check in root chain before enter
+	bal1be, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
+	bal2be, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
+	bal3be, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
+	bal4be, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+
+	log.Info("balance of addr1 in root chain before enter", "balance", bal1be)
+	log.Info("balance of addr2 in root chain before enter", "balance", bal2be)
+	log.Info("balance of addr3 in root chain before enter", "balance", bal3be)
+	log.Info("balance of addr4 in root chain before enter", "balance", bal4be)
+
+	// balance check in plasma chain before enter
+	db, _ := rcm.blockchain.State()
+	log.Info("balance of addr1 in plasma chain before enter", "balance", db.GetBalance(addr1))
+	log.Info("balance of addr2 in plasma chain before enter", "balance", db.GetBalance(addr2))
+	log.Info("balance of addr3 in plasma chain before enter", "balance", db.GetBalance(addr3))
+	log.Info("balance of addr4 in plasma chain before enter", "balance", db.GetBalance(addr4))
+
+	startDepositEnter(t, rcm.rootchainContract, key1, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key2, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key3, ether(1))
+	startDepositEnter(t, rcm.rootchainContract, key4, ether(1))
+
+	wait(3)
+
+	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
+
+	if numEROs.Cmp(big.NewInt(0)) == 0 {
+		t.Fatal("numEROs should not be 0")
+	}
+
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
+
+	if err = rcm.Start(); err != nil {
+		t.Fatal("Failed to start rootchain manager: %v", err)
+	}
+
+	timer := time.NewTimer(1 * time.Minute)
+	go func() {
+		<-timer.C
+		t.Fatal("Out of time")
+	}()
+
+	var i uint64
+
+	// #1 NRB epoch check
+	for i = 0; i < NRBEpochLength.Uint64(); {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+
+		if rcm.env.IsRequest {
+			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
+		}
+	}
+
+	// #2 ORB epoch check
+	for i = 0; i < 1; {
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		if !rcm.env.IsRequest {
+			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+		// balance check in plasma chain after enter
+		db, _ := rcm.blockchain.State()
+		log.Info("balance of addr1 in plasma chain after enter", "balance", db.GetBalance(addr1))
+		log.Info("balance of addr2 in plasma chain after enter", "balance", db.GetBalance(addr2))
+		log.Info("balance of addr3 in plasma chain after enter", "balance", db.GetBalance(addr3))
+		log.Info("balance of addr4 in plasma chain after enter", "balance", db.GetBalance(addr4))
+	}
+
+	// balance check in root chain after enter
+	bal1ae, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
+	bal2ae, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
+	bal3ae, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
+	bal4ae, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+
+	log.Info("balance of addr1 in root chain after enter", "balance", bal1ae)
+	log.Info("balance of addr2 in root chain after enter", "balance", bal2ae)
+	log.Info("balance of addr3 in root chain after enter", "balance", bal3ae)
+	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
+
+	// #3 NRB epoch check
+	for i = 0; i < NRBEpochLength.Uint64(); {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
+
+		if rcm.env.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
+
+	startExit(t, rcm.rootchainContract, key1, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key2, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key3, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key4, ether(1), rcm.contractParams.costERO)
+
+	wait(3)
+
+	// #4 ORB epoch check
+	for i = 0; i < 1; {
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		if !rcm.env.IsRequest {
+			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+
+		db, _ := rcm.blockchain.State()
+		log.Info("balance of addr1 in plasma chain after exit", "balance", db.GetBalance(addr1))
+		log.Info("balance of addr2 in plasma chain after exit", "balance", db.GetBalance(addr2))
+		log.Info("balance of addr3 in plasma chain after exit", "balance", db.GetBalance(addr3))
+		log.Info("balance of addr4 in plasma chain after exit", "balance", db.GetBalance(addr4))
+	}
+
+	wait(10)
+
+	applyRequests(t, rcm.rootchainContract, operatorKey)
+
+	// balance check in root chain after enter
+	bal1aex, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
+	bal2aex, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
+	bal3aex, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
+	bal4aex, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+
+	log.Info("balance of addr1 in root chain after exit", "balance", bal1aex)
+	log.Info("balance of addr2 in root chain after exit", "balance", bal2aex)
+	log.Info("balance of addr3 in root chain after exit", "balance", bal3aex)
+	log.Info("balance of addr4 in root chain after exit", "balance", bal4aex)
+
+	log.Info("test finished")
+	return
+}
+
 func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
 	opt := makeTxOpt(key, 0, nil, ether(10))
 	addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -187,7 +346,24 @@ func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key 
 	if _, err := rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an enter (deposit) request: %v", err)
 	}
+}
 
+func startExit(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
+	opt := makeTxOpt(key, 0, nil, cost)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	isTransfer := true
+
+	if _, err := rootchainContract.StartExit(opt, isTransfer, addr, value, empty32Bytes, empty32Bytes); err != nil {
+		t.Fatalf("Failed to make an exit request: %v", err)
+	}
+}
+
+func applyRequests(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey) {
+	opt := makeTxOpt(key, 0, nil, nil)
+
+	if _, err := rootchainContract.ApplyRequest(opt); err != nil {
+		t.Fatalf("Failed to apply request: %v", err)
+	}
 }
 
 func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *contract.RootChain, err error) {
