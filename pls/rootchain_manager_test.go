@@ -14,7 +14,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
+	//"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
@@ -76,11 +76,11 @@ var (
 	}
 
 	// pls ~ rootchain
-	testPlsConfig  = DefaultConfig
-	testEthBackend *ethclient.Client
+	testPlsConfig        = DefaultConfig
+	testEthBackendClient *ethclient.Client
 
 	// pls ~ plasmachain
-	testPlsBackend *plsclient.Client
+	testPlsBackendClient *plsclient.Client
 
 	testTxPoolConfig = core.DefaultTxPoolConfig
 
@@ -106,7 +106,7 @@ func init() {
 
 	testPlsConfig.RootChainURL = rootchainUrl
 
-	testEthBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
+	testEthBackendClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
 		log.Error("Failed to connect rootchian provider", err)
 	}
@@ -379,7 +379,7 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 
 	address, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
-		testEthBackend,
+		testEthBackendClient,
 		development,
 		NRBEpochLength,
 		genesis.Header().Root,
@@ -391,6 +391,19 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 
 	return address, rootchainContract, err
 }
+
+//func deployToken(rcm *RootChainManager) (addrInRootChain common.Address, tokenInRootChain *token.RequestableSimpleToken, addrInChildChain common.Address, tokenInChildChain *rootchain.RequestableSimpleToken, err error) {
+//	// deploy in root chain
+//	opt := bind.NewKeyedTransactor(operatorKey)
+//	addrInRootChain, _, tokenInRootChain, err = token.DeployRequestableSimpleToken(
+//		opt,
+//		testEthBackendClient,
+//	)
+//
+//	// deploy in child chain
+//
+//
+//}
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	// gspec = core.DefaultGenesisBlock()
@@ -487,7 +500,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		stopFn,
 		txPool,
 		blockchain,
-		testEthBackend,
+		testEthBackendClient,
 		rootchainContract,
 		mux,
 		nil,
