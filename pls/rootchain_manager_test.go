@@ -296,10 +296,10 @@ func TestScenario2(t *testing.T) {
 		}
 	}
 
-	startExit(t, rcm.rootchainContract, key1, ether(1))
-	startExit(t, rcm.rootchainContract, key2, ether(1))
-	startExit(t, rcm.rootchainContract, key3, ether(1))
-	startExit(t, rcm.rootchainContract, key4, ether(1))
+	startExit(t, rcm.rootchainContract, key1, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key2, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key3, ether(1), rcm.contractParams.costERO)
+	startExit(t, rcm.rootchainContract, key4, ether(1), rcm.contractParams.costERO)
 
 	wait(3)
 
@@ -348,12 +348,12 @@ func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key 
 	}
 }
 
-func startExit(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
-	opt := makeTxOpt(key, 0, nil, value)
+func startExit(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
+	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	isTransfer := true
 
-	if _, err := rootchainContract.StartExit(opt, isTransfer, addr, empty32Bytes, empty32Bytes); err != nil {
+	if _, err := rootchainContract.StartExit(opt, isTransfer, addr, value, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
 	}
 }
