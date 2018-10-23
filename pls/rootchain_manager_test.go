@@ -327,7 +327,18 @@ func TestScenario2(t *testing.T) {
 		log.Info("balance of addr4 in plasma chain after exit", "balance", db.GetBalance(addr4))
 	}
 
-	wait(10)
+	// #5+ NRB epoch progress
+	for i = 0; i < NRBEpochLength.Uint64() * 6; {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
+
+		if rcm.env.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
 
 	applyRequests(t, rcm.rootchainContract, operatorKey)
 
