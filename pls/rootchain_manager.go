@@ -12,7 +12,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts/abi"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/common"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -27,7 +27,7 @@ const MAX_EPOCH_EVENTS = 2
 
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
-	requestableContractABI, _ = abi.JSON(strings.NewReader(contract.RequestableContractIABI))
+	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
 )
 
 type RootChainManager struct {
@@ -38,7 +38,7 @@ type RootChainManager struct {
 	blockchain *core.BlockChain
 
 	backend           *ethclient.Client
-	rootchainContract *contract.RootChain
+	rootchainContract *rootchain.RootChain
 
 	eventMux       *event.TypeMux
 	accountManager *accounts.Manager
@@ -50,12 +50,12 @@ type RootChainManager struct {
 
 	// channels
 	quit            chan struct{}
-	epochPreparedCh chan *contract.RootChainEpochPrepared
+	epochPreparedCh chan *rootchain.RootChainEpochPrepared
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
-func (rcm *RootChainManager) RootchainContract() *contract.RootChain { return rcm.rootchainContract }
+func (rcm *RootChainManager) RootchainContract() *rootchain.RootChain { return rcm.rootchainContract }
 func (rcm *RootChainManager) NRBEpochLength() (*big.Int, error) {
 	return rcm.rootchainContract.NRBEpochLength(baseCallOpt)
 }
@@ -66,7 +66,7 @@ func NewRootChainManager(
 	txPool *core.TxPool,
 	blockchain *core.BlockChain,
 	backend *ethclient.Client,
-	rootchainContract *contract.RootChain,
+	rootchainContract *rootchain.RootChain,
 	eventMux *event.TypeMux,
 	accountManager *accounts.Manager,
 	miner *miner.Miner,
@@ -85,7 +85,7 @@ func NewRootChainManager(
 		env:               env,
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
-		epochPreparedCh:   make(chan *contract.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
+		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 	}
 
 	epochLength, err := rcm.NRBEpochLength()
@@ -127,7 +127,7 @@ func (rcm *RootChainManager) run() error {
 
 // watch RootChain contract events
 func (rcm *RootChainManager) watchEvents() error {
-	filterer, err := contract.NewRootChainFilterer(rcm.config.RootChainContract, rcm.backend)
+	filterer, err := rootchain.NewRootChainFilterer(rcm.config.RootChainContract, rcm.backend)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		Start:   &startBlockNumber, // read events from rootchain block#1
 	}
 
-	epochPrepareWatchCh := make(chan *contract.RootChainEpochPrepared)
+	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
 	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
 	if err != nil {
 		return err
@@ -260,7 +260,7 @@ func (rcm *RootChainManager) runHandlers() {
 	}
 }
 
-func (rcm *RootChainManager) handleEpochPrepared(ev *contract.RootChainEpochPrepared) error {
+func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPrepared) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
@@ -401,7 +401,7 @@ type rootchainParameters struct {
 	lock sync.Mutex
 }
 
-func newRootchainParameters(rootchainContract *contract.RootChain, backend *ethclient.Client) *rootchainParameters {
+func newRootchainParameters(rootchainContract *rootchain.RootChain, backend *ethclient.Client) *rootchainParameters {
 	rParams := &rootchainParameters{}
 
 	rParams.setCostERO(rootchainContract)
@@ -420,43 +420,43 @@ func newRootchainParameters(rootchainContract *contract.RootChain, backend *ethc
 	return rParams
 }
 
-func (rp *rootchainParameters) setCostERU(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostERU(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
 	return rp.costERU
 }
-func (rp *rootchainParameters) setCostERO(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostERO(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
 	return rp.costERO
 }
-func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
 	return rp.costURBPrepare
 }
-func (rp *rootchainParameters) setCostURB(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostURB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
 	return rp.costURB
 }
-func (rp *rootchainParameters) setCostORB(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostORB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
 	return rp.costORB
 }
-func (rp *rootchainParameters) setCostNRB(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCostNRB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
 	return rp.costNRB
 }
-func (rp *rootchainParameters) setMaxRequests(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setMaxRequests(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
 	return rp.maxRequests
 }
-func (rp *rootchainParameters) setRequestGas(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setRequestGas(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
 	return rp.requestGas
 }
-func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
 	return rp.currentEpoch
 }
-func (rp *rootchainParameters) setCurrentFork(rootchainContract *contract.RootChain) *big.Int {
+func (rp *rootchainParameters) setCurrentFork(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
 	return rp.currentFork
 }

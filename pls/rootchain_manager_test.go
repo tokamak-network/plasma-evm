@@ -1,6 +1,7 @@
 package pls
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"flag"
 	"math/big"
@@ -12,7 +13,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
@@ -25,12 +27,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/mattn/go-colorable"
-	"context"
 )
 
 var (
 	loglevel = flag.Int("loglevel", 4, "verbosity of logs")
+
+	rootchainUrl   = "ws://localhost:8546"
+	plasmachainUrl = "http://localhost:8547"
 
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -70,9 +75,12 @@ var (
 		P2P:  p2p.Config{PrivateKey: testNodeKey},
 	}
 
-	// pls
-	testPlsConfig     = DefaultConfig
-	testClientBackend *ethclient.Client
+	// pls ~ rootchain
+	testPlsConfig  = DefaultConfig
+	testEthBackend *ethclient.Client
+
+	// pls ~ plasmachain
+	testPlsBackend *plsclient.Client
 
 	testTxPoolConfig = core.DefaultTxPoolConfig
 
@@ -96,9 +104,9 @@ func init() {
 	testPlsConfig.TxPool = testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
 
-	testPlsConfig.RootChainURL = "ws://localhost:8546"
+	testPlsConfig.RootChainURL = rootchainUrl
 
-	testClientBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
+	testEthBackend, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
 		log.Error("Failed to connect rootchian provider", err)
 	}
@@ -338,7 +346,7 @@ func TestScenario2(t *testing.T) {
 	return
 }
 
-func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
+func startDepositEnter(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
 	opt := makeTxOpt(key, 0, nil, ether(10))
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	isTransfer := true
@@ -348,7 +356,7 @@ func startDepositEnter(t *testing.T, rootchainContract *contract.RootChain, key 
 	}
 }
 
-func startExit(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
+func startExit(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	isTransfer := true
@@ -358,7 +366,7 @@ func startExit(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.P
 	}
 }
 
-func applyRequests(t *testing.T, rootchainContract *contract.RootChain, key *ecdsa.PrivateKey) {
+func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
 	opt := makeTxOpt(key, 0, nil, nil)
 
 	if _, err := rootchainContract.ApplyRequest(opt); err != nil {
@@ -366,12 +374,12 @@ func applyRequests(t *testing.T, rootchainContract *contract.RootChain, key *ecd
 	}
 }
 
-func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *contract.RootChain, err error) {
+func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *rootchain.RootChain, err error) {
 	opt := bind.NewKeyedTransactor(operatorKey)
 
-	address, _, rootchainContract, err = contract.DeployRootChain(
+	address, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
-		testClientBackend,
+		testEthBackend,
 		development,
 		NRBEpochLength,
 		genesis.Header().Root,
@@ -479,7 +487,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		stopFn,
 		txPool,
 		blockchain,
-		testClientBackend,
+		testEthBackend,
 		rootchainContract,
 		mux,
 		nil,

@@ -31,7 +31,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/contract"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
@@ -195,7 +195,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	log.Info("Rootchain provider connected", "url", config.RootChainURL)
 
 	// Instantiate RootChain contract
-	rootchainContract, err := contract.NewRootChain(config.RootChainContract, rootchainBackend)
+	rootchainContract, err := rootchain.NewRootChain(config.RootChainContract, rootchainBackend)
 	if err != nil {
 		return nil, err
 	}
