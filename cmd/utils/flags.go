@@ -613,8 +613,12 @@ var (
 
 	// Plasma flags
 	PlasmaOperatorKeyFlag = cli.StringFlag{
-		Name:  "operatorKey",
+		Name:  "rootchain.operatorKey",
 		Usage: "Plasma operator key as hex(for dev)",
+	}
+	PlasmaDeveloperKeyFlag = cli.StringFlag{
+		Name:  "dev.key",
+		Usage: "Developer key as hex(for dev)",
 	}
 	PlasmaRootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
@@ -1215,7 +1219,36 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Faild to import operator account: %v", err)
 		}
 
+		log.Info("Unlocking operator account", "address", account.Address)
+
+		if err = ks.Unlock(account, ""); err != nil {
+			Fatalf("Failed to unlock operator account: %v", err)
+		}
+
 		cfg.Operator = account
+	}
+
+	if ctx.GlobalIsSet(PlasmaDeveloperKeyFlag.Name) {
+		devKeys := strings.Split(ctx.GlobalString(PlasmaDeveloperKeyFlag.Name), ",")
+
+		for _, hex := range devKeys {
+			key, _ := crypto.HexToECDSA(hex)
+
+			var (
+				account accounts.Account
+				err     error
+			)
+
+			if account, err = ks.ImportECDSA(key, ""); err != nil {
+				Fatalf("Faild to import developer account: %v", err)
+			}
+
+			log.Info("Unlocking developer account", "address", account.Address)
+
+			if err = ks.Unlock(account, ""); err != nil {
+				Fatalf("Failed to unlock developer account: %v", err)
+			}
+		}
 	}
 
 	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
