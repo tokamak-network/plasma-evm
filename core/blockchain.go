@@ -130,9 +130,9 @@ type BlockChain struct {
 	badBlocks *lru.Cache // Bad block cache
 
 	// Plasma Chain Forks arguments
-	LastFinalizedBlock *common.Hash // block Hash of Last Finalized Block at Root Chain
-	LastFinalizedNumber *big.Int // block height of Last Finalized Block at Root Chain
-	CurrentForks *big.Int // +=1 Counter when Plasma chain fork
+	LastFinalizedBlock  *common.Hash // block Hash of Last Finalized Block at Root Chain
+	LastFinalizedNumber *big.Int     // block height of Last Finalized Block at Root Chain
+	CurrentForks        *big.Int     // +=1 Counter when Plasma chain fork
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -906,8 +906,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	}
 	externTd := block.DeprecatedTd()
 
-	fmt.Printf("localTd : %v \nexternTd : %v \n", localTd, externTd)
-
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
 		return NonStatTy, err
@@ -978,10 +976,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	currentBlock = bc.CurrentBlock()
 	// Only do reorg when externTd > localTd : which means the fork count in root chain contract is increased.
 	/*
-	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-	}
+		if !reorg && externTd.Cmp(localTd) == 0 {
+			// Split same-difficulty blocks by number, then at random
+			reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		}
 	*/
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
@@ -1305,7 +1303,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 
 			collectLogs(oldBlock.Hash())
 		}
-	// TODO : don't need to deal with this case. the height of fork block is always lower than current block.
+		// TODO : don't need to deal with this case. the height of fork block is always lower than current block.
 	} else {
 		// reduce new chain and append new chain blocks for inserting later on
 		for ; newBlock != nil && newBlock.NumberU64() != oldBlock.NumberU64(); newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1) {

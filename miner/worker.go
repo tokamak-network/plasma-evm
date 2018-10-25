@@ -864,7 +864,7 @@ func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase com
 			break
 		}
 
-		log.Error("RTX?", "rtx", rtx, "hash", rtx.Hash().Hex())
+		log.Debug("Request tx to mine", "rtx", rtx, "hash", rtx.Hash().Hex())
 
 		// Check whether the rtx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
