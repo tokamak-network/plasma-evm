@@ -142,6 +142,7 @@ func (rcm *RootChainManager) watchEvents() error {
 	}
 
 	// iterate previous events
+	// TODO: the events fired while syncing should be dealt with in different way.
 	iterator, err := filterer.FilterEpochPrepared(filterOpts)
 	if err != nil {
 		return err
@@ -260,6 +261,8 @@ func (rcm *RootChainManager) runHandlers() {
 	}
 }
 
+// handleEpochPrepared handles EpochPrepared event from RootChain contract after
+// plasma chain is *SYNCED*.
 func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPrepared) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
@@ -384,7 +387,6 @@ func (rcm *RootChainManager) pingBackend() {
 			ticker.Stop()
 			return
 		}
-
 	}
 }
 
