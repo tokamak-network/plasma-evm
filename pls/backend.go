@@ -291,17 +291,17 @@ func (s *Plasma) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "pls",
+			Namespace: "eth", // TODO: use "pls" namespace
 			Version:   "1.0",
 			Service:   NewPublicPlasmaAPI(s),
 			Public:    true,
 		}, {
-			Namespace: "pls",
+			Namespace: "eth", // TODO: use "pls" namespace
 			Version:   "1.0",
 			Service:   NewPublicMinerAPI(s),
 			Public:    true,
 		}, {
-			Namespace: "pls",
+			Namespace: "eth", // TODO: use "pls" namespace
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
@@ -311,7 +311,7 @@ func (s *Plasma) APIs() []rpc.API {
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
 		}, {
-			Namespace: "pls",
+			Namespace: "eth", // TODO: use "pls" namespace
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
 			Public:    true,
