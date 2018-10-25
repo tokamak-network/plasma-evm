@@ -23,7 +23,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
-const MAX_EPOCH_EVENTS = 2
+const MAX_EPOCH_EVENTS = 0
 
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
@@ -125,7 +125,7 @@ func (rcm *RootChainManager) run() error {
 	return nil
 }
 
-// watch RootChain contract events
+// watchEvents watchs RootChain contract events
 func (rcm *RootChainManager) watchEvents() error {
 	filterer, err := rootchain.NewRootChainFilterer(rcm.config.RootChainContract, rcm.backend)
 	if err != nil {
@@ -215,7 +215,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
-			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.nonce))
+			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.getNonce(rcm.backend)))
 
 			// send block to root chain contract
 			if !rcm.env.IsRequest {
@@ -316,7 +316,13 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 					to = request.Requestor
 				} else {
 					to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
-					input, err = requestableContractABI.Pack("applyRequestInChildChain", request.IsExit, requestId, request.Requestor, request.TrieKey, request.TrieValue)
+					input, err = requestableContractABI.Pack("applyRequestInChildChain",
+						request.IsExit,
+						big.NewInt(int64(requestId)),
+						request.Requestor,
+						request.TrieKey,
+						request.TrieValue,
+					)
 					if err != nil {
 						log.Error("Failed to pack applyRequestInChildChain", "err", err)
 					}
@@ -330,7 +336,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 				}
 
 				if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
-					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", eroBytes, "requestTx.GetRlp()", requestTx.GetRlp())
+					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", common.Bytes2Hex(eroBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
 				}
 
 				body = append(body, requestTx)
@@ -398,70 +404,89 @@ type rootchainParameters struct {
 	// operator tx parameters
 	nonce uint64
 
+	lastUpdateTime time.Time
+
 	lock sync.Mutex
 }
 
 func newRootchainParameters(rootchainContract *rootchain.RootChain, backend *ethclient.Client) *rootchainParameters {
 	rParams := &rootchainParameters{}
 
-	rParams.setCostERO(rootchainContract)
-	rParams.setCostERU(rootchainContract)
-	rParams.setCostURBPrepare(rootchainContract)
-	rParams.setCostURB(rootchainContract)
-	rParams.setCostORB(rootchainContract)
-	rParams.setCostNRB(rootchainContract)
-	rParams.setMaxRequests(rootchainContract)
-	rParams.setRequestGas(rootchainContract)
-	rParams.setCurrentEpoch(rootchainContract)
-	rParams.setCurrentFork(rootchainContract)
+	rParams.getCostERO(rootchainContract)
+	rParams.getCostERU(rootchainContract)
+	rParams.getCostURBPrepare(rootchainContract)
+	rParams.getCostURB(rootchainContract)
+	rParams.getCostORB(rootchainContract)
+	rParams.getCostNRB(rootchainContract)
+	rParams.getMaxRequests(rootchainContract)
+	rParams.getRequestGas(rootchainContract)
+	rParams.getCurrentEpoch(rootchainContract)
+	rParams.getCurrentFork(rootchainContract)
 
-	rParams.setNonce(backend)
+	rParams.getNonce(backend)
 
 	return rParams
 }
 
-func (rp *rootchainParameters) setCostERU(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostERU(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
 	return rp.costERU
 }
-func (rp *rootchainParameters) setCostERO(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostERO(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
 	return rp.costERO
 }
-func (rp *rootchainParameters) setCostURBPrepare(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostURBPrepare(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
 	return rp.costURBPrepare
 }
-func (rp *rootchainParameters) setCostURB(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostURB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
 	return rp.costURB
 }
-func (rp *rootchainParameters) setCostORB(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostORB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
 	return rp.costORB
 }
-func (rp *rootchainParameters) setCostNRB(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCostNRB(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
 	return rp.costNRB
 }
-func (rp *rootchainParameters) setMaxRequests(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getMaxRequests(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
 	return rp.maxRequests
 }
-func (rp *rootchainParameters) setRequestGas(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getRequestGas(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
 	return rp.requestGas
 }
-func (rp *rootchainParameters) setCurrentEpoch(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCurrentEpoch(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
 	return rp.currentEpoch
 }
-func (rp *rootchainParameters) setCurrentFork(rootchainContract *rootchain.RootChain) *big.Int {
+func (rp *rootchainParameters) getCurrentFork(rootchainContract *rootchain.RootChain) *big.Int {
 	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
 	return rp.currentFork
 }
-func (rp *rootchainParameters) setNonce(backend *ethclient.Client) uint64 {
-	rp.nonce, _ = backend.NonceAt(context.Background(), params.Operator, nil)
+func (rp *rootchainParameters) getNonce(backend *ethclient.Client) uint64 {
+	rp.lock.Lock()
+	defer rp.lock.Unlock()
+
+	lastUpdateTime := rp.lastUpdateTime
+	lastUpdateTime = lastUpdateTime.Add(2 * time.Second)
+
+	now := time.Now()
+	if now.Before(lastUpdateTime) {
+		timer := time.NewTimer(lastUpdateTime.Sub(now))
+		<-timer.C
+	}
+
+	rp.lastUpdateTime = time.Now()
+
+	nonce, _ := backend.NonceAt(context.Background(), params.Operator, nil)
+	if rp.nonce < nonce {
+		rp.nonce = nonce
+	}
 	return rp.nonce
 }
 func (rp *rootchainParameters) incNonce() {

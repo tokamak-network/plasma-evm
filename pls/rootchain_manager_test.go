@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"flag"
 	"math/big"
+	"runtime"
 	"testing"
 	"time"
 
@@ -14,8 +15,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
-	//"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/bloombits"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -27,7 +29,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
+	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
 )
 
@@ -76,13 +80,13 @@ var (
 	}
 
 	// pls ~ rootchain
-	testPlsConfig        = DefaultConfig
+	testPlsConfig        = &DefaultConfig
 	testEthBackendClient *ethclient.Client
 
 	// pls ~ plasmachain
 	testPlsBackendClient *plsclient.Client
 
-	testTxPoolConfig = core.DefaultTxPoolConfig
+	testTxPoolConfig = &core.DefaultTxPoolConfig
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
@@ -101,7 +105,7 @@ func init() {
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
 	testTxPoolConfig.Journal = ""
-	testPlsConfig.TxPool = testTxPoolConfig
+	testPlsConfig.TxPool = *testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
 
 	testPlsConfig.RootChainURL = rootchainUrl
@@ -328,7 +332,7 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #5+ NRB epoch progress
-	for i = 0; i < NRBEpochLength.Uint64() * 6; {
+	for i = 0; i < NRBEpochLength.Uint64()*6; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
@@ -355,6 +359,57 @@ func TestScenario2(t *testing.T) {
 
 	log.Info("test finished")
 	return
+}
+
+// TestScenario3 tests RootChainManager with Plasma service providing RPC endpoint to
+// plasma network
+func TestScenario3(t *testing.T) {
+	pls, rpcServer, err := makePls()
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	rpcClient := rpc.DialInProc(rpcServer)
+	plsClient := plsclient.NewClient(rpcClient)
+
+	wait(3)
+
+	log.Info("All backend is set up")
+
+	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t, testEthBackendClient, plsClient)
+
+	wait(3)
+
+	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
+	if err != nil {
+		t.Fatalf("Failed to get total supply from root chain", "err", err)
+	}
+
+	ts2, err := tokenInChildChain.TotalSupply(baseCallOpt)
+	if err != nil {
+		t.Fatalf("Failed to get total supply from child chain", "err", err)
+	}
+
+	log.Info("Token total supply", "rootchain", ts1, "childchain", ts2)
+
+	wait(3)
+
+	opt := makeTxOpt(operatorKey, 0, nil, nil)
+
+	pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(opt, tokenAddrInRootChain, tokenAddrInChildChain)
+
+	log.Info("Test finished")
 }
 
 func startDepositEnter(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
@@ -400,21 +455,10 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 
 	testPlsConfig.RootChainContract = address
 
+	wait(2)
+
 	return address, rootchainContract, err
 }
-
-//func deployToken(rcm *RootChainManager) (addrInRootChain common.Address, tokenInRootChain *token.RequestableSimpleToken, addrInChildChain common.Address, tokenInChildChain *rootchain.RequestableSimpleToken, err error) {
-//	// deploy in root chain
-//	opt := bind.NewKeyedTransactor(operatorKey)
-//	addrInRootChain, _, tokenInRootChain, err = token.DeployRequestableSimpleToken(
-//		opt,
-//		testEthBackendClient,
-//	)
-//
-//	// deploy in child chain
-//
-//
-//}
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	// gspec = core.DefaultGenesisBlock()
@@ -457,7 +501,7 @@ func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethd
 }
 
 func newTxPool(blockchain *core.BlockChain) *core.TxPool {
-	pool := core.NewTxPool(testTxPoolConfig, params.PlasmaChainConfig, blockchain)
+	pool := core.NewTxPool(*testTxPoolConfig, params.PlasmaChainConfig, blockchain)
 
 	return pool
 }
@@ -473,6 +517,134 @@ func (b *testPlsBackend) AccountManager() *accounts.Manager { return b.acm }
 func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchain }
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
+
+func makePls() (*Plasma, *rpc.Server, error) {
+	var err error
+
+	db, blockchain, err := newCanonical(0, true)
+
+	if err != nil {
+		log.Error("Failed to creaet blockchain", "err", err)
+		return nil, nil, err
+	}
+
+	config := testPlsConfig
+	chainConfig := params.PlasmaChainConfig
+
+	rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
+
+	if err != nil {
+		log.Error("Failed to deploy rootchain contract", "err", err)
+		return nil, nil, err
+	}
+
+	config.RootChainContract = rootchainAddress
+
+	// configure account manager with empty keystore backend
+	backends := []accounts.Backend{}
+	accManager := accounts.NewManager(backends...)
+
+	pls := &Plasma{
+		config:         config,
+		chainDb:        db,
+		chainConfig:    chainConfig,
+		eventMux:       new(event.TypeMux),
+		accountManager: accManager,
+		blockchain:     blockchain,
+		engine:         engine,
+		shutdownChan:   make(chan bool),
+		networkID:      config.NetworkId,
+		gasPrice:       config.MinerGasPrice,
+		etherbase:      config.Etherbase,
+		bloomRequests:  make(chan chan *bloombits.Retrieval),
+		bloomIndexer:   NewBloomIndexer(db, params.BloomBitsBlocks, params.BloomConfirms),
+	}
+	pls.bloomIndexer.Start(pls.blockchain)
+	pls.txPool = core.NewTxPool(config.TxPool, pls.chainConfig, pls.blockchain)
+
+	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db); err != nil {
+		return nil, nil, err
+	}
+
+	epochEnv := miner.NewEpochEnvironment()
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
+	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
+	pls.APIBackend = &PlsAPIBackend{pls, nil}
+	gpoParams := config.GPO
+	if gpoParams.Default == nil {
+		gpoParams.Default = config.MinerGasPrice
+	}
+	pls.APIBackend.gpo = gasprice.NewOracle(pls.APIBackend, gpoParams)
+	// Dial rootchain provider
+	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Info("Rootchain provider connected", "url", config.RootChainURL)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stopFn := func() { pls.Stop() }
+
+	if pls.rootchainManager, err = NewRootChainManager(
+		config,
+		stopFn,
+		pls.txPool,
+		pls.blockchain,
+		rootchainBackend,
+		rootchainContract,
+		pls.eventMux,
+		pls.accountManager,
+		pls.miner,
+		epochEnv,
+	); err != nil {
+		return nil, nil, err
+	}
+
+	handler := rpc.NewServer()
+	apis := pls.APIs()
+
+	for _, api := range apis {
+		if api.Service == nil || api.Namespace != "eth" {
+			log.Debug("InProc skipped to register service", "service", api.Service, "namespace", api.Namespace)
+			continue
+		}
+
+		if err := handler.RegisterName(api.Namespace, api.Service); err != nil {
+			return nil, nil, err
+		}
+		log.Debug("InProc registered", "service", api.Service, "namespace", api.Namespace)
+	}
+
+	return pls, handler, nil
+}
+
+func deployTokenContracts(t *testing.T, ethClient *ethclient.Client, plsClient *plsclient.Client) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
+	opt := makeTxOpt(operatorKey, 0, nil, nil)
+
+	tokenAddrInRootChain, _, tokenInRootChain, err := token.DeployRequestableSimpleToken(
+		opt,
+		testEthBackendClient,
+	)
+	if err != nil {
+		t.Fatalf("Failed to deploy token contract in root chain", "err", err)
+	}
+	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
+
+	tokenAddrInChildChain, _, tokenInChildChain, err := token.DeployRequestableSimpleToken(
+		opt,
+		plsClient,
+	)
+	if err != nil {
+		t.Fatalf("Failed to deploy token contract in child chain", "err", err)
+	}
+	log.Info("Token deployed in child chain", "address", tokenAddrInChildChain)
+	operatorNonce += 1
+
+	return tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain
+}
 
 func makeManager() (*RootChainManager, func(), error) {
 	db, blockchain, _ := newCanonical(0, true)
@@ -507,7 +679,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		rcm.Stop()
 	}
 	rcm, err = NewRootChainManager(
-		&testPlsConfig,
+		testPlsConfig,
 		stopFn,
 		txPool,
 		blockchain,
