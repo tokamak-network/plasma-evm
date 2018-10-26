@@ -85,10 +85,10 @@ var (
 
 	// pls ~ rootchain
 	testPlsConfig = &DefaultConfig
-	testEthClient *ethclient.Client
+	ethClient     *ethclient.Client
 
 	// pls ~ plasmachain
-	testPlsBackendClient *plsclient.Client
+	plsClient *plsclient.Client
 
 	testTxPoolConfig = &core.DefaultTxPoolConfig
 
@@ -115,7 +115,7 @@ func init() {
 
 	testPlsConfig.RootChainURL = rootchainUrl
 
-	testEthClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
+	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
 		log.Error("Failed to connect rootchian provider", err)
 	}
@@ -391,14 +391,16 @@ func TestScenario3(t *testing.T) {
 	pls.StartMining(runtime.NumCPU())
 
 	rpcClient := rpc.DialInProc(rpcServer)
-	plsClient := plsclient.NewClient(rpcClient)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
 
 	wait(3)
 
-	log.Info("All backend is set up")
+	log.Info("All backends are set up")
 
-	// NRBEpoch#1 / Block#1
-	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t, testEthClient, plsClient)
+	// NRBEpoch#1 / Block#1 (1/2)
+	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
 	checkBlockNumber(t, pls, 1)
@@ -440,8 +442,8 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// deposit 1 ether for each account
-	ETHBalances1 := getETHBalances(addrs, testEthClient)
-	PETHBalances1 := getPETHBalances(addrs, plsClient)
+	ETHBalances1 := getETHBalances(addrs)
+	PETHBalances1 := getPETHBalances(addrs)
 
 	depositAmount := ether(10)
 	depositAmountNeg := new(big.Int).Neg(depositAmount)
@@ -450,21 +452,23 @@ func TestScenario3(t *testing.T) {
 		startETHDeposit(t, pls.rootchainManager.rootchainContract, key, depositAmount)
 	}
 
-	// NRBEpoch#1 / Block#2
+	checkBlockNumber(t, pls, 1)
+
+	// NRBEpoch#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	// ORBEpoch#2 / Block#3
+	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
 	wait(4)
 
-	// NRBEpoch#3 / Block#4
+	checkBlockNumber(t, pls, 3)
+
+	// NRBEpoch#3 / Block#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
 	wait(2)
 
-	checkBlockNumber(t, pls, 4)
-
-	ETHBalances2 := getETHBalances(addrs, testEthClient)
-	PETHBalances2 := getPETHBalances(addrs, plsClient)
+	ETHBalances2 := getETHBalances(addrs)
+	PETHBalances2 := getPETHBalances(addrs)
 
 	// check eth balance in root chain
 	for i := range keys {
@@ -483,19 +487,16 @@ func TestScenario3(t *testing.T) {
 	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
 
-	startTokenDeposit(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, testEthClient, key1, tokenAmount)
-
+	startTokenDeposit(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 	wait(2)
 
 	checkBlockNumber(t, pls, 4)
 
-	// NRBEpoch#3 / Block#5
+	// NRBEpoch#3 / Block#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	// ORBEpoch#4 / Block#6
+	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
 	wait(6)
-
-	checkBlockNumber(t, pls, 6)
 
 	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
@@ -506,29 +507,134 @@ func TestScenario3(t *testing.T) {
 	// check PToken balance
 	checkBalance(t, PTokenBalances1[0], PTokenBalances2[0], tokenAmount, nil, "Failed to check PToken Balance (1)")
 
-	// transfer token in child chain
+	// transfer token from addr1 to addr2, in child chain
 	tokenAmountToTransfer := new(big.Int).Div(ether(1), big.NewInt(2))
 	tokenAmountToTransferNeg := new(big.Int).Neg(tokenAmountToTransfer)
 
-	// NRBEpoch#5 / Block#7
+	checkBlockNumber(t, pls, 6)
+
+	// NRBEpoch#5 / Block#7 (1/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
 	wait(3)
+
+	PTokenBalances3 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances2[0], PTokenBalances3[0], tokenAmountToTransferNeg, nil, "Failed to check PToken Balance (2-1)")
+	checkBalance(t, PTokenBalances2[1], PTokenBalances3[1], tokenAmountToTransfer, nil, "Failed to check PToken Balance (2-2)")
 
 	checkBlockNumber(t, pls, 7)
 
-	PTokenBalances3 := getTokenBalances(addrs, tokenInChildChain)
-	checkBalance(t, PTokenBalances2[1], PTokenBalances3[1], tokenAmountToTransferNeg, nil, "Failed to check PToken Balance (2-1)")
-	checkBalance(t, PTokenBalances2[2], PTokenBalances3[2], tokenAmountToTransfer, nil, "Failed to check PToken Balance (2-2)")
-
-	// NRBEpoch#5 / Block#8
+	// NRBEpoch#5 / Block#8 (2/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
 	wait(3)
 
+	PTokenBalances4 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances3[0], PTokenBalances4[0], tokenAmountToTransferNeg, nil, "Failed to check PToken Balance (3-1)")
+	checkBalance(t, PTokenBalances3[1], PTokenBalances4[1], tokenAmountToTransfer, nil, "Failed to check PToken Balance (3-2)")
+
 	checkBlockNumber(t, pls, 8)
 
-	PTokenBalances4 := getTokenBalances(addrs, tokenInChildChain)
-	checkBalance(t, PTokenBalances3[1], PTokenBalances4[1], tokenAmountToTransferNeg, nil, "Failed to check PToken Balance (3-1)")
-	checkBalance(t, PTokenBalances3[2], PTokenBalances4[2], tokenAmountToTransfer, nil, "Failed to check PToken Balance (3-2)")
+	// NRBEpoch#6 / Block#9 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	tokenAmountToWithdraw := new(big.Int).Div(tokenAmount, big.NewInt(4)) // 4 witndrawal requests
+	tokenAmountToWithdrawNeg := new(big.Int).Neg(tokenAmountToWithdraw)
+
+	PTokenBalances5 := getTokenBalances(addrs, tokenInChildChain)
+
+	// (1/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+
+	checkBlockNumber(t, pls, 9)
+
+	// NRBEpoch#6 / Block#10 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	// ORBEpoch#7 / Block#11 (1/1)
+	wait(3)
+	checkBlockNumber(t, pls, 11)
+
+	PTokenBalances6 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances5[1], PTokenBalances6[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance (4)")
+
+	// (2/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+
+	// NRBEpoch#8 / Block#12 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+	checkBlockNumber(t, pls, 12)
+
+	// NRBEpoch#8 / Block#13 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	// ORBEpoch#9 / Block#14 (1/1)
+	wait(5)
+	checkBlockNumber(t, pls, 14)
+
+	PTokenBalances7 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances6[1], PTokenBalances7[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (5)")
+
+	// (3/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+
+	// NRBEpoch#10 / Block#15 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+	checkBlockNumber(t, pls, 15)
+
+	// NRBEpoch#10 / Block#16 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	// ORBEpoch#11 / Block#17 (1/1)
+	wait(3)
+	checkBlockNumber(t, pls, 17)
+
+	PTokenBalances8 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances7[1], PTokenBalances8[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (6)")
+
+	// (4/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+
+	// NRBEpoch#12 / Block#18 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+	checkBlockNumber(t, pls, 18)
+
+	// NRBEpoch#12 / Block#19 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	// ORBEpoch#13 / Block#20 (1/1)
+	wait(3)
+	checkBlockNumber(t, pls, 20)
+
+	PTokenBalances9 := getTokenBalances(addrs, tokenInChildChain)
+	checkBalance(t, PTokenBalances8[1], PTokenBalances9[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (7)")
+
+	// NRBEpoch#14 / Block#21 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+	checkBlockNumber(t, pls, 21)
+
+	// NRBEpoch#14 / Block#22 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	// apply requests (4 ETH deposits, 1 Token deposits, 4 Token withdrawals)
+	for i := 0; i < 4+1; i++ {
+		applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
+	}
+	for i := 0; i < 4; i++ {
+		tokenBalanceBefore, _ := tokenInRootChain.Balances(baseCallOpt, addr2)
+		applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
+		tokenBalanceAfter, _ := tokenInRootChain.Balances(baseCallOpt, addr2)
+
+		if tokenBalanceAfter.Cmp(new(big.Int).Add(tokenBalanceBefore, tokenAmountToWithdraw)) != 0 {
+			t.Fatalf("applyRequest() doesn not increase token balance")
+		}
+	}
 
 	t.Log("Test finished")
 }
@@ -547,7 +653,7 @@ func startETHDeposit(t *testing.T, rootchainContract *rootchain.RootChain, key *
 	}
 }
 
-func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, ethClient *ethclient.Client, key *ecdsa.PrivateKey, amount *big.Int) {
+func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount *big.Int) {
 	if amount.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 Token")
 	}
@@ -562,9 +668,9 @@ func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tok
 	}
 	trieValue := amount.Bytes()
 	trieValue = common.LeftPadBytes(trieValue, 32)
-	trieValue2 := common.BytesToHash(trieValue)
+	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rootchainContract.StartEnter(opt, isTransfer, tokenAddress, trieKey, trieValue2)
+	tx, err := rootchainContract.StartEnter(opt, isTransfer, tokenAddress, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an token deposit request: %v", err)
@@ -579,8 +685,9 @@ func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tok
 	if receipt == nil {
 		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
 	}
-
-	log.Info("Token Deposit receipt", "deposit.tx", tx.Hash().Hex(), "receipt.status", receipt.Status, "trieKey", common.Bytes2Hex(trieKey[:]), "trieValue", common.Bytes2Hex(trieValue2[:]))
+	if receipt.Status == 0 {
+		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
+	}
 }
 
 func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
@@ -590,6 +697,39 @@ func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key 
 
 	if _, err := rootchainContract.StartExit(opt, isTransfer, addr, value, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
+	}
+}
+
+func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
+	opt := makeTxOpt(key, 0, nil, cost)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	isTransfer := false
+
+	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
+	if err != nil {
+		t.Fatalf("Failed to get trie key: %v", err)
+	}
+	trieValue := amount.Bytes()
+	trieValue = common.LeftPadBytes(trieValue, 32)
+	trieValue32Bytes := common.BytesToHash(trieValue)
+
+	tx, err := rootchainContract.StartExit(opt, isTransfer, tokenAddress, big.NewInt(0), trieKey, trieValue32Bytes)
+
+	if err != nil {
+		t.Fatalf("Failed to make an token withdrawal request: %v", err)
+	}
+
+	wait(3)
+
+	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatalf("Failed to get receipt: %v", err)
+	}
+	if receipt == nil {
+		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
+	}
+	if receipt.Status == 0 {
+		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
 	}
 }
 
@@ -604,8 +744,23 @@ func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, ke
 func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
 	opt := makeTxOpt(key, 0, nil, nil)
 
-	if _, err := rootchainContract.ApplyRequest(opt); err != nil {
+	tx, err := rootchainContract.ApplyRequest(opt)
+
+	if err != nil {
 		t.Fatalf("Failed to apply request: %v", err)
+	}
+
+	wait(2)
+
+	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatalf("Failed to get receipt: %v", err)
+	}
+	if receipt == nil {
+		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
+	}
+	if receipt.Status == 0 {
+		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
 	}
 }
 
@@ -614,7 +769,7 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 
 	address, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
-		testEthClient,
+		ethClient,
 		development,
 		NRBEpochLength,
 		genesis.Header().Root,
@@ -790,12 +945,12 @@ func makePls() (*Plasma, *rpc.Server, error) {
 	return pls, handler, nil
 }
 
-func deployTokenContracts(t *testing.T, ethClient *ethclient.Client, plsClient *plsclient.Client) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
+func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
 	opt := makeTxOpt(operatorKey, 0, nil, nil)
 
 	tokenAddrInRootChain, _, tokenInRootChain, err := token.DeployRequestableSimpleToken(
 		opt,
-		testEthClient,
+		ethClient,
 	)
 	if err != nil {
 		t.Fatalf("Failed to deploy token contract in root chain", "err", err)
@@ -852,7 +1007,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		stopFn,
 		txPool,
 		blockchain,
-		testEthClient,
+		ethClient,
 		rootchainContract,
 		mux,
 		nil,
@@ -990,7 +1145,7 @@ func checkBalance(t *testing.T, before, after *big.Int, diff, offset *big.Int, c
 	}
 }
 
-func getETHBalances(addrs []common.Address, ethClient *ethclient.Client) []*big.Int {
+func getETHBalances(addrs []common.Address) []*big.Int {
 	balances := make([]*big.Int, len(addrs))
 
 	for i, addr := range addrs {
@@ -1001,7 +1156,7 @@ func getETHBalances(addrs []common.Address, ethClient *ethclient.Client) []*big.
 	return balances
 }
 
-func getPETHBalances(addrs []common.Address, plsClient *plsclient.Client) []*big.Int {
+func getPETHBalances(addrs []common.Address) []*big.Int {
 	balances := make([]*big.Int, len(addrs))
 
 	for i, addr := range addrs {
