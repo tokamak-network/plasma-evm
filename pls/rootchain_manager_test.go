@@ -586,6 +586,7 @@ func TestScenario3(t *testing.T) {
 
 	// NRBEpoch#10 / Block#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
+	wait(3)
 
 	// ORBEpoch#11 / Block#17 (1/1)
 	wait(3)
@@ -621,6 +622,7 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#14 / Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
+	checkBlockNumber(t, pls, 22)
 
 	// apply requests (4 ETH deposits, 1 Token deposits, 4 Token withdrawals)
 	for i := 0; i < 4+1; i++ {
