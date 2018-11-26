@@ -221,7 +221,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			// send block to root chain contract
 			if !rcm.env.IsRequest {
 				transactOpts.Value = rcm.contractParams.costNRB
-				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
 
 				if err != nil {
 					log.Warn("Failed to submit non request block", "error", err)
@@ -232,7 +232,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			} else {
 				transactOpts.Value = rcm.contractParams.costORB
-				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().IntermediateStateHash)
+				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
 				if err != nil {
 					log.Warn("Failed to submit request block", "error", err)
 				} else {

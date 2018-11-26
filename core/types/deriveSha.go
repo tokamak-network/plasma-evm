@@ -22,6 +22,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/trie"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type DerivableList interface {
@@ -38,4 +39,33 @@ func DeriveSha(list DerivableList) common.Hash {
 		trie.Update(keybuf.Bytes(), list.GetRlp(i))
 	}
 	return trie.Hash()
+}
+
+func DeriveShaFromBMT(list DerivableList) common.Hash {
+	var level [][]byte
+	for i := 0; i < list.Len(); i++ {
+		level = append(level, list.GetRlp(i))
+	}
+	return getBinaryMerkleRoot(level)
+}
+
+// TODO : needs to be refactored because of performance issue.
+func getBinaryMerkleRoot(level [][]byte) common.Hash {
+	if len(level) == 1 {
+		root := common.BytesToHash(level[0])
+		return root
+	}
+	var nextlevel = make([][]byte, (len(level)+1)/2)
+	var i int
+
+	for i = 0; i+1 < len(level); i += 2 {
+		hash := crypto.Keccak256(level[i], level[i+1])
+		nextlevel[i/2] = hash
+	}
+
+	if len(level)%2 == 1 {
+		nextlevel[i/2] = crypto.Keccak256(level[len(level)-1], level[len(level)-1])
+	}
+
+	return getBinaryMerkleRoot(nextlevel)
 }

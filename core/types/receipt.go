@@ -149,6 +149,13 @@ func (r *Receipt) Size() common.StorageSize {
 	return size
 }
 
+// Hash hashes the RLP encoding of receipt.
+// This is only for test.
+func (r *Receipt) Hash() common.Hash {
+	v := rlpHash(r)
+	return v
+}
+
 // ReceiptForStorage is a wrapper around a Receipt that flattens and parses the
 // entire content of a receipt, as opposed to only the consensus fields originally.
 type ReceiptForStorage Receipt

@@ -170,7 +170,7 @@ func (r *ReceiptsRequest) Validate(db ethdb.Database, msg *Msg) error {
 	if header == nil {
 		return errHeaderUnavailable
 	}
-	if header.ReceiptHash != types.DeriveSha(receipt) {
+	if header.ReceiptHash != types.DeriveShaFromBMT(receipt) {
 		return errReceiptHashMismatch
 	}
 	// Validations passed, store and return
