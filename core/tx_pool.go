@@ -728,7 +728,7 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	return old != nil, nil
 }
 
-func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (bool, error) {
+func (pool *TxPool) EnqueueRequestTxs(rtxs types.Transactions) (bool, error) {
 	// TODO: validate all txs are from null address
 	pool.requestTxCh <- rtxs
 

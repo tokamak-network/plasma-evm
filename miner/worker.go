@@ -707,6 +707,12 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	}
 	w.current.txs = append(w.current.txs, tx)
 	w.current.receipts = append(w.current.receipts, receipt)
+	// collect invalid exits in ORB.
+	if w.env.IsRequest {
+		parent := w.chain.CurrentBlock()
+		num := parent.Number()
+		collectInvalidExits(w.current.receipts, num.Add(num, common.Big1))
+	}
 
 	return receipt.Logs, nil
 }

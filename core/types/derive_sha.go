@@ -69,3 +69,58 @@ func getBinaryMerkleRoot(level [][]byte) common.Hash {
 
 	return getBinaryMerkleRoot(nextlevel)
 }
+
+func GetMerkleProof(list DerivableList, index int) []common.Hash {
+	var proof []common.Hash
+	var leafLevel []common.Hash
+	var tree [][]common.Hash
+	var depth int
+
+	// convert value of leaf nodes to hash.
+	for i := 0; i < list.Len(); i++ {
+		leafLevel = append(leafLevel, common.BytesToHash(crypto.Keccak256(list.GetRlp(i))))
+	}
+
+	tree = append(tree, leafLevel)
+	createTree := func(level []common.Hash) {
+		// length == 1 체크 부분은 빼도 될듯
+		if len(level) == 1 {
+			return
+		}
+		var nextLevel = make([]common.Hash, (len(level)+1)/2)
+		var i int
+
+		for i = 0; i+1 < len(level); i += 2 {
+			hash := common.BytesToHash(crypto.Keccak256(level[i].Bytes(), level[i+1].Bytes()))
+			nextLevel[i/2] = hash
+		}
+
+		if len(level)%2 == 1 {
+			nextLevel[i/2] = common.BytesToHash(crypto.Keccak256(level[len(level)-1].Bytes(), level[len(level)-1].Bytes()))
+		}
+
+		tree = append(tree, nextLevel)
+	}
+
+	// create merkle tree first
+	for depth = 0; len(tree[depth]) > 1 ; depth++ {
+		createTree(tree[depth])
+	}
+
+	nodeIndex := index
+
+	// create merkle proof
+	for i := 0; i < depth; i++ {
+		if nodeIndex % 2 == 0 {
+			siblingIndex := nodeIndex + 1
+			proof = append(proof, tree[i][siblingIndex])
+		} else {
+			siblingIndex := nodeIndex - 1
+			proof = append(proof, tree[i][siblingIndex])
+		}
+		nodeIndex = nodeIndex / 2
+	}
+
+	return proof
+}
+
