@@ -1,11 +1,11 @@
 package types
 
 import (
-	"math/big"
-	"testing"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
 // tx hash = [77 165 128 253 46 76 4 243 40 217 249 71 236 243 86 65 30 184 228 163 165 199 69 243 131 179 204 215 156 54 168 212]
@@ -22,7 +22,6 @@ var tx, _ = NewTransaction(
 )
 
 var txHash = common.Hex2Bytes("000000000000000000000000000000000000000000000000000000000000dead")
-
 
 func setListAndTarget(size int, target int) (DerivableList, int) {
 	var list Transactions
@@ -43,19 +42,19 @@ func TestGetBinaryMerkleRoot(t *testing.T) {
 			expected := "0x000000000000000000000000000000000000000000000000000000000000dead"
 			assert.Equal(t, actual, expected)
 
-		// 2 txHashes
+			// 2 txHashes
 		} else if len(txHashes) == 2 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x0af3feac67a59f8a6c839e5e7d85e7aa16d8569a0bbed85ae2204fa465300dde"
 			assert.Equal(t, actual, expected)
 
-		// 10 txHashes
+			// 10 txHashes
 		} else if len(txHashes) == 10 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x40f0a1fe3c6023fac1363e8ab9f303422a86f17df1d7c51a8a45a46fa76b3675"
 			assert.Equal(t, actual, expected)
 
-		// 100 txHashes
+			// 100 txHashes
 		} else if len(txHashes) == 100 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x098095028c5a5bd103ad3984aafc50ce2c04edcf65b5fdbdc359fc9d0d4a0618"
@@ -63,7 +62,6 @@ func TestGetBinaryMerkleRoot(t *testing.T) {
 		}
 	}
 }
-
 
 func TestCheckMembership(t *testing.T) {
 	list, index := setListAndTarget(8, 0)
@@ -73,7 +71,7 @@ func TestCheckMembership(t *testing.T) {
 	nodeIndex := index
 
 	for i := 0; i < len(proof); i++ {
-		if nodeIndex % 2 == 0 {
+		if nodeIndex%2 == 0 {
 			computedHash = crypto.Keccak256(computedHash, proof[i].Bytes())
 		} else {
 			computedHash = crypto.Keccak256(proof[i].Bytes(), computedHash)
