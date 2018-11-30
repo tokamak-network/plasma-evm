@@ -74,7 +74,6 @@ type Header struct {
 	Root                  common.Hash    `json:"stateRoot"        gencodec:"required"`
 	TxHash                common.Hash    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash           common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-	IntermediateStateHash common.Hash    `json:"IntermediateStateRoot" gencodec:"required"`
 	Bloom                 Bloom          `json:"logsBloom"        gencodec:"required"`
 	Difficulty            *big.Int       `json:"difficulty"       gencodec:"required"`
 	Number                *big.Int       `json:"number"           gencodec:"required"`
@@ -194,7 +193,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
-		b.header.TxHash = GetTransactionRoot(Transactions(txs))
+		b.header.TxHash = DeriveShaFromBMT(Transactions(txs))
 		b.transactions = make(Transactions, len(txs))
 		copy(b.transactions, txs)
 	}
@@ -202,8 +201,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 	if len(receipts) == 0 {
 		b.header.ReceiptHash = EmptyRootHash
 	} else {
-		b.header.ReceiptHash = DeriveSha(Receipts(receipts))
-		b.header.IntermediateStateHash = GetIntermediateStateRoot(receipts)
+		b.header.ReceiptHash = DeriveShaFromBMT(Receipts(receipts))
 		b.header.Bloom = CreateBloom(receipts)
 	}
 
