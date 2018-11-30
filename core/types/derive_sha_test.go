@@ -41,25 +41,33 @@ func TestGetBinaryMerkleRoot(t *testing.T) {
 		if len(txHashes) == 1 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x000000000000000000000000000000000000000000000000000000000000dead"
-			assert.Equal(t, actual, expected)
+			if !assert.Equal(t, actual, expected) {
+				t.Fatal("both hash should be equal, but they aren't", actual, expected)
+			}
 
 			// 2 txHashes
 		} else if len(txHashes) == 2 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x0af3feac67a59f8a6c839e5e7d85e7aa16d8569a0bbed85ae2204fa465300dde"
-			assert.Equal(t, actual, expected)
+			if !assert.Equal(t, actual, expected) {
+				t.Fatal("both hash should be equal, but they aren't", actual, expected)
+			}
 
 			// 10 txHashes
 		} else if len(txHashes) == 10 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x40f0a1fe3c6023fac1363e8ab9f303422a86f17df1d7c51a8a45a46fa76b3675"
-			assert.Equal(t, actual, expected)
+			if !assert.Equal(t, actual, expected) {
+				t.Fatal("both hash should be equal, but they aren't", actual, expected)
+			}
 
 			// 100 txHashes
 		} else if len(txHashes) == 100 {
 			actual := getBinaryMerkleRoot(txHashes).Hex()
 			expected := "0x098095028c5a5bd103ad3984aafc50ce2c04edcf65b5fdbdc359fc9d0d4a0618"
-			assert.Equal(t, actual, expected)
+			if !assert.Equal(t, actual, expected) {
+				t.Fatal("both hash should be equal, but they aren't", actual, expected)
+			}
 		}
 	}
 }
@@ -82,5 +90,7 @@ func TestCheckMembership(t *testing.T) {
 	cH := common.BytesToHash(computedHash).Hex()
 	r := root.Hex()
 
-	assert.Equal(t, cH, r)
+	if !assert.Equal(t, cH, r) {
+		t.Fatal("both hash should be equal, but they aren't", cH, r)
+	}
 }
