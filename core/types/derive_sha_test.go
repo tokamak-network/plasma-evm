@@ -1,11 +1,12 @@
 package types
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 // tx hash = [77 165 128 253 46 76 4 243 40 217 249 71 236 243 86 65 30 184 228 163 165 199 69 243 131 179 204 215 156 54 168 212]
