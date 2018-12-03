@@ -835,7 +835,7 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 		NRBEpochLength,
 		genesis.Header().Root,
 		genesis.Header().TxHash,
-		genesis.Header().IntermediateStateHash,
+		genesis.Header().ReceiptHash,
 	)
 
 	testPlsConfig.RootChainContract = address

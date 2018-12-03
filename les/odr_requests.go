@@ -114,7 +114,7 @@ func (r *BlockRequest) Validate(db ethdb.Database, msg *Msg) error {
 	if header == nil {
 		return errHeaderUnavailable
 	}
-	if header.TxHash != types.GetTransactionRoot(types.Transactions(body.Transactions)) {
+	if header.TxHash != types.DeriveShaFromBMT(types.Transactions(body.Transactions)) {
 		return errTxHashMismatch
 	}
 	if header.UncleHash != types.CalcUncleHash(body.Uncles) {
