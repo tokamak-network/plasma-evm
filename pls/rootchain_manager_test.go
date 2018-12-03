@@ -158,7 +158,7 @@ func TestScenario1(t *testing.T) {
 	defer events.Unsubscribe()
 
 	if err = rcm.Start(); err != nil {
-		t.Fatal("Failed to start rootchain manager: %v", err)
+		t.Fatalf("Failed to start rootchain manager: %v", err)
 	}
 
 	timer := time.NewTimer(1 * time.Minute)
@@ -255,7 +255,7 @@ func TestScenario2(t *testing.T) {
 	defer events.Unsubscribe()
 
 	if err = rcm.Start(); err != nil {
-		t.Fatal("Failed to start rootchain manager: %v", err)
+		t.Fatalf("Failed to start rootchain manager: %v", err)
 	}
 
 	timer := time.NewTimer(1 * time.Minute)
@@ -693,9 +693,25 @@ func TestScenario3(t *testing.T) {
 		tokenBalanceAfter, _ := tokenInRootChain.Balances(baseCallOpt, addr2)
 
 		if tokenBalanceAfter.Cmp(new(big.Int).Add(tokenBalanceBefore, tokenAmountToWithdraw)) != 0 {
-			t.Fatalf("applyRequest() doesn not increase token balance")
+			t.Fatalf("applyRequest() does not increase token balance")
 		}
 	}
+
+	invalidTokenAmountToWithdraw := ether(1000000000000000000000000000)
+
+	// withdraw invalid amount of token from addr2
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, invalidTokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	makeSampleTx(pls.rootchainManager)
+	wait(3)
+
+	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 
 	t.Log("Test finished")
 }
@@ -744,10 +760,10 @@ func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tok
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
 	if receipt == nil {
-		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
+		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
 	}
 	if receipt.Status == 0 {
-		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
+		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
 	}
 }
 
@@ -785,10 +801,10 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
 	if receipt == nil {
-		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
+		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
 	}
 	if receipt.Status == 0 {
-		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
+		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
 	}
 }
 
@@ -816,10 +832,10 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
 	if receipt == nil {
-		t.Fatal("Failed to send transaction: %v", tx.Hash().Hex())
+		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
 	}
 	if receipt.Status == 0 {
-		t.Fatal("Transaction reverted: %v", tx.Hash().Hex())
+		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
 	}
 }
 
@@ -1012,7 +1028,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		ethClient,
 	)
 	if err != nil {
-		t.Fatalf("Failed to deploy token contract in root chain", "err", err)
+		t.Fatal("Failed to deploy token contract in root chain", "err", err)
 	}
 	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
 
@@ -1021,7 +1037,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		plsClient,
 	)
 	if err != nil {
-		t.Fatalf("Failed to deploy token contract in child chain", "err", err)
+		t.Fatal("Failed to deploy token contract in child chain", "err", err)
 	}
 	log.Info("Token deployed in child chain", "address", tokenAddrInChildChain)
 	operatorNonce += 1
@@ -1144,7 +1160,7 @@ func makeSampleTx(rcm *RootChainManager) error {
 
 func checkBlockNumber(pls *Plasma, targetBlockNumber uint64) error {
 	if pls.blockchain.CurrentBlock().NumberU64() != targetBlockNumber {
-		return errors.New(fmt.Sprint("Expected block number: %d, actual block %d", targetBlockNumber, pls.blockchain.CurrentBlock().NumberU64()))
+		return errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", targetBlockNumber, pls.blockchain.CurrentBlock().NumberU64()))
 	}
 
 	return nil

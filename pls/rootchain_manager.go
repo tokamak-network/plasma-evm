@@ -172,7 +172,6 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
-	//
 	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
 	if err != nil {
 		return err
@@ -498,7 +497,7 @@ func (rcm *RootChainManager) runDetector() {
 			rcm.lock.Lock()
 
 			if rcm.env.IsRequest {
-				var invalidExits invalidExits
+				var invalidExitsList invalidExits
 
 				forkNumber, err := caller.CurrentFork(callerOpts)
 				if err != nil {
@@ -518,10 +517,11 @@ func (rcm *RootChainManager) runDetector() {
 							index:       int64(i),
 							proof:       types.GetMerkleProof(receipts, i),
 						}
-						invalidExits = append(invalidExits, invalidExit)
+						invalidExitsList = append(invalidExitsList, invalidExit)
 					}
 				}
-				rcm.invalidExits[forkNumber][blockNumber] = invalidExits
+				rcm.invalidExits[forkNumber] = make(map[*big.Int]invalidExits)
+				rcm.invalidExits[forkNumber][blockNumber] = invalidExitsList
 			}
 			rcm.lock.Unlock()
 
