@@ -754,9 +754,8 @@ func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tok
 func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	isTransfer := true
 
-	if _, err := rootchainContract.StartExit(opt, isTransfer, addr, value, empty32Bytes, empty32Bytes); err != nil {
+	if _, err := rootchainContract.StartExit(opt, addr, value, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
 	}
 }
@@ -764,7 +763,6 @@ func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key 
 func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	isTransfer := false
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -774,7 +772,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rootchainContract.StartExit(opt, isTransfer, tokenAddress, big.NewInt(0), trieKey, trieValue32Bytes)
+	tx, err := rootchainContract.StartExit(opt, tokenAddress, big.NewInt(0), trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
