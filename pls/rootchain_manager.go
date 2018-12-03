@@ -491,6 +491,8 @@ func (rcm *RootChainManager) runDetector() {
 		Context: context.Background(),
 	}
 
+	rcm.invalidExits = make(map[*big.Int]map[*big.Int]invalidExits)
+
 	for {
 		select {
 		case ev := <-events.Chan():
@@ -520,7 +522,6 @@ func (rcm *RootChainManager) runDetector() {
 						invalidExitsList = append(invalidExitsList, invalidExit)
 					}
 				}
-				rcm.invalidExits[forkNumber] = make(map[*big.Int]invalidExits)
 				rcm.invalidExits[forkNumber][blockNumber] = invalidExitsList
 			}
 			rcm.lock.Unlock()
