@@ -30,6 +30,16 @@ var (
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
 )
 
+type invalidExit struct {
+	forkNumber  *big.Int
+	blockNumber *big.Int
+	receipt     *types.Receipt
+	index       int64
+	proof       []common.Hash
+}
+
+type invalidExits []*invalidExit
+
 type RootChainManager struct {
 	config *Config
 	stopFn func()
@@ -46,11 +56,15 @@ type RootChainManager struct {
 	miner *miner.Miner
 	env   *miner.EpochEnvironment
 
+	// fork => block number => invalidExits
+	invalidExits map[*big.Int]map[*big.Int]invalidExits
+
 	contractParams *rootchainParameters
 
 	// channels
-	quit            chan struct{}
-	epochPreparedCh chan *rootchain.RootChainEpochPrepared
+	quit             chan struct{}
+	epochPreparedCh  chan *rootchain.RootChainEpochPrepared
+	blockFinalizedCh chan *rootchain.RootChainBlockFinalized
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
@@ -117,6 +131,7 @@ func (rcm *RootChainManager) Stop() error {
 func (rcm *RootChainManager) run() error {
 	go rcm.runHandlers()
 	go rcm.runSubmitter()
+	go rcm.runDetector()
 
 	if err := rcm.watchEvents(); err != nil {
 		return err
@@ -157,6 +172,21 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
+	//
+	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Iterating BlockFinalized event")
+
+	for iterator2.Next() {
+		e := iterator2.Event
+		if e != nil {
+			rcm.handleBlockFinalzied(e)
+		}
+	}
+
 	// watch events from now
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
@@ -171,6 +201,14 @@ func (rcm *RootChainManager) watchEvents() error {
 
 	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
 
+	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
+	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
+
 	go func() {
 		for {
 			select {
@@ -181,6 +219,16 @@ func (rcm *RootChainManager) watchEvents() error {
 
 			case err := <-epochPrepareSub.Err():
 				log.Error("EpochPrepared event subscription error", "err", err)
+				rcm.stopFn()
+				return
+
+			case e := <-blockFinalizedWatchCh:
+				if e != nil {
+					rcm.blockFinalizedCh <- e
+				}
+
+			case err := <-blockFinalizedSub.Err():
+				log.Error("BlockFinalized event subscription error", "err", err)
 				rcm.stopFn()
 				return
 
@@ -254,6 +302,10 @@ func (rcm *RootChainManager) runHandlers() {
 		case e := <-rcm.epochPreparedCh:
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
+			}
+		case e := <-rcm.blockFinalizedCh:
+			if err := rcm.handleBlockFinalzied(e); err != nil {
+				log.Error("Failed to handle block finazlied", "err", err)
 			}
 		case <-rcm.quit:
 			return
@@ -368,6 +420,115 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	}
 
 	return nil
+}
+
+func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFinalized) error {
+	rcm.lock.Lock()
+	defer rcm.lock.Unlock()
+
+	e := *ev
+
+	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
+
+	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
+	if err != nil {
+		return err
+	}
+
+	// TODO: check callOpts first if caller doesn't work.
+	callerOpts := &bind.CallOpts{
+		Pending: false,
+		Context: context.Background(),
+	}
+
+	block, err := caller.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
+	if err != nil {
+		return err
+	}
+
+	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	if err != nil {
+		log.Error("Failed to get operator private key")
+		return err
+	}
+
+	transactOpts := bind.NewKeyedTransactor(privKey)
+	transactOpts.GasLimit = 4000000
+
+	if block.IsRequest {
+		invalidExits := rcm.invalidExits[e.ForkNumber][e.BlockNumber]
+		for i := 0; i < len(invalidExits); i++ {
+			var proofs []byte
+			for j := 0; j < len(invalidExits[i].proof); j++ {
+				proof := invalidExits[i].proof[j].Bytes()
+				proofs = append(proofs, proof...)
+			}
+			tx, err := rcm.rootchainContract.ChallengeExit(transactOpts, e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
+
+			if err != nil {
+				log.Warn("Failed to submit challengeExit", "error", err)
+			} else {
+				log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
+			}
+		}
+	}
+
+	return nil
+}
+
+func (rcm *RootChainManager) runDetector() {
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
+
+	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
+	if err != nil {
+		log.Warn("failed to make new root chain caller", "error", err)
+		return
+	}
+
+	// TODO: check callOpts first if caller doesn't work.
+	callerOpts := &bind.CallOpts{
+		Pending: false,
+		Context: context.Background(),
+	}
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			rcm.lock.Lock()
+
+			if rcm.env.IsRequest {
+				var invalidExits invalidExits
+
+				forkNumber, err := caller.CurrentFork(callerOpts)
+				if err != nil {
+					log.Warn("failed to get current fork number", "error", err)
+				}
+
+				blockInfo := ev.Data.(core.NewMinedBlockEvent)
+				blockNumber := blockInfo.Block.Number()
+				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
+
+				for i := 0; i < len(receipts); i++ {
+					if receipts[i].Status == types.ReceiptStatusFailed {
+						invalidExit := &invalidExit{
+							forkNumber:  forkNumber,
+							blockNumber: blockNumber,
+							receipt:     receipts[i],
+							index:       int64(i),
+							proof:       types.GetMerkleProof(receipts, i),
+						}
+						invalidExits = append(invalidExits, invalidExit)
+					}
+				}
+				rcm.invalidExits[forkNumber][blockNumber] = invalidExits
+			}
+			rcm.lock.Unlock()
+
+		case <-rcm.quit:
+			return
+		}
+	}
 }
 
 // pingBackend checks rootchain backend is alive.

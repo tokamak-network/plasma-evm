@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 )
 
 // Tests that fast sync gets disabled as soon as a real block is successfully

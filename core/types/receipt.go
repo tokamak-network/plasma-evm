@@ -149,6 +149,15 @@ func (r *Receipt) Size() common.StorageSize {
 	return size
 }
 
+// GetRlp returns the RLP encoding of one receipt from the list.
+func (r *Receipt) GetRlp() []byte {
+	bytes, err := rlp.EncodeToBytes(r)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
+}
+
 // ReceiptForStorage is a wrapper around a Receipt that flattens and parses the
 // entire content of a receipt, as opposed to only the consensus fields originally.
 type ReceiptForStorage Receipt
