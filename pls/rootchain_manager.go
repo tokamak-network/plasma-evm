@@ -87,6 +87,7 @@ func NewRootChainManager(
 	env *miner.EpochEnvironment,
 ) (*RootChainManager, error) {
 	rcm := &RootChainManager{
+
 		config:            config,
 		stopFn:            stopFn,
 		txPool:            txPool,
@@ -465,7 +466,6 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				proofs = append(proofs, proof...)
 			}
 			tx, err := rcm.rootchainContract.ChallengeExit(transactOpts, e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
-
 			if err != nil {
 				log.Warn("Failed to submit challengeExit", "error", err)
 			} else {
@@ -497,7 +497,6 @@ func (rcm *RootChainManager) runDetector() {
 		select {
 		case ev := <-events.Chan():
 			rcm.lock.Lock()
-
 			if rcm.env.IsRequest {
 				var invalidExitsList invalidExits
 
@@ -522,6 +521,7 @@ func (rcm *RootChainManager) runDetector() {
 						invalidExitsList = append(invalidExitsList, invalidExit)
 					}
 				}
+				rcm.invalidExits[forkNumber] = make(map[*big.Int]invalidExits)
 				rcm.invalidExits[forkNumber][blockNumber] = invalidExitsList
 			}
 			rcm.lock.Unlock()
