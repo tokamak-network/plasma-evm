@@ -97,6 +97,7 @@ func NewRootChainManager(
 		accountManager:    accountManager,
 		miner:             miner,
 		env:               env,
+		invalidExits:	   make(map[*big.Int]map[*big.Int]invalidExits),
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
@@ -212,6 +213,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		for {
 			select {
 			case e := <-epochPrepareWatchCh:
+				log.Warn("epochPrepare event is wathced")
 				if e != nil {
 					rcm.epochPreparedCh <- e
 				}
@@ -490,8 +492,6 @@ func (rcm *RootChainManager) runDetector() {
 		Pending: false,
 		Context: context.Background(),
 	}
-
-	rcm.invalidExits = make(map[*big.Int]map[*big.Int]invalidExits)
 
 	for {
 		select {
