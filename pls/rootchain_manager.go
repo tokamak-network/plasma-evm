@@ -98,7 +98,7 @@ func NewRootChainManager(
 		accountManager:    accountManager,
 		miner:             miner,
 		env:               env,
-		invalidExits:	   make(map[*big.Int]map[*big.Int]invalidExits),
+		invalidExits:      make(map[*big.Int]map[*big.Int]invalidExits),
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
