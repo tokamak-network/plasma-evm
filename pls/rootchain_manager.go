@@ -210,11 +210,27 @@ func (rcm *RootChainManager) watchEvents() error {
 
 	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
 
+	NRBSubmittedWatchCh := make(chan *rootchain.RootChainNRBSubmitted)
+	NRBSubmittedSub, err := filterer.WatchNRBSubmitted(watchOpts, NRBSubmittedWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("watching NRBSubmitted event", "startBlockNumber", startBlockNumber)
+
+	ORBSubmittedWatchCh := make(chan *rootchain.RootChainORBSubmitted)
+	ORBSubmittedSub, err := filterer.WatchORBSubmitted(watchOpts, ORBSubmittedWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("watching ORBSubmitted event", "startBlockNumber", startBlockNumber)
+
 	go func() {
 		for {
 			select {
 			case e := <-epochPrepareWatchCh:
-				log.Warn("epochPrepare event is wathced")
+				log.Error("epochPrepare event is wathced")
 				if e != nil {
 					rcm.epochPreparedCh <- e
 				}
@@ -233,6 +249,27 @@ func (rcm *RootChainManager) watchEvents() error {
 				log.Error("BlockFinalized event subscription error", "err", err)
 				rcm.stopFn()
 				return
+
+			case e := <- NRBSubmittedWatchCh:
+				if e != nil {
+					log.Error("NRB is submitted in root chain successfully", "block number", e.BlockNumber )
+				}
+
+			case err := <- NRBSubmittedSub.Err():
+				log.Error("NRBSubmitted event subscription error", "err", err)
+				rcm.stopFn()
+				return
+
+			case e := <- ORBSubmittedWatchCh:
+				if e != nil {
+					log.Error("ORB is submitted in root chain successfully","block number", e.BlockNumber )
+				}
+
+			case err := <- ORBSubmittedSub.Err():
+				log.Error("ORBSubmitted event subscription error", "err", err)
+				rcm.stopFn()
+				return
+
 
 			case <-rcm.quit:
 				return

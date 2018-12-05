@@ -396,6 +396,9 @@ func TestScenario3(t *testing.T) {
 	// assign to global variable
 	plsClient = plsclient.NewClient(rpcClient)
 
+	events := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
+
 	wait(3)
 
 	log.Info("All backends are set up")
@@ -404,7 +407,7 @@ func TestScenario3(t *testing.T) {
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
-	if err := checkBlockNumber(pls, 1); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -455,24 +458,19 @@ func TestScenario3(t *testing.T) {
 		startETHDeposit(t, pls.rootchainManager.rootchainContract, key, depositAmount)
 	}
 
-	if err := checkBlockNumber(pls, 1); err != nil {
-		t.Fatal(err)
-	}
-
 	// NRBEpoch#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	wait(4)
-
-	if err := checkBlockNumber(pls, 3); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#3 / Block#4 (1/2)
-	makeSampleTx(pls.rootchainManager)
-
+	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
 	wait(2)
+
+	if err := checkBlockNumber(pls, events); err != nil {
+		t.Fatal(err)
+	}
 
 	ETHBalances2 := getETHBalances(addrs)
 	PETHBalances2 := getPETHBalances(addrs)
@@ -501,7 +499,10 @@ func TestScenario3(t *testing.T) {
 	startTokenDeposit(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 	wait(2)
 
-	if err := checkBlockNumber(pls, 4); err != nil {
+	// NRBEpoch#3 / Block#4 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -509,7 +510,6 @@ func TestScenario3(t *testing.T) {
 	makeSampleTx(pls.rootchainManager)
 
 	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-	wait(6)
 
 	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
@@ -528,7 +528,7 @@ func TestScenario3(t *testing.T) {
 	tokenAmountToTransfer := new(big.Int).Div(ether(1), big.NewInt(2))
 	tokenAmountToTransferNeg := new(big.Int).Neg(tokenAmountToTransfer)
 
-	if err := checkBlockNumber(pls, 6); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -544,7 +544,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := checkBlockNumber(pls, 7); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -560,7 +560,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := checkBlockNumber(pls, 8); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -576,7 +576,7 @@ func TestScenario3(t *testing.T) {
 	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
 
-	if err := checkBlockNumber(pls, 9); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -586,7 +586,7 @@ func TestScenario3(t *testing.T) {
 
 	// ORBEpoch#7 / Block#11 (1/1)
 	wait(3)
-	if err := checkBlockNumber(pls, 11); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -601,7 +601,7 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#8 / Block#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
-	if err := checkBlockNumber(pls, 12); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -610,7 +610,7 @@ func TestScenario3(t *testing.T) {
 
 	// ORBEpoch#9 / Block#14 (1/1)
 	wait(5)
-	if err := checkBlockNumber(pls, 14); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -625,7 +625,7 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#10 / Block#15 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
-	if err := checkBlockNumber(pls, 15); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -635,7 +635,7 @@ func TestScenario3(t *testing.T) {
 
 	// ORBEpoch#11 / Block#17 (1/1)
 	wait(3)
-	if err := checkBlockNumber(pls, 17); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -650,7 +650,7 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#12 / Block#18 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
-	if err := checkBlockNumber(pls, 18); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -660,7 +660,7 @@ func TestScenario3(t *testing.T) {
 
 	// ORBEpoch#13 / Block#20 (1/1)
 	wait(3)
-	if err := checkBlockNumber(pls, 20); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -672,14 +672,14 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#14 / Block#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
-	if err := checkBlockNumber(pls, 21); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#14 / Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	wait(3)
-	if err := checkBlockNumber(pls, 22); err != nil {
+	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1158,10 +1158,19 @@ func makeSampleTx(rcm *RootChainManager) error {
 	return nil
 }
 
-func checkBlockNumber(pls *Plasma, targetBlockNumber uint64) error {
-	if pls.blockchain.CurrentBlock().NumberU64() != targetBlockNumber {
-		//return errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", targetBlockNumber, pls.blockchain.CurrentBlock().NumberU64()))
-		return nil
+// 이벤트 채널을 인자로 줘서 이벤트 발생하면 ~ 한다로 바꾸는게 맞다. wait하지말고, 채널로 처리하면 됨.
+// 인자로 events.Chan() 주고 타임아웃까지 걸어서 해보기.
+// timer계속 만들고 죽이고 해야하는데 안죽었다...
+func checkBlockNumber(pls *Plasma, events *event.TypeMuxSubscription) error {
+	log.Error("checkBlockNumber is executed")
+
+	ev := <-events.Chan()
+	blockInfo := ev.Data.(core.NewMinedBlockEvent)
+
+	log.Error("Check Block Number", "current block number", pls.blockchain.CurrentBlock().NumberU64(), "event block number", blockInfo.Block.NumberU64())
+
+	if pls.blockchain.CurrentBlock().NumberU64() != blockInfo.Block.NumberU64() {
+		return errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", blockInfo.Block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
 	}
 
 	return nil
