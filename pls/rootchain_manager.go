@@ -102,6 +102,7 @@ func NewRootChainManager(
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
+		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized, 0),
 	}
 
 	epochLength, err := rcm.NRBEpochLength()
@@ -210,27 +211,10 @@ func (rcm *RootChainManager) watchEvents() error {
 
 	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
 
-	NRBSubmittedWatchCh := make(chan *rootchain.RootChainNRBSubmitted)
-	NRBSubmittedSub, err := filterer.WatchNRBSubmitted(watchOpts, NRBSubmittedWatchCh)
-	if err != nil {
-		return err
-	}
-
-	log.Info("watching NRBSubmitted event", "startBlockNumber", startBlockNumber)
-
-	ORBSubmittedWatchCh := make(chan *rootchain.RootChainORBSubmitted)
-	ORBSubmittedSub, err := filterer.WatchORBSubmitted(watchOpts, ORBSubmittedWatchCh)
-	if err != nil {
-		return err
-	}
-
-	log.Info("watching ORBSubmitted event", "startBlockNumber", startBlockNumber)
-
 	go func() {
 		for {
 			select {
 			case e := <-epochPrepareWatchCh:
-				log.Error("epochPrepare event is wathced")
 				if e != nil {
 					rcm.epochPreparedCh <- e
 				}
@@ -249,27 +233,6 @@ func (rcm *RootChainManager) watchEvents() error {
 				log.Error("BlockFinalized event subscription error", "err", err)
 				rcm.stopFn()
 				return
-
-			case e := <- NRBSubmittedWatchCh:
-				if e != nil {
-					log.Error("NRB is submitted in root chain successfully", "block number", e.BlockNumber )
-				}
-
-			case err := <- NRBSubmittedSub.Err():
-				log.Error("NRBSubmitted event subscription error", "err", err)
-				rcm.stopFn()
-				return
-
-			case e := <- ORBSubmittedWatchCh:
-				if e != nil {
-					log.Error("ORB is submitted in root chain successfully","block number", e.BlockNumber )
-				}
-
-			case err := <- ORBSubmittedSub.Err():
-				log.Error("ORBSubmitted event subscription error", "err", err)
-				rcm.stopFn()
-				return
-
 
 			case <-rcm.quit:
 				return
@@ -467,12 +430,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	e := *ev
 
-	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
-
-	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
-	if err != nil {
-		return err
-	}
+	log.Error("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
 
 	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
@@ -480,7 +438,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		Context: context.Background(),
 	}
 
-	block, err := caller.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
+	block, err := rcm.rootchainContract.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
 	if err != nil {
 		return err
 	}
@@ -496,18 +454,34 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	if block.IsRequest {
 		invalidExits := rcm.invalidExits[e.ForkNumber][e.BlockNumber]
+		log.Error("check invalidExits length", "length", len(invalidExits))
 		for i := 0; i < len(invalidExits); i++ {
+			log.Error("Preparing to submit exit challenge")
+
 			var proofs []byte
 			for j := 0; j < len(invalidExits[i].proof); j++ {
 				proof := invalidExits[i].proof[j].Bytes()
 				proofs = append(proofs, proof...)
 			}
+			// TODO: ChallengeExit receipt check
 			tx, err := rcm.rootchainContract.ChallengeExit(transactOpts, e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
 			if err != nil {
 				log.Warn("Failed to submit challengeExit", "error", err)
-			} else {
-				log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
 			}
+
+			receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+			log.Error("ChallengeExit Receipt", "receipt", receipt)
+			if err != nil {
+				log.Error("Failed to get receipt", "error", err)
+			}
+			if receipt == nil {
+				log.Error("Failed to send Challenge transaction")
+			}
+			if receipt.Status == 0 {
+				log.Error("Challenge Transaction reverted")
+			}
+
+			log.Error("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
 		}
 	}
 
@@ -547,6 +521,7 @@ func (rcm *RootChainManager) runDetector() {
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
 
 				for i := 0; i < len(receipts); i++ {
+					log.Error("Detecting invalid Exit", "Target Receipt", receipts[i])
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{
 							forkNumber:  forkNumber,
@@ -556,6 +531,8 @@ func (rcm *RootChainManager) runDetector() {
 							proof:       types.GetMerkleProof(receipts, i),
 						}
 						invalidExitsList = append(invalidExitsList, invalidExit)
+
+						log.Error("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
 					}
 				}
 				rcm.invalidExits[forkNumber] = make(map[*big.Int]invalidExits)
