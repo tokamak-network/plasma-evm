@@ -1034,6 +1034,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 	wait(4)
 
 	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	log.Error("applyRequest receipt", "receipt", receipt)
 	if err != nil {
 		t.Fatalf("Failed to get receipt: %v", err)
 	}

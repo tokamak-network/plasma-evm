@@ -57,7 +57,7 @@ type RootChainManager struct {
 	env   *miner.EpochEnvironment
 
 	// fork => block number => invalidExits
-	invalidExits map[*big.Int]map[*big.Int]invalidExits
+	invalidExits map[uint64]map[uint64]invalidExits
 
 	contractParams *rootchainParameters
 
@@ -98,7 +98,7 @@ func NewRootChainManager(
 		accountManager:    accountManager,
 		miner:             miner,
 		env:               env,
-		invalidExits:      make(map[*big.Int]map[*big.Int]invalidExits),
+		invalidExits:      make(map[uint64]map[uint64]invalidExits),
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
@@ -434,7 +434,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
-		Pending: false,
+		Pending: true,
 		Context: context.Background(),
 	}
 
@@ -453,7 +453,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 	transactOpts.GasLimit = 4000000
 
 	if block.IsRequest {
-		invalidExits := rcm.invalidExits[e.ForkNumber][e.BlockNumber]
+		invalidExits := rcm.invalidExits[e.ForkNumber.Uint64()][e.BlockNumber.Uint64()]
 		log.Error("check invalidExits length", "length", len(invalidExits))
 		for i := 0; i < len(invalidExits); i++ {
 			log.Error("Preparing to submit exit challenge")
@@ -469,17 +469,17 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				log.Warn("Failed to submit challengeExit", "error", err)
 			}
 
-			receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
-			log.Error("ChallengeExit Receipt", "receipt", receipt)
-			if err != nil {
-				log.Error("Failed to get receipt", "error", err)
-			}
-			if receipt == nil {
-				log.Error("Failed to send Challenge transaction")
-			}
-			if receipt.Status == 0 {
-				log.Error("Challenge Transaction reverted")
-			}
+			//receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+			//log.Error("ChallengeExit Receipt", "receipt", receipt)
+			//if err != nil {
+			//	log.Error("Failed to get receipt", "error", err)
+			//}
+			//if receipt == nil {
+			//	log.Error("Failed to send Challenge transaction")
+			//}
+			//if receipt.Status == 0 {
+			//	log.Error("Challenge Transaction reverted")
+			//}
 
 			log.Error("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
 		}
@@ -516,6 +516,11 @@ func (rcm *RootChainManager) runDetector() {
 					log.Warn("failed to get current fork number", "error", err)
 				}
 
+				if rcm.invalidExits[forkNumber.Uint64()] == nil {
+					log.Error("invalidExits[forkNumber] is nil, make new map")
+					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
+				}
+
 				blockInfo := ev.Data.(core.NewMinedBlockEvent)
 				blockNumber := blockInfo.Block.Number()
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
@@ -535,8 +540,7 @@ func (rcm *RootChainManager) runDetector() {
 						log.Error("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
 					}
 				}
-				rcm.invalidExits[forkNumber] = make(map[*big.Int]invalidExits)
-				rcm.invalidExits[forkNumber][blockNumber] = invalidExitsList
+				rcm.invalidExits[forkNumber.Uint64()][blockNumber.Uint64()] = invalidExitsList
 			}
 			rcm.lock.Unlock()
 
