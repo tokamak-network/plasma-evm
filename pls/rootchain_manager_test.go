@@ -95,7 +95,7 @@ var (
 
 	// rootchain contract
 	NRBEpochLength = big.NewInt(2)
-	development    = false
+	development    = true
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
@@ -916,9 +916,19 @@ func TestScenario4(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	wait(10)
+
+	ERO, err := pls.rootchainManager.rootchainContract.EROs(baseCallOpt, big.NewInt(5))
+	if err != nil {
+		t.Fatal("failed to get ERO")
+	}
+
+	if !ERO.Challenged {
+		t.Fatal("ERO is not challenged successfully")
+	}
+
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
-
 
 func startETHDeposit(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
 	if value.Cmp(big.NewInt(0)) == 0 {
@@ -1364,7 +1374,6 @@ func makeSampleTx(rcm *RootChainManager) error {
 
 	return nil
 }
-
 
 func checkBlockNumber(pls *Plasma, events *event.TypeMuxSubscription) error {
 	ev := <-events.Chan()

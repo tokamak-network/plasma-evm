@@ -430,7 +430,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	e := *ev
 
-	log.Error("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
+	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
 
 	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
@@ -454,9 +454,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	if block.IsRequest {
 		invalidExits := rcm.invalidExits[e.ForkNumber.Uint64()][e.BlockNumber.Uint64()]
-		log.Error("check invalidExits length", "length", len(invalidExits))
 		for i := 0; i < len(invalidExits); i++ {
-			log.Error("Preparing to submit exit challenge")
 
 			var proofs []byte
 			for j := 0; j < len(invalidExits[i].proof); j++ {
@@ -469,19 +467,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				log.Warn("Failed to submit challengeExit", "error", err)
 			}
 
-			//receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
-			//log.Error("ChallengeExit Receipt", "receipt", receipt)
-			//if err != nil {
-			//	log.Error("Failed to get receipt", "error", err)
-			//}
-			//if receipt == nil {
-			//	log.Error("Failed to send Challenge transaction")
-			//}
-			//if receipt.Status == 0 {
-			//	log.Error("Challenge Transaction reverted")
-			//}
-
-			log.Error("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
+			log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
 		}
 	}
 
@@ -517,7 +503,6 @@ func (rcm *RootChainManager) runDetector() {
 				}
 
 				if rcm.invalidExits[forkNumber.Uint64()] == nil {
-					log.Error("invalidExits[forkNumber] is nil, make new map")
 					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
 				}
 
@@ -526,7 +511,6 @@ func (rcm *RootChainManager) runDetector() {
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
 
 				for i := 0; i < len(receipts); i++ {
-					log.Error("Detecting invalid Exit", "Target Receipt", receipts[i])
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{
 							forkNumber:  forkNumber,
@@ -537,7 +521,7 @@ func (rcm *RootChainManager) runDetector() {
 						}
 						invalidExitsList = append(invalidExitsList, invalidExit)
 
-						log.Error("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
+						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
 					}
 				}
 				rcm.invalidExits[forkNumber.Uint64()][blockNumber.Uint64()] = invalidExitsList

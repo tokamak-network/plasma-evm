@@ -80,9 +80,9 @@ func GetMerkleProof(list DerivableList, index int) []common.Hash {
 		leafLevel = append(leafLevel, crypto.Keccak256Hash(list.GetRlp(i)))
 	}
 
-	// If the number of elements is only one, return the hash of it.
+	// If the number of elements is only one, return empty proof.
 	if list.Len() == 1 {
-		return leafLevel
+		return proof
 	}
 
 	tree = append(tree, leafLevel)
