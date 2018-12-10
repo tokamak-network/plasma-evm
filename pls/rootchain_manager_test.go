@@ -474,8 +474,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	makeSampleTx(pls.rootchainManager)
-
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +532,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
@@ -627,7 +624,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#7 / Block#11 (1/1)
-	makeSampleTx(pls.rootchainManager)
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
@@ -665,7 +661,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#9 / Block#14 (1/1)
-	makeSampleTx(pls.rootchainManager)
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
@@ -703,7 +698,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#11 / Block#17 (1/1)
-	makeSampleTx(pls.rootchainManager)
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
@@ -741,7 +735,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORBEpoch#13 / Block#20 (1/1)
-	makeSampleTx(pls.rootchainManager)
 	if err := checkBlockNumber(pls, events); err != nil {
 		t.Fatal(err)
 	}
