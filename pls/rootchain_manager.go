@@ -15,7 +15,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
@@ -247,13 +246,7 @@ func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	if err != nil {
-		log.Error("Failed to get operator private key")
-		return
-	}
-
-	transactOpts := bind.NewKeyedTransactor(privKey)
+	transactOpts := bind.NewKeyedTransactor(rcm.config.OperatorKey)
 	transactOpts.GasLimit = 4000000
 
 	for {
@@ -443,13 +436,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		return err
 	}
 
-	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	if err != nil {
-		log.Error("Failed to get operator private key")
-		return err
-	}
-
-	transactOpts := bind.NewKeyedTransactor(privKey)
+	transactOpts := bind.NewKeyedTransactor(rcm.config.OperatorKey)
 	transactOpts.GasLimit = 4000000
 
 	if block.IsRequest {

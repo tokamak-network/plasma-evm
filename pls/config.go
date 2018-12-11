@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"time"
 
+	"crypto/ecdsa"
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
@@ -84,6 +85,7 @@ type Config struct {
 
 	// Plasma options
 	Operator          accounts.Account
+	OperatorKey       *ecdsa.PrivateKey
 	RootChainURL      string
 	RootChainContract common.Address
 
