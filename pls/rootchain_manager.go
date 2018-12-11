@@ -102,7 +102,7 @@ func NewRootChainManager(
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
-		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized, 0),
+		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized),
 	}
 
 	epochLength, err := rcm.NRBEpochLength()
