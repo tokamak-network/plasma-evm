@@ -497,6 +497,7 @@ func (rcm *RootChainManager) runDetector() {
 				blockNumber := blockInfo.Block.Number()
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
 
+				// TODO: should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
 				for i := 0; i < len(receipts); i++ {
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{
