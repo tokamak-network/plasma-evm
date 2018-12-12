@@ -113,6 +113,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = *testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
+	testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	testPlsConfig.RootChainURL = rootchainUrl
 
@@ -407,11 +408,7 @@ func TestScenario3(t *testing.T) {
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -465,20 +462,12 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -512,31 +501,19 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#3 / Block#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#3 / Block#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -559,11 +536,7 @@ func TestScenario3(t *testing.T) {
 
 	// NRBEpoch#5 / Block#7 (1/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -578,11 +551,7 @@ func TestScenario3(t *testing.T) {
 	// NRBEpoch#5 / Block#8 (2/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -595,6 +564,12 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// NRBEpoch#6 / Block#9 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, events, false); err != nil {
+		t.Fatal(err)
+	}
+
 	tokenAmountToWithdraw := new(big.Int).Div(tokenAmount, big.NewInt(4)) // 4 witndrawal requests
 	tokenAmountToWithdrawNeg := new(big.Int).Neg(tokenAmountToWithdraw)
 
@@ -603,32 +578,15 @@ func TestScenario3(t *testing.T) {
 	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
 
-	makeSampleTx(pls.rootchainManager)
-
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
-		t.Fatal(err)
-	}
-
 	// NRBEpoch#6 / Block#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#7 / Block#11 (1/1)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -637,35 +595,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// NRBEpoch#8 / Block#12 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, events, false); err != nil {
+		t.Fatal(err)
+	}
+
 	// (2/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
 
-	// NRBEpoch#8 / Block#12 (1/2)
-	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
-		t.Fatal(err)
-	}
-
 	// NRBEpoch#8 / Block#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#9 / Block#14 (1/1)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -674,35 +620,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// NRBEpoch#10 / Block#15 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, events, false); err != nil {
+		t.Fatal(err)
+	}
+
 	// (3/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
 
-	// NRBEpoch#10 / Block#15 (1/2)
-	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
-		t.Fatal(err)
-	}
-
 	// NRBEpoch#10 / Block#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#11 / Block#17 (1/1)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -711,35 +645,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// NRBEpoch#12 / Block#18 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, events, false); err != nil {
+		t.Fatal(err)
+	}
+
 	// (4/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
 
-	// NRBEpoch#12 / Block#18 (1/2)
-	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
-		t.Fatal(err)
-	}
-
 	// NRBEpoch#12 / Block#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#13 / Block#20 (1/1)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -750,21 +672,13 @@ func TestScenario3(t *testing.T) {
 
 	// NRBEpoch#14 / Block#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#14 / Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -819,11 +733,7 @@ func TestScenario4(t *testing.T) {
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -877,20 +787,12 @@ func TestScenario4(t *testing.T) {
 	// NRBEpoch#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -924,31 +826,19 @@ func TestScenario4(t *testing.T) {
 	// NRBEpoch#3 / Block#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#3 / Block#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -973,76 +863,48 @@ func TestScenario4(t *testing.T) {
 	// NRBEpoch#5 / Block#7 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#5 / Block#8 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORBEpoch#6 / Block#9 (1/1): invalid withdrawal
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, true); err != nil {
+	if err := checkBlock(pls, events, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#7 / Block#10 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#7 / Block#11 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#8 / Block#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#8 / Block#12 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlockNumber(pls, events); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := isRequest(pls, false); err != nil {
+	if err := checkBlock(pls, events, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1174,7 +1036,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 	wait(4)
 
 	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
-	log.Error("applyRequest receipt", "receipt", receipt)
+	log.Info("applyRequest receipt", "receipt", receipt)
 	if err != nil {
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
@@ -1505,31 +1367,26 @@ func makeSampleTx(rcm *RootChainManager) error {
 	return nil
 }
 
-func checkBlockNumber(pls *Plasma, events *event.TypeMuxSubscription) error {
+func checkBlock(pls *Plasma, events *event.TypeMuxSubscription, expectedIsRequest bool) error {
 	ev := <-events.Chan()
 	blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
 	log.Info("Check Block Number", "current block number", pls.blockchain.CurrentBlock().NumberU64(), "event block number", blockInfo.Block.NumberU64())
 
+	// check block number.
 	if pls.blockchain.CurrentBlock().NumberU64() != blockInfo.Block.NumberU64() {
 		return errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", blockInfo.Block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
 	}
 
-	return nil
-}
+	// check isRequest.
+	if blockInfo.Block.IsRequest() != expectedIsRequest {
+		log.Error("txs length check", "length", len(blockInfo.Block.Transactions()))
 
-func isRequest(pls *Plasma, expectedIsReqeust bool) error {
-
-	if pls.rootchainManager.env.IsRequest != expectedIsReqeust {
-		return errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsReqeust, pls.rootchainManager.env.IsRequest))
+		tx, _ := blockInfo.Block.Transactions()[0].AsMessage(types.HomesteadSigner{})
+		log.Error("tx sender address", "sender", tx.From())
+		return errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, blockInfo.Block.IsRequest()))
 	}
 
-	txs := pls.blockchain.CurrentBlock().Transactions()
-
-	// check request block has any Null Address tx.
-	if pls.rootchainManager.env.IsRequest && txs.Len() == 0 {
-		return errors.New("Request block is empty")
-	}
 	return nil
 }
 
