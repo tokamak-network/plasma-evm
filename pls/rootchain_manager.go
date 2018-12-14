@@ -27,6 +27,10 @@ const MAX_EPOCH_EVENTS = 0
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
+	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
+
+	//TODO: sholud delete this after fixing rcm.backend.NetworkId
+	rootchainNetworkId = big.NewInt(1337)
 )
 
 type invalidExit struct {
@@ -246,9 +250,6 @@ func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	transactOpts := bind.NewKeyedTransactor(rcm.config.OperatorKey)
-	transactOpts.GasLimit = 4000000
-
 	for {
 		select {
 		case ev := <-events.Chan():
@@ -258,29 +259,66 @@ func (rcm *RootChainManager) runSubmitter() {
 			rcm.lock.Lock()
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
+			Nonce := rcm.contractParams.getNonce(rcm.backend)
 
-			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.getNonce(rcm.backend)))
+			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
+			networkID, err := rcm.backend.NetworkID(context.Background())
+			log.Info("network Id", "id", networkID)
+			if err != nil {
+				log.Error("NetworkId error", "err", err)
+			}
 
-			// send block to root chain contract
+			// send request block to root chain contract
 			if !rcm.env.IsRequest {
-				transactOpts.Value = rcm.contractParams.costNRB
-				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
-
+				input, err := rootchainContractABI.Pack(
+					"submitNRB",
+					blockInfo.Block.Header().Root,
+					blockInfo.Block.Header().TxHash,
+					blockInfo.Block.Header().ReceiptHash,
+				)
 				if err != nil {
-					log.Warn("Failed to submit non request block", "error", err)
-				} else {
-					// TODO: check TX are not reverted
-					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex())
+					log.Error("Failed to pack submitNRB", "err", err)
+				}
+				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costNRB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+				signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+				if err != nil {
+					log.Error("Failed to sign submitTx", "err", err)
 				}
 
-			} else {
-				transactOpts.Value = rcm.contractParams.costORB
-				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
+				err = rcm.backend.SendTransaction(context.Background(), signedTx)
 				if err != nil {
-					log.Warn("Failed to submit request block", "error", err)
+					log.Error("Failed to send submitTx", "err", err)
 				} else {
-					// TODO: check TX are not reverted
-					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex(), "minedTransactionsRoot", blockInfo.Block.Header().TxHash.Hex())
+					// TODO: check TX is not reverted
+					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
+				}
+
+				// send non-request block to root chain contract
+			} else {
+				input, err := rootchainContractABI.Pack(
+					"submitORB",
+					blockInfo.Block.Header().Root,
+					blockInfo.Block.Header().TxHash,
+					blockInfo.Block.Header().ReceiptHash,
+				)
+				if err != nil {
+					log.Error("Failed to pack submitORB", "err", err)
+				}
+				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costORB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+				signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+
+				if err != nil {
+					log.Error("Failed to sign submitTx", "err", err)
+				}
+
+				err = rcm.backend.SendTransaction(context.Background(), signedTx)
+				if err != nil {
+					log.Error("Failed to send submitTx", "err", err)
+				} else {
+					// TODO: check TX is not reverted
+					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
 				}
 			}
 			rcm.contractParams.incNonce()
@@ -425,7 +463,6 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
 
-	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: true,
 		Context: context.Background(),
@@ -435,9 +472,6 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 	if err != nil {
 		return err
 	}
-
-	transactOpts := bind.NewKeyedTransactor(rcm.config.OperatorKey)
-	transactOpts.GasLimit = 4000000
 
 	if block.IsRequest {
 		invalidExits := rcm.invalidExits[e.ForkNumber.Uint64()][e.BlockNumber.Uint64()]
@@ -449,12 +483,25 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				proofs = append(proofs, proof...)
 			}
 			// TODO: ChallengeExit receipt check
-			tx, err := rcm.rootchainContract.ChallengeExit(transactOpts, e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
+			input, err := rootchainContractABI.Pack("challengeExit", e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
 			if err != nil {
-				log.Warn("Failed to submit challengeExit", "error", err)
+				log.Error("Failed to pack challengeExit", "error", err)
 			}
 
-			log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", tx.Hash().Hex())
+			Nonce := rcm.contractParams.getNonce(rcm.backend)
+			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+			signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
+			if err != nil {
+				log.Error("Failed to sign challengeTx", "err", err)
+			}
+
+			err = rcm.backend.SendTransaction(context.Background(), signedTx)
+			if err != nil {
+				log.Error("Failed to send challengeTx", "err", err)
+			} else {
+				log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", signedTx.Hash().Hex())
+			}
 		}
 	}
 

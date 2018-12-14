@@ -13,6 +13,7 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
@@ -35,6 +36,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
+	"io/ioutil"
+	"os"
 )
 
 var (
@@ -113,7 +116,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = *testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
-	testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	//testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	testPlsConfig.RootChainURL = rootchainUrl
 
@@ -376,7 +379,9 @@ func TestScenario2(t *testing.T) {
 // TestScenario3 tests RootChainManager with Plasma service providing RPC endpoint to
 // plasma network
 func TestScenario3(t *testing.T) {
-	pls, rpcServer, err := makePls()
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
 	if err != nil {
 		t.Fatalf("Failed to make pls service: %v", err)
 	}
@@ -701,7 +706,9 @@ func TestScenario3(t *testing.T) {
 
 // test challenge invalid exit
 func TestScenario4(t *testing.T) {
-	pls, rpcServer, err := makePls()
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
 	if err != nil {
 		t.Fatalf("Failed to make pls service: %v", err)
 	}
@@ -1114,6 +1121,16 @@ func newTxPool(blockchain *core.BlockChain) *core.TxPool {
 	return pool
 }
 
+func tmpKeyStore() (string, *keystore.KeyStore) {
+	d, err := ioutil.TempDir("", "eth-keystore-test")
+	if err != nil {
+		log.Error("Failed to set temporary keystore directory", "err", err)
+	}
+	ks := keystore.NewKeyStore(d, 2, 1)
+
+	return d, ks
+}
+
 type testPlsBackend struct {
 	acm        *accounts.Manager
 	blockchain *core.BlockChain
@@ -1126,14 +1143,15 @@ func (b *testPlsBackend) BlockChain() *core.BlockChain      { return b.blockchai
 func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
-func makePls() (*Plasma, *rpc.Server, error) {
+func makePls() (*Plasma, *rpc.Server, string, error) {
 	var err error
+	var account accounts.Account
 
 	db, blockchain, err := newCanonical(0, true)
 
 	if err != nil {
 		log.Error("Failed to creaet blockchain", "err", err)
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	config := testPlsConfig
@@ -1143,7 +1161,7 @@ func makePls() (*Plasma, *rpc.Server, error) {
 
 	if err != nil {
 		log.Error("Failed to deploy rootchain contract", "err", err)
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	config.RootChainContract = rootchainAddress
@@ -1151,6 +1169,17 @@ func makePls() (*Plasma, *rpc.Server, error) {
 	// configure account manager with empty keystore backend
 	backends := []accounts.Backend{}
 	accManager := accounts.NewManager(backends...)
+
+	d, ks := tmpKeyStore()
+	if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
+		log.Error("Failed to import operator account", "err", err)
+	}
+
+	if err = ks.Unlock(account, ""); err != nil {
+		log.Error("Failed to unlock operator account", "err", err)
+	}
+	config.Operator = account
+	config.KeyStore = ks
 
 	pls := &Plasma{
 		config:         config,
@@ -1171,7 +1200,7 @@ func makePls() (*Plasma, *rpc.Server, error) {
 	pls.txPool = core.NewTxPool(config.TxPool, pls.chainConfig, pls.blockchain)
 
 	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db); err != nil {
-		return nil, nil, err
+		return nil, nil, d, err
 	}
 
 	epochEnv := miner.NewEpochEnvironment()
@@ -1186,12 +1215,12 @@ func makePls() (*Plasma, *rpc.Server, error) {
 	// Dial rootchain provider
 	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, d, err
 	}
 	log.Info("Rootchain provider connected", "url", config.RootChainURL)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, d, err
 	}
 
 	stopFn := func() { pls.Stop() }
@@ -1208,7 +1237,7 @@ func makePls() (*Plasma, *rpc.Server, error) {
 		pls.miner,
 		epochEnv,
 	); err != nil {
-		return nil, nil, err
+		return nil, nil, d, err
 	}
 
 	handler := rpc.NewServer()
@@ -1221,12 +1250,12 @@ func makePls() (*Plasma, *rpc.Server, error) {
 		}
 
 		if err := handler.RegisterName(api.Namespace, api.Service); err != nil {
-			return nil, nil, err
+			return nil, nil, d, err
 		}
 		log.Debug("InProc registered", "service", api.Service, "namespace", api.Namespace)
 	}
 
-	return pls, handler, nil
+	return pls, handler, d, nil
 }
 
 func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
