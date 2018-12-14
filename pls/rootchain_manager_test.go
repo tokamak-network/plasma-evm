@@ -1122,7 +1122,7 @@ func newTxPool(blockchain *core.BlockChain) *core.TxPool {
 }
 
 func tmpKeyStore() (string, *keystore.KeyStore) {
-	d, err := ioutil.TempDir("", "eth-keystore-test")
+	d, err := ioutil.TempDir("/tmp", "eth-keystore-test")
 	if err != nil {
 		log.Error("Failed to set temporary keystore directory", "err", err)
 	}
