@@ -1225,7 +1225,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
 		cfg.Operator = account
-		cfg.KeyStore = ks
 	}
 
 	if ctx.GlobalIsSet(PlasmaDeveloperKeyFlag.Name) {
