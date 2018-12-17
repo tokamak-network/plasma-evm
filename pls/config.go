@@ -29,9 +29,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
-	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.

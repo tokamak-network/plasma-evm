@@ -29,6 +29,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -388,6 +389,24 @@ func (b *Block) Hash() common.Hash {
 	v := b.header.Hash()
 	b.hash.Store(v)
 	return v
+}
+
+// IsRequest returns whether the block is request block or non-request block.
+func (b *Block) IsRequest() bool {
+	txs := b.Transactions()
+
+	if len(txs) == 0 {
+		return false
+	}
+
+	for i := 0; i < len(txs); i++ {
+		tx, _ := txs[i].AsMessage(NewEIP155Signer(params.PlasmaChainConfig.ChainID))
+		if tx.From() != params.NullAddress {
+			return false
+		}
+	}
+
+	return true
 }
 
 type Blocks []*Block

@@ -15,7 +15,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
@@ -28,7 +27,21 @@ const MAX_EPOCH_EVENTS = 0
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
+	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
+
+	//TODO: sholud delete this after fixing rcm.backend.NetworkId
+	rootchainNetworkId = big.NewInt(1337)
 )
+
+type invalidExit struct {
+	forkNumber  *big.Int
+	blockNumber *big.Int
+	receipt     *types.Receipt
+	index       int64
+	proof       []common.Hash
+}
+
+type invalidExits []*invalidExit
 
 type RootChainManager struct {
 	config *Config
@@ -46,11 +59,15 @@ type RootChainManager struct {
 	miner *miner.Miner
 	env   *miner.EpochEnvironment
 
+	// fork => block number => invalidExits
+	invalidExits map[uint64]map[uint64]invalidExits
+
 	contractParams *rootchainParameters
 
 	// channels
-	quit            chan struct{}
-	epochPreparedCh chan *rootchain.RootChainEpochPrepared
+	quit             chan struct{}
+	epochPreparedCh  chan *rootchain.RootChainEpochPrepared
+	blockFinalizedCh chan *rootchain.RootChainBlockFinalized
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
@@ -73,6 +90,7 @@ func NewRootChainManager(
 	env *miner.EpochEnvironment,
 ) (*RootChainManager, error) {
 	rcm := &RootChainManager{
+
 		config:            config,
 		stopFn:            stopFn,
 		txPool:            txPool,
@@ -83,9 +101,11 @@ func NewRootChainManager(
 		accountManager:    accountManager,
 		miner:             miner,
 		env:               env,
+		invalidExits:      make(map[uint64]map[uint64]invalidExits),
 		contractParams:    newRootchainParameters(rootchainContract, backend),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
+		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized),
 	}
 
 	epochLength, err := rcm.NRBEpochLength()
@@ -117,6 +137,7 @@ func (rcm *RootChainManager) Stop() error {
 func (rcm *RootChainManager) run() error {
 	go rcm.runHandlers()
 	go rcm.runSubmitter()
+	go rcm.runDetector()
 
 	if err := rcm.watchEvents(); err != nil {
 		return err
@@ -157,6 +178,20 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
+	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Iterating BlockFinalized event")
+
+	for iterator2.Next() {
+		e := iterator2.Event
+		if e != nil {
+			rcm.handleBlockFinalzied(e)
+		}
+	}
+
 	// watch events from now
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
@@ -171,6 +206,14 @@ func (rcm *RootChainManager) watchEvents() error {
 
 	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
 
+	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
+	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
+
 	go func() {
 		for {
 			select {
@@ -181,6 +224,16 @@ func (rcm *RootChainManager) watchEvents() error {
 
 			case err := <-epochPrepareSub.Err():
 				log.Error("EpochPrepared event subscription error", "err", err)
+				rcm.stopFn()
+				return
+
+			case e := <-blockFinalizedWatchCh:
+				if e != nil {
+					rcm.blockFinalizedCh <- e
+				}
+
+			case err := <-blockFinalizedSub.Err():
+				log.Error("BlockFinalized event subscription error", "err", err)
 				rcm.stopFn()
 				return
 
@@ -197,14 +250,10 @@ func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	privKey, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	w, err := rcm.accountManager.Find(rcm.config.Operator)
 	if err != nil {
-		log.Error("Failed to get operator private key")
-		return
+		log.Error("Failed to get operator wallet", "err", err)
 	}
-
-	transactOpts := bind.NewKeyedTransactor(privKey)
-	transactOpts.GasLimit = 4000000
 
 	for {
 		select {
@@ -215,29 +264,66 @@ func (rcm *RootChainManager) runSubmitter() {
 			rcm.lock.Lock()
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
+			Nonce := rcm.contractParams.getNonce(rcm.backend)
 
-			transactOpts.Nonce = big.NewInt(int64(rcm.contractParams.getNonce(rcm.backend)))
+			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
+			networkID, err := rcm.backend.NetworkID(context.Background())
+			log.Info("network Id", "id", networkID)
+			if err != nil {
+				log.Error("NetworkId error", "err", err)
+			}
 
-			// send block to root chain contract
+			// send request block to root chain contract
 			if !rcm.env.IsRequest {
-				transactOpts.Value = rcm.contractParams.costNRB
-				tx, err := rcm.rootchainContract.SubmitNRB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
-
+				input, err := rootchainContractABI.Pack(
+					"submitNRB",
+					blockInfo.Block.Header().Root,
+					blockInfo.Block.Header().TxHash,
+					blockInfo.Block.Header().ReceiptHash,
+				)
 				if err != nil {
-					log.Warn("Failed to submit non request block", "error", err)
-				} else {
-					// TODO: check TX are not reverted
-					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex())
+					log.Error("Failed to pack submitNRB", "err", err)
+				}
+				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costNRB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+				if err != nil {
+					log.Error("Failed to sign submitTx", "err", err)
 				}
 
-			} else {
-				transactOpts.Value = rcm.contractParams.costORB
-				tx, err := rcm.rootchainContract.SubmitORB(transactOpts, blockInfo.Block.Header().Root, blockInfo.Block.Header().TxHash, blockInfo.Block.Header().ReceiptHash)
+				err = rcm.backend.SendTransaction(context.Background(), signedTx)
 				if err != nil {
-					log.Warn("Failed to submit request block", "error", err)
+					log.Error("Failed to send submitTx", "err", err)
 				} else {
-					// TODO: check TX are not reverted
-					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", tx.Hash().Hex(), "minedTransactionsRoot", blockInfo.Block.Header().TxHash.Hex())
+					// TODO: check TX is not reverted
+					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
+				}
+
+				// send non-request block to root chain contract
+			} else {
+				input, err := rootchainContractABI.Pack(
+					"submitORB",
+					blockInfo.Block.Header().Root,
+					blockInfo.Block.Header().TxHash,
+					blockInfo.Block.Header().ReceiptHash,
+				)
+				if err != nil {
+					log.Error("Failed to pack submitORB", "err", err)
+				}
+				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costORB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+
+				if err != nil {
+					log.Error("Failed to sign submitTx", "err", err)
+				}
+
+				err = rcm.backend.SendTransaction(context.Background(), signedTx)
+				if err != nil {
+					log.Error("Failed to send submitTx", "err", err)
+				} else {
+					// TODO: check TX is not reverted
+					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
 				}
 			}
 			rcm.contractParams.incNonce()
@@ -254,6 +340,10 @@ func (rcm *RootChainManager) runHandlers() {
 		case e := <-rcm.epochPreparedCh:
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
+			}
+		case e := <-rcm.blockFinalizedCh:
+			if err := rcm.handleBlockFinalzied(e); err != nil {
+				log.Error("Failed to handle block finazlied", "err", err)
 			}
 		case <-rcm.quit:
 			return
@@ -368,6 +458,125 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	}
 
 	return nil
+}
+
+func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFinalized) error {
+	rcm.lock.Lock()
+	defer rcm.lock.Unlock()
+
+	e := *ev
+
+	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
+
+	callerOpts := &bind.CallOpts{
+		Pending: true,
+		Context: context.Background(),
+	}
+
+	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	if err != nil {
+		log.Error("Failed to get operator wallet", "err", err)
+	}
+
+	block, err := rcm.rootchainContract.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
+	if err != nil {
+		return err
+	}
+
+	if block.IsRequest {
+		invalidExits := rcm.invalidExits[e.ForkNumber.Uint64()][e.BlockNumber.Uint64()]
+		for i := 0; i < len(invalidExits); i++ {
+
+			var proofs []byte
+			for j := 0; j < len(invalidExits[i].proof); j++ {
+				proof := invalidExits[i].proof[j].Bytes()
+				proofs = append(proofs, proof...)
+			}
+			// TODO: ChallengeExit receipt check
+			input, err := rootchainContractABI.Pack("challengeExit", e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
+			if err != nil {
+				log.Error("Failed to pack challengeExit", "error", err)
+			}
+
+			Nonce := rcm.contractParams.getNonce(rcm.backend)
+			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
+			if err != nil {
+				log.Error("Failed to sign challengeTx", "err", err)
+			}
+
+			err = rcm.backend.SendTransaction(context.Background(), signedTx)
+			if err != nil {
+				log.Error("Failed to send challengeTx", "err", err)
+			} else {
+				log.Info("challengeExit is submitted", "exit request number", invalidExits[i].index, "hash", signedTx.Hash().Hex())
+			}
+		}
+	}
+
+	return nil
+}
+
+func (rcm *RootChainManager) runDetector() {
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
+
+	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
+	if err != nil {
+		log.Warn("failed to make new root chain caller", "error", err)
+		return
+	}
+
+	// TODO: check callOpts first if caller doesn't work.
+	callerOpts := &bind.CallOpts{
+		Pending: false,
+		Context: context.Background(),
+	}
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			rcm.lock.Lock()
+			if rcm.env.IsRequest {
+				var invalidExitsList invalidExits
+
+				forkNumber, err := caller.CurrentFork(callerOpts)
+				if err != nil {
+					log.Warn("failed to get current fork number", "error", err)
+				}
+
+				if rcm.invalidExits[forkNumber.Uint64()] == nil {
+					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
+				}
+
+				blockInfo := ev.Data.(core.NewMinedBlockEvent)
+				blockNumber := blockInfo.Block.Number()
+				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
+
+				// TODO: should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
+				for i := 0; i < len(receipts); i++ {
+					if receipts[i].Status == types.ReceiptStatusFailed {
+						invalidExit := &invalidExit{
+							forkNumber:  forkNumber,
+							blockNumber: blockNumber,
+							receipt:     receipts[i],
+							index:       int64(i),
+							proof:       types.GetMerkleProof(receipts, i),
+						}
+						invalidExitsList = append(invalidExitsList, invalidExit)
+
+						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
+					}
+				}
+				rcm.invalidExits[forkNumber.Uint64()][blockNumber.Uint64()] = invalidExitsList
+			}
+			rcm.lock.Unlock()
+
+		case <-rcm.quit:
+			return
+		}
+	}
 }
 
 // pingBackend checks rootchain backend is alive.
