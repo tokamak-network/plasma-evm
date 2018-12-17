@@ -1166,10 +1166,6 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 
 	config.RootChainContract = rootchainAddress
 
-	// configure account manager with empty keystore backend
-	backends := []accounts.Backend{}
-	accManager := accounts.NewManager(backends...)
-
 	d, ks := tmpKeyStore()
 	if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
 		log.Error("Failed to import operator account", "err", err)
@@ -1179,7 +1175,12 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 		log.Error("Failed to unlock operator account", "err", err)
 	}
 	config.Operator = account
-	config.KeyStore = ks
+
+	// configure account manager with temporary keystore backend
+	backends := []accounts.Backend{
+		ks,
+	}
+	accManager := accounts.NewManager(backends...)
 
 	pls := &Plasma{
 		config:         config,

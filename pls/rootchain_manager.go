@@ -250,6 +250,11 @@ func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
+	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	if err != nil {
+		log.Error("Failed to get operator wallet", "err", err)
+	}
+
 	for {
 		select {
 		case ev := <-events.Chan():
@@ -281,7 +286,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				}
 				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costNRB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-				signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 				if err != nil {
 					log.Error("Failed to sign submitTx", "err", err)
 				}
@@ -307,7 +312,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				}
 				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costORB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-				signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 
 				if err != nil {
 					log.Error("Failed to sign submitTx", "err", err)
@@ -468,6 +473,11 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		Context: context.Background(),
 	}
 
+	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	if err != nil {
+		log.Error("Failed to get operator wallet", "err", err)
+	}
+
 	block, err := rcm.rootchainContract.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
 	if err != nil {
 		return err
@@ -491,7 +501,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 			Nonce := rcm.contractParams.getNonce(rcm.backend)
 			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-			signedTx, err := rcm.config.KeyStore.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
+			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}
