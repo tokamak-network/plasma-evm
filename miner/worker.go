@@ -348,12 +348,17 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			// commit new mining work again only when the epoch is not completed.
-			if w.env.Completed == false {
+			if !w.env.Completed && !w.env.Emergency {
 				clearPending(head.Block.NumberU64())
 				timestamp = time.Now().Unix()
 				commit(true, commitInterruptNewHead)
 			} else {
-				log.Info("epoch is completed. stop committing new mining work")
+				switch w.env.Emergency {
+				case true:
+					log.Info("alert! emergency detected, stop committing new mining work")
+				case false:
+					log.Info("epoch is completed. stop committing new mining work")
+				}
 			}
 
 		case <-timer.C:
@@ -413,7 +418,7 @@ func (w *worker) mainLoop() {
 		select {
 		case req := <-w.newWorkCh:
 			if w.env.IsRequest {
-				w.commitNewWorkForORB(req.interrupt, req.noempty, req.timestamp)
+				w.commitNewWorkForRB(req.interrupt, req.noempty, req.timestamp)
 			} else {
 				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 			}
@@ -523,6 +528,12 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
+			// add current fork number only if this block is first block of URB epoch
+			// so that it can make reorg
+			if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
+				task.block.AddCurrentFork()
+			}
+
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
@@ -584,16 +595,27 @@ func (w *worker) resultLoop() {
 
 			// add 1 to number of block mined
 			if w.env.IsRequest {
-				w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
+				if w.env.IsUserActivated {
+					w.env.setNumURBmined(new(big.Int).Add(w.env.NumURBmined, big.NewInt(1)))
+				} else {
+					w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
+				}
 			} else {
 				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
 			}
 
 			// check if the epoch is completed
-			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
-				w.env.setCompletedTrue()
-			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest {
-				w.env.setCompletedTrue()
+			switch w.env.IsRequest {
+			case true:
+				if w.env.IsUserActivated && w.env.NumURBmined.Cmp(w.env.URBepochLength) == 0 {
+					w.env.setCompletedTrue()
+				} else if !w.env.IsUserActivated && w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 {
+					w.env.setCompletedTrue()
+				}
+			case false:
+				if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
+					w.env.setCompletedTrue()
+				}
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
@@ -1028,12 +1050,19 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 }
 
 // commitNewWorkForORB generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp int64) {
+func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp int64) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
 	tstart := time.Now()
-	parent := w.chain.CurrentBlock()
+
+	var parent *types.Block
+	// if the block to be mined is first block of URB epoch, then parent block is last finalized block
+	if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
+		parent = w.chain.GetBlockByNumber(w.env.LastFinalized.Uint64())
+	} else {
+		parent = w.chain.CurrentBlock()
+	}
 
 	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
 		timestamp = parent.Time().Int64() + 1

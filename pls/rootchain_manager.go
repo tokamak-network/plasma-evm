@@ -20,6 +20,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/pkg/errors"
 )
 
 const MAX_EPOCH_EVENTS = 0
@@ -246,6 +247,7 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
+//TODO: Do not send block if it is emergency. But it should be invoked before the emergency alert is relieved.
 func (rcm *RootChainManager) runSubmitter() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
@@ -353,25 +355,85 @@ func (rcm *RootChainManager) runHandlers() {
 
 // handleEpochPrepared handles EpochPrepared event from RootChain contract after
 // plasma chain is *SYNCED*.
+// TODO: change call method(rcm.rootchaincontract.[someMethod(baseCallOpt, ...]) according to the change in the rootchain contract.
 func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPrepared) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
+
 	e := *ev
 
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
-	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
-	// prepare request tx for ORBs
-	if e.IsRequest && !e.EpochIsEmpty {
-		events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-		defer events.Unsubscribe()
 
-		numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
-		numORBs = new(big.Int).Add(numORBs, big.NewInt(1))
+	// send EpochPrepared event to miner
+	if !e.UserActivated {
+		go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+	} else {
+		rcm.env.SetEmergency(true)
+		go func() {
+			for {
+				select {
+				// send URBepochPrepared event to miner after mining current block.
+				case <-events.Chan():
+					go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+					return
+				case <-rcm.quit:
+					return
+				}
+			}
+		}()
+	}
 
-		bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
+	numBlocks
+	bodies
 
-		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
+	switch e.UserActivated {
+	case false:
+		// prepare request tx for ORBs, NRBs, rebased ORBs, rebased NRBs
+		if e.IsRequest && !e.EpochIsEmpty {
+			switch e.isRebase {
+			case false:
+				// ordinary ORB
+			case true:
+				// rebase ORB
+			}
+		} else {
+			switch e.isRebase {
+			case false:
+				// ordinary NRB
+				return nil
+			case true:
+				// rebase NRB
+			}
+		}
+
+		//TODO: Should we check URB epoch is empty? It must not be empty epoch as at least it contains equal or more than one ERU.
+		//TODO: merge same logic of preparing rtx for ORBs and URBs if possible.
+		//TODO: must filter exit request.
+
+	case true:
+		// prepare request tx for URBs
+		if !e.IsRequest {
+			return errors.New("URB epoch is non-request epoch")
+		}
+
+		if e.EpochIsEmpty {
+			return errors.New("URB epoch is empty")
+		}
+
+	}
+
+	// prepare request tx for URBs
+	if e.IsRequest && !e.EpochIsEmpty && e.UserActivated {
+
+		numURBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
+		numURBs = new(big.Int).Add(numURBs, big.NewInt(1))
+
+		bodies := make([]types.Transactions, 0, numURBs.Uint64()) // [][]types.Transaction
+
+		log.Debug("Num URBs", "epochNumber", e.EpochNumber, "numURBs", numURBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
 			currentFork, err := rcm.rootchainContract.CurrentFork(baseCallOpt)
@@ -384,17 +446,17 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 				return err
 			}
 
-			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, big.NewInt(int64(pb.RequestBlockId)))
+			urb, err := rcm.rootchainContract.URBs(baseCallOpt, big.NewInt(int64(pb.RequestBlockId)))
 			if err != nil {
 				return err
 			}
 
-			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Debug("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
+			numRequests := urb.RequestEnd - urb.RequestStart + 1
+			log.Debug("Fetching URB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
 
 			body := make(types.Transactions, 0, numRequests)
-
-			for requestId := orb.RequestStart; requestId <= orb.RequestEnd; {
+			//TODO: 추후에 세부로직 더 체크하기. 문제되는 것 없을지.
+			for requestId := urb.RequestStart; requestId <= urb.RequestEnd; {
 				request, err := rcm.rootchainContract.EROs(baseCallOpt, big.NewInt(int64(requestId)))
 				if err != nil {
 					return err
@@ -446,7 +508,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		var numMinedORBs uint64 = 0
 
-		for numMinedORBs < numORBs.Uint64() {
+		for numMinedORBs < numURBs.Uint64() {
 			rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
 
 			log.Info("Waiting new block mined event...")
@@ -467,6 +529,8 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 	e := *ev
 
 	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
+
+	rcm.env.SetLastFinalized(e.BlockNumber)
 
 	callerOpts := &bind.CallOpts{
 		Pending: true,
@@ -528,7 +592,6 @@ func (rcm *RootChainManager) runDetector() {
 		return
 	}
 
-	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
 		Context: context.Background(),

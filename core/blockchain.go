@@ -899,7 +899,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	//externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
 
-	// TODO : need to do refactoring localTd. This code line is only for test.
+	// TODO: Need to refactor. This code line is only for test.
 	localTd := currentBlock.DeprecatedTd()
 	if localTd == nil {
 		localTd = big.NewInt(0)
