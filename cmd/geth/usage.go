@@ -81,6 +81,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LightServFlag,
 			utils.LightPeersFlag,
 			utils.LightKDFFlag,
+			utils.WhitelistFlag,
 		},
 	},
 	{
@@ -132,6 +133,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
+			utils.CacheTrieFlag,
 			utils.CacheGCFlag,
 			utils.TrieCacheGenFlag,
 		},
@@ -207,6 +209,8 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			utils.VMEnableDebugFlag,
+			utils.EVMInterpreterFlag,
+			utils.EWASMInterpreterFlag,
 		},
 	},
 	{

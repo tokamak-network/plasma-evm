@@ -527,7 +527,7 @@ func (pool *TxPool) Content() (map[common.Address]types.Transactions, map[common
 	return pending, queued
 }
 
-// Pending retrieves all currently processable transactions, groupped by origin
+// Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
 func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
@@ -554,7 +554,7 @@ func (pool *TxPool) Requests() types.Transactions {
 	return <-pool.requestTxCh
 }
 
-// local retrieves all currently known local transactions, groupped by origin
+// local retrieves all currently known local transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
 func (pool *TxPool) local() map[common.Address]types.Transactions {
@@ -843,7 +843,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local bool) []error {
 // addTxsLocked attempts to queue a batch of transactions if they are valid,
 // whilst assuming the transaction pool lock is already held.
 func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
-	// Add the batch of transaction, tracking the accepted ones
+	// Add the batch of transactions, tracking the accepted ones
 	dirty := make(map[common.Address]struct{})
 	errs := make([]error, len(txs))
 

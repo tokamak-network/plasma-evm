@@ -22,7 +22,7 @@ import (
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 )
 
 // EthereumClient provides access to the Ethereum APIs.

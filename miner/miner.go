@@ -58,14 +58,14 @@ type Miner struct {
 	lock sync.Mutex
 }
 
-func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *EpochEnvironment, recommit time.Duration, gasFloor, gasCeil uint64) *Miner {
+func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *EpochEnvironment, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		pls:      pls,
 		mux:      mux,
 		engine:   engine,
 		env:      env,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, pls, env, mux, recommit, gasFloor, gasCeil),
+		worker:   newWorker(config, engine, pls, env, mux, recommit, gasFloor, gasCeil, isLocalBlock),
 		canStart: 2,
 	}
 	go miner.update()

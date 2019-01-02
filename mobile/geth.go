@@ -27,7 +27,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
 	"github.com/Onther-Tech/plasma-evm/internal/debug"
 	"github.com/Onther-Tech/plasma-evm/les"
@@ -155,7 +155,7 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 	}
 	// Register the Ethereum protocol if requested
 	if config.EthereumEnabled {
-		ethConf := eth.DefaultConfig
+		ethConf := pls.DefaultConfig
 		ethConf.Genesis = genesis
 		ethConf.SyncMode = downloader.LightSync
 		ethConf.NetworkId = uint64(config.EthereumNetworkID)

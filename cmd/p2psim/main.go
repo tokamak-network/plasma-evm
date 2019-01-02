@@ -47,7 +47,7 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/p2p"
-	"github.com/Onther-Tech/plasma-evm/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations/adapters"
 	"github.com/Onther-Tech/plasma-evm/rpc"
@@ -285,7 +285,7 @@ func createNode(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		config.ID = discover.PubkeyID(&privKey.PublicKey)
+		config.ID = enode.PubkeyToIDV4(&privKey.PublicKey)
 		config.PrivateKey = privKey
 	}
 	if services := ctx.String("services"); services != "" {
