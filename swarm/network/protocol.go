@@ -378,40 +378,8 @@ func RandomAddr() *BzzAddr {
 	if err != nil {
 		panic("unable to generate key")
 	}
-<<<<<<< HEAD
-	pubkey := crypto.FromECDSAPub(&key.PublicKey)
-	var id discover.NodeID
-	copy(id[:], pubkey[1:])
-	return NewAddrFromNodeID(id)
-}
-
-// NewNodeIDFromAddr transforms the underlay address to an adapters.NodeID
-func NewNodeIDFromAddr(addr *BzzAddr) discover.NodeID {
-	log.Info(fmt.Sprintf("uaddr=%s", string(addr.UAddr)))
-	node := discover.MustParseNode(string(addr.UAddr))
-	return node.ID
-}
-
-// NewAddrFromNodeID constucts a BzzAddr from a discover.NodeID
-// the overlay address is derived as the hash of the nodeID
-func NewAddrFromNodeID(id discover.NodeID) *BzzAddr {
-	return &BzzAddr{
-		OAddr: ToOverlayAddr(id.Bytes()),
-		UAddr: []byte(discover.NewNode(id, net.IP{127, 0, 0, 1}, 30305, 30305).String()),
-	}
-}
-
-// NewAddrFromNodeIDAndPort constucts a BzzAddr from a discover.NodeID and port uint16
-// the overlay address is derived as the hash of the nodeID
-func NewAddrFromNodeIDAndPort(id discover.NodeID, host net.IP, port uint16) *BzzAddr {
-	return &BzzAddr{
-		OAddr: ToOverlayAddr(id.Bytes()),
-		UAddr: []byte(discover.NewNode(id, host, port, port).String()),
-	}
-=======
 	node := enode.NewV4(&key.PublicKey, net.IP{127, 0, 0, 1}, 30303, 30303)
 	return NewAddr(node)
->>>>>>> v1.8.20
 }
 
 // NewAddr constucts a BzzAddr from a node record.

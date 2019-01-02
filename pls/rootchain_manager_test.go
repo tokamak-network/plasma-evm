@@ -25,7 +25,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
-	"github.com/Onther-Tech/plasma-evm/plsclient"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
@@ -89,6 +89,7 @@ var (
 	}
 
 	// pls ~ rootchain
+	testVmConfg   = vm.Config{EnablePreimageRecording: true}
 	testPlsConfig = &DefaultConfig
 	ethClient     *ethclient.Client
 
@@ -102,7 +103,7 @@ var (
 	development = true
 
 	// transaction
-	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
+	defaultGasPrice        = big.NewInt(1) // 1 Gwei
 	defaultValue           = big.NewInt(0)
 	defaultGasLimit uint64 = 4000000
 	maxTxFee        *big.Int
@@ -1062,8 +1063,11 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
 
 	if err != nil {
+		log.Error("Failed to deploy epoch handler")
 		return common.Address{}, nil, err
 	}
+
+	wait(2)
 
 	address, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
@@ -1075,6 +1079,11 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 		genesis.Header().TxHash,
 		genesis.Header().ReceiptHash,
 	)
+
+	if err != nil {
+		log.Error("Failed to deploy rootchain")
+		return common.Address{}, nil, err
+	}
 
 	testPlsConfig.RootChainContract = address
 
@@ -1090,7 +1099,7 @@ func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	db := ethdb.NewMemDatabase()
 	genesis := gspec.MustCommit(db)
 
-	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{})
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil)
 	// Create and inject the requested chain
 	if n == 0 {
 		return db, blockchain, nil
@@ -1208,12 +1217,12 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	pls.bloomIndexer.Start(pls.blockchain)
 	pls.txPool = core.NewTxPool(config.TxPool, pls.chainConfig, pls.blockchain)
 
-	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db); err != nil {
+	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db, config.Whitelist); err != nil {
 		return nil, nil, d, err
 	}
 
 	epochEnv := miner.NewEpochEnvironment()
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil)
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
 	gpoParams := config.GPO
@@ -1313,7 +1322,7 @@ func makeManager() (*RootChainManager, func(), error) {
 
 	mux := new(event.TypeMux)
 	epochEnv := miner.NewEpochEnvironment()
-	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil)
+	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	var rcm *RootChainManager
 

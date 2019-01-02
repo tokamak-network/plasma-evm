@@ -37,7 +37,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
-	"github.com/Onther-Tech/plasma-evm/plsclient"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/internal/plsapi"
@@ -176,9 +176,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	}
 	pls.txPool = core.NewTxPool(config.TxPool, pls.chainConfig, pls.blockchain)
 
-if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, chainDb, config.Whitelist); err != nil {
-	return nil, err
-}
+	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, chainDb, config.Whitelist); err != nil {
+		return nil, err
+	}
 
 	epochEnv := miner.NewEpochEnvironment()
 	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
@@ -373,7 +373,7 @@ func (s *Plasma) Etherbase() (eb common.Address, err error) {
 //
 // We regard two types of accounts as local miner account: etherbase
 // and accounts specified via `txpool.locals` flag.
-func (s *Ethereum) isLocalBlock(block *types.Block) bool {
+func (s *Plasma) isLocalBlock(block *types.Block) bool {
 	author, err := s.engine.Author(block.Header())
 	if err != nil {
 		log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
@@ -399,7 +399,7 @@ func (s *Ethereum) isLocalBlock(block *types.Block) bool {
 // shouldPreserve checks whether we should preserve the given block
 // during the chain reorg depending on whether the author of block
 // is a local account.
-func (s *Ethereum) shouldPreserve(block *types.Block) bool {
+func (s *Plasma) shouldPreserve(block *types.Block) bool {
 	// The reason we need to disable the self-reorg preserving for clique
 	// is it can be probable to introduce a deadlock.
 	//
