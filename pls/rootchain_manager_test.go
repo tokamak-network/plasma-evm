@@ -17,6 +17,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -97,8 +98,8 @@ var (
 	testTxPoolConfig = &core.DefaultTxPoolConfig
 
 	// rootchain contract
-	NRBEpochLength = big.NewInt(2)
-	development    = true
+	NRELength   = big.NewInt(2)
+	development = true
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1e9) // 1 Gwei
@@ -139,10 +140,10 @@ func TestScenario1(t *testing.T) {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
 
-	NRBEpochLength, err := rcm.NRBEpochLength()
+	NRELength, err := rcm.NRELength()
 
 	if err != nil {
-		t.Fatalf("Failed to get NRBEpochLength: %v", err)
+		t.Fatalf("Failed to get NRELength: %v", err)
 	}
 
 	startETHDeposit(t, rcm.rootchainContract, key1, ether(1))
@@ -173,32 +174,32 @@ func TestScenario1(t *testing.T) {
 
 	var i uint64
 
-	for i = 0; i < NRBEpochLength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
-		if rcm.env.IsRequest {
+		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
 		}
 	}
 
 	ev := <-events.Chan()
 	blockInfo := ev.Data.(core.NewMinedBlockEvent)
-	if !rcm.env.IsRequest {
+	if !rcm.minerEnv.IsRequest {
 		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
 	}
 
-	for i = 0; i < NRBEpochLength.Uint64()*2; {
+	for i = 0; i < NRELength.Uint64()*2; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		makeSampleTx(rcm)
 
-		if rcm.env.IsRequest {
+		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
@@ -218,10 +219,10 @@ func TestScenario2(t *testing.T) {
 		t.Fatalf("Failed to make rootchian manager: %v", err)
 	}
 
-	NRBEpochLength, err := rcm.NRBEpochLength()
+	NRELength, err := rcm.NRELength()
 
 	if err != nil {
-		t.Fatalf("Failed to get NRBEpochLength: %v", err)
+		t.Fatalf("Failed to get NRELength: %v", err)
 	}
 
 	// balance check in root chain before enter
@@ -271,14 +272,14 @@ func TestScenario2(t *testing.T) {
 	var i uint64
 
 	// #1 NRB epoch check
-	for i = 0; i < NRBEpochLength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
-		if rcm.env.IsRequest {
+		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
 		}
 	}
@@ -288,7 +289,7 @@ func TestScenario2(t *testing.T) {
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		if !rcm.env.IsRequest {
+		if !rcm.minerEnv.IsRequest {
 			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 		// balance check in plasma chain after enter
@@ -311,22 +312,22 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
 
 	// #3 NRB epoch check
-	for i = 0; i < NRBEpochLength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		makeSampleTx(rcm)
 
-		if rcm.env.IsRequest {
+		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
 
-	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), rcm.contractParams.costERO)
-	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), rcm.contractParams.costERO)
-	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), rcm.contractParams.costERO)
-	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), rcm.contractParams.costERO)
+	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
 
 	wait(3)
 
@@ -335,7 +336,7 @@ func TestScenario2(t *testing.T) {
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		if !rcm.env.IsRequest {
+		if !rcm.minerEnv.IsRequest {
 			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 
@@ -347,14 +348,14 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #5+ NRB epoch progress
-	for i = 0; i < NRBEpochLength.Uint64()*6; {
+	for i = 0; i < NRELength.Uint64()*6; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		makeSampleTx(rcm)
 
-		if rcm.env.IsRequest {
+		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
@@ -581,7 +582,7 @@ func TestScenario3(t *testing.T) {
 	PTokenBalances5 := getTokenBalances(addrs, tokenInChildChain)
 
 	// (1/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
 	// NRBEpoch#6 / Block#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
@@ -607,7 +608,7 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// (2/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
 	// NRBEpoch#8 / Block#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
@@ -632,7 +633,7 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// (3/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
 	// NRBEpoch#10 / Block#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
@@ -657,7 +658,7 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// (4/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, pls.rootchainManager.contractParams.costERO)
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
 	// NRBEpoch#12 / Block#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
@@ -863,7 +864,7 @@ func TestScenario4(t *testing.T) {
 	}
 
 	// invalid withdrawal
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, ether(100), pls.rootchainManager.contractParams.costERO)
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, ether(100), big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
 	wait(2)
 
@@ -984,7 +985,7 @@ func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key 
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 
-	if _, err := rootchainContract.StartExit(opt, addr, value, empty32Bytes, empty32Bytes); err != nil {
+	if _, err := rootchainContract.StartExit(opt, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
 	}
 }
@@ -1001,7 +1002,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rootchainContract.StartExit(opt, tokenAddress, big.NewInt(0), trieKey, trieValue32Bytes)
+	tx, err := rootchainContract.StartExit(opt, tokenAddress, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
@@ -1058,11 +1059,18 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *rootchain.RootChain, err error) {
 	opt := bind.NewKeyedTransactor(operatorKey)
 
+	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
 	address, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
 		ethClient,
+		epochhandlerAddress,
 		development,
-		NRBEpochLength,
+		NRELength,
 		genesis.Header().Root,
 		genesis.Header().TxHash,
 		genesis.Header().ReceiptHash,
