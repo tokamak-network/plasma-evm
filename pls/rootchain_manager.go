@@ -3,6 +3,7 @@ package pls
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math/big"
 	"strings"
 	"sync"
@@ -246,8 +247,16 @@ func (rcm *RootChainManager) watchEvents() error {
 }
 
 func (rcm *RootChainManager) runSubmitter() {
-	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer events.Unsubscribe()
+	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
 
 	w, err := rcm.accountManager.Find(rcm.config.Operator)
 	if err != nil {
@@ -257,7 +266,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev := <-plasmaBlockMinedEvents.Chan():
 			if ev == nil {
 				return
 			}
@@ -273,86 +282,48 @@ func (rcm *RootChainManager) runSubmitter() {
 				log.Error("NetworkId error", "err", err)
 			}
 
-			if !rcm.minerEnv.IsRequest {
-				// send non request block to root chain contract
-				input, err := rootchainContractABI.Pack(
-					"submitNRB",
-					big.NewInt(int64(rcm.state.currentFork)),
-					blockInfo.Block.Header().Root,
-					blockInfo.Block.Header().TxHash,
-					blockInfo.Block.Header().ReceiptHash,
-				)
-				if err != nil {
-					log.Error("Failed to pack submitNRB", "err", err)
-				}
-				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
-
-				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
-				if err != nil {
-					log.Error("Failed to sign submitNRB", "err", err)
-				}
-
-				err = rcm.backend.SendTransaction(context.Background(), signedTx)
-				if err != nil {
-					log.Error("Failed to send submitNRB", "err", err)
-				}
-
-				// wait root chain block is mined
-				// TODO: use new block is mined event from root chain
-				timer := time.NewTimer(2 * time.Second)
-				<-timer.C
-
-				receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
-				log.Debug("signex tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
-
-				if err != nil {
-					log.Error("Failed to send submitNRB", "err", err)
-				} else if  receipt.Status == 0 {
-					log.Error("submitNRB is reverted", "hash", signedTx.Hash().Hex())
-				} else {
-					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
-				}
-			} else {
-				// send request block to root chain contract
-				input, err := rootchainContractABI.Pack(
-					"submitORB",
-					big.NewInt(int64(rcm.state.currentFork)),
-					blockInfo.Block.Header().Root,
-					blockInfo.Block.Header().TxHash,
-					blockInfo.Block.Header().ReceiptHash,
-				)
-				if err != nil {
-					log.Error("Failed to pack submitORB", "err", err)
-				}
-				submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costORB)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
-
-				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
-
-				if err != nil {
-					log.Error("Failed to sign submitTx", "err", err)
-				}
-
-				err = rcm.backend.SendTransaction(context.Background(), signedTx)
-				if err != nil {
-					log.Error("Failed to send submitTx", "err", err)
-				}
-
-				// wait root chain block is mined
-				// TODO: use new block is mined event from root chain
-				timer := time.NewTimer(2 * time.Second)
-				<-timer.C
-
-				receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
-				log.Debug("signex tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
-
-				if err != nil {
-					log.Error("Failed to send submitORB", "err", err)
-				} else if  receipt.Status == 0 {
-					log.Error("submitORB is reverted", "hash", signedTx.Hash().Hex())
-				} else {
-					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
-				}
+			funcName := "submitNRB"
+			if rcm.minerEnv.IsRequest {
+				funcName = "submitORB"
 			}
+
+			input, err := rootchainContractABI.Pack(
+				funcName,
+				big.NewInt(int64(rcm.state.currentFork)),
+				blockInfo.Block.Header().Root,
+				blockInfo.Block.Header().TxHash,
+				blockInfo.Block.Header().ReceiptHash,
+			)
+
+			if err != nil {
+				log.Error("Failed to pack "+funcName, "err", err)
+			}
+			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+			if err != nil {
+				log.Error("Failed to sign "+funcName, "err", err)
+			}
+
+			err = rcm.backend.SendTransaction(context.Background(), signedTx)
+			if err != nil {
+				log.Error("Failed to send "+funcName, "err", err)
+			}
+
+			// wait root chain block is mined
+			<-blockSubmitEvents
+
+			receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
+			log.Debug("signed tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
+
+			if err != nil {
+				log.Error("Failed to send "+funcName, "err", err)
+			} else if receipt.Status == 0 {
+				log.Error(funcName+" is reverted", "hash", signedTx.Hash().Hex())
+			} else {
+				log.Info("Block is submitted", "funcName", funcName, "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
+			}
+
 			rcm.state.incNonce()
 			rcm.lock.Unlock()
 		case <-rcm.quit:
@@ -446,15 +417,14 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 					if err != nil {
 						log.Error("Failed to pack applyRequestInChildChain", "err", err)
 					}
-				}
 
 				requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
-
 				eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
 				if err != nil {
 					log.Error("Failed to get ERO bytes", "err", err)
 				}
 
+				// TODO: check only in test
 				if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
 					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", common.Bytes2Hex(eroBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
 				}
@@ -476,9 +446,24 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 		for numMinedORBs < numORBs.Uint64() {
 			rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
 
-			log.Info("Waiting new block mined event...")
+			log.Info("Waiting new request block mined event...")
 
-			<-events.Chan()
+			e := <-events.Chan()
+			block := e.Data.(core.NewMinedBlockEvent).Block
+
+			log.Info("New request block is mined", "block", block)
+
+			if !block.IsRequest() {
+				return errors.New("Invalid request block type.")
+			}
+
+			receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
+
+			for _, receipt := range receipts {
+				if receipt.Status == 0 {
+					log.Error("Request transaction is reverted", "blockNumber", block.Number(), "hash", receipt.TxHash)
+				}
+			}
 
 			numMinedORBs += 1
 		}
