@@ -101,7 +101,7 @@ func (self *Miner) operate() {
 			case EpochPrepared:
 				// start mining only when the epoch is prepared
 				atomic.StoreInt32(&self.canStart, 1)
-				self.env.setCompletedFalse()
+				self.env.setCompleted(false)
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
 				case true:
@@ -262,16 +262,10 @@ func NewEpochEnvironment() *EpochEnvironment {
 	}
 }
 
-func (env *EpochEnvironment) setCompletedTrue() {
+func (env *EpochEnvironment) setCompleted(completed bool) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
-	env.Completed = true
-}
-
-func (env *EpochEnvironment) setCompletedFalse() {
-	env.lock.Lock()
-	defer env.lock.Unlock()
-	env.Completed = false
+	env.Completed = completed
 }
 
 func (env *EpochEnvironment) setIsRequest(IsRequest bool) {

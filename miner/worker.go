@@ -607,9 +607,9 @@ func (w *worker) resultLoop() {
 
 			// check if the epoch is completed
 			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
-				w.env.setCompletedTrue()
+				w.env.setCompleted(true)
 			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest {
-				w.env.setCompletedTrue()
+				w.env.setCompleted(true)
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
