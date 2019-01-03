@@ -16,7 +16,7 @@ type PlasmaEpoch struct {
 	Rebase              bool
 }
 
-func newEpoch(e struct {
+func newPlasmaEpoch(e struct {
 	RequestStart        uint64
 	RequestEnd          uint64
 	StartBlockNumber    uint64

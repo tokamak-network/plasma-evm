@@ -1,6 +1,7 @@
 package pls
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"errors"
@@ -147,10 +148,10 @@ func TestScenario1(t *testing.T) {
 		t.Fatalf("Failed to get NRELength: %v", err)
 	}
 
-	startETHDeposit(t, rcm.rootchainContract, key1, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key2, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key3, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key4, ether(1))
+	startETHDeposit(t, rcm, key1, ether(1))
+	startETHDeposit(t, rcm, key2, ether(1))
+	startETHDeposit(t, rcm, key3, ether(1))
+	startETHDeposit(t, rcm, key4, ether(1))
 
 	wait(3)
 
@@ -183,14 +184,14 @@ func TestScenario1(t *testing.T) {
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
 		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
 		}
 	}
 
 	ev := <-events.Chan()
 	blockInfo := ev.Data.(core.NewMinedBlockEvent)
 	if !rcm.minerEnv.IsRequest {
-		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
+		t.Fatal("PlasmaBlock should be request block", "blockNumber", blockInfo.Block.NumberU64())
 	}
 
 	for i = 0; i < NRELength.Uint64()*2; {
@@ -201,7 +202,7 @@ func TestScenario1(t *testing.T) {
 		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
 
@@ -244,10 +245,10 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr3 in plasma chain before enter", "balance", db.GetBalance(addr3))
 	log.Info("balance of addr4 in plasma chain before enter", "balance", db.GetBalance(addr4))
 
-	startETHDeposit(t, rcm.rootchainContract, key1, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key2, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key3, ether(1))
-	startETHDeposit(t, rcm.rootchainContract, key4, ether(1))
+	startETHDeposit(t, rcm, key1, ether(1))
+	startETHDeposit(t, rcm, key2, ether(1))
+	startETHDeposit(t, rcm, key3, ether(1))
+	startETHDeposit(t, rcm, key4, ether(1))
 
 	wait(3)
 
@@ -281,7 +282,7 @@ func TestScenario2(t *testing.T) {
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
 		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
 		}
 	}
 
@@ -291,7 +292,7 @@ func TestScenario2(t *testing.T) {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
-			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 		// balance check in plasma chain after enter
 		db, _ := rcm.blockchain.State()
@@ -321,7 +322,7 @@ func TestScenario2(t *testing.T) {
 		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
 
@@ -338,7 +339,7 @@ func TestScenario2(t *testing.T) {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
-			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 
 		db, _ := rcm.blockchain.State()
@@ -357,7 +358,7 @@ func TestScenario2(t *testing.T) {
 		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+			t.Fatal("PlasmaBlock should not be request block", "blockNumber", blockInfo.Block.NumberU64())
 		}
 	}
 
@@ -404,18 +405,26 @@ func TestScenario3(t *testing.T) {
 	// assign to global variable
 	plsClient = plsclient.NewClient(rpcClient)
 
-	events := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer events.Unsubscribe()
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
 
 	wait(3)
 
 	log.Info("All backends are set up")
 
-	// NRBEpoch#1 / Block#1 (1/2)
+	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -463,18 +472,18 @@ func TestScenario3(t *testing.T) {
 	depositAmountNeg := new(big.Int).Neg(depositAmount)
 
 	for _, key := range keys {
-		startETHDeposit(t, pls.rootchainManager.rootchainContract, key, depositAmount)
+		startETHDeposit(t, pls.rootchainManager, key, depositAmount)
 	}
 
-	// NRBEpoch#1 / Block#2 (2/2)
+	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#2 / PlasmaBlock#3 (1/1): 4 ETH deposits
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -502,27 +511,29 @@ func TestScenario3(t *testing.T) {
 	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
 
-	startTokenDeposit(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+	//wait(2)
+
+	// NRBEpoch#3 / PlasmaBlock#4 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRBEpoch#3 / PlasmaBlock#5 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORBEpoch#4 / PlasmaBlock#6 (1/1): 1 Token deposit
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
+		t.Fatal(err)
+	}
+
 	wait(2)
-
-	// NRBEpoch#3 / Block#4 (1/2)
-	makeSampleTx(pls.rootchainManager)
-
-	if err := checkBlock(pls, events, false); err != nil {
-		t.Fatal(err)
-	}
-
-	// NRBEpoch#3 / Block#5 (2/2)
-	makeSampleTx(pls.rootchainManager)
-
-	if err := checkBlock(pls, events, false); err != nil {
-		t.Fatal(err)
-	}
-
-	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlock(pls, events, true); err != nil {
-		t.Fatal(err)
-	}
 
 	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
@@ -541,9 +552,9 @@ func TestScenario3(t *testing.T) {
 	tokenAmountToTransfer := new(big.Int).Div(ether(1), big.NewInt(2))
 	tokenAmountToTransferNeg := new(big.Int).Neg(tokenAmountToTransfer)
 
-	// NRBEpoch#5 / Block#7 (1/2)
+	// NRBEpoch#5 / PlasmaBlock#7 (1/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -555,10 +566,10 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#5 / Block#8 (2/2)
+	// NRBEpoch#5 / PlasmaBlock#8 (2/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -570,10 +581,10 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#6 / Block#9 (1/2)
+	// NRBEpoch#6 / PlasmaBlock#9 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -585,15 +596,15 @@ func TestScenario3(t *testing.T) {
 	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRBEpoch#6 / Block#10 (2/2)
+	// NRBEpoch#6 / PlasmaBlock#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#7 / Block#11 (1/1)
+	// ORBEpoch#7 / PlasmaBlock#11 (1/1)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, true); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -602,23 +613,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#8 / Block#12 (1/2)
+	// NRBEpoch#8 / PlasmaBlock#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// (2/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRBEpoch#8 / Block#13 (2/2)
+	// NRBEpoch#8 / PlasmaBlock#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#9 / Block#14 (1/1)
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#9 / PlasmaBlock#14 (1/1)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -627,23 +638,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#10 / Block#15 (1/2)
+	// NRBEpoch#10 / PlasmaBlock#15 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// (3/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRBEpoch#10 / Block#16 (2/2)
+	// NRBEpoch#10 / PlasmaBlock#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#11 / Block#17 (1/1)
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#11 / PlasmaBlock#17 (1/1)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -652,23 +663,23 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#12 / Block#18 (1/2)
+	// NRBEpoch#12 / PlasmaBlock#18 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// (4/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRBEpoch#12 / Block#19 (2/2)
+	// NRBEpoch#12 / PlasmaBlock#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#13 / Block#20 (1/1)
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#13 / PlasmaBlock#20 (1/1)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -677,15 +688,15 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#14 / Block#21 (1/2)
+	// NRBEpoch#14 / PlasmaBlock#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#14 / Block#22 (2/2)
+	// NRBEpoch#14 / PlasmaBlock#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -731,18 +742,26 @@ func TestScenario4(t *testing.T) {
 	// assign to global variable
 	plsClient = plsclient.NewClient(rpcClient)
 
-	events := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer events.Unsubscribe()
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
 
 	wait(3)
 
 	log.Info("All backends are set up")
 
-	// NRBEpoch#1 / Block#1 (1/2)
+	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
 	wait(4)
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -790,18 +809,18 @@ func TestScenario4(t *testing.T) {
 	depositAmountNeg := new(big.Int).Neg(depositAmount)
 
 	for _, key := range keys {
-		startETHDeposit(t, pls.rootchainManager.rootchainContract, key, depositAmount)
+		startETHDeposit(t, pls.rootchainManager, key, depositAmount)
 	}
 
-	// NRBEpoch#1 / Block#2 (2/2)
+	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#2 / PlasmaBlock#3 (1/1): 4 ETH deposits
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -829,25 +848,25 @@ func TestScenario4(t *testing.T) {
 	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
 
-	startTokenDeposit(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 	wait(2)
 
-	// NRBEpoch#3 / Block#4 (1/2)
+	// NRBEpoch#3 / PlasmaBlock#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#3 / Block#5 (2/2)
+	// NRBEpoch#3 / PlasmaBlock#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlock(pls, events, true); err != nil {
+	// ORBEpoch#4 / PlasmaBlock#6 (1/1): 1 Token deposit
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -869,51 +888,51 @@ func TestScenario4(t *testing.T) {
 
 	wait(2)
 
-	// NRBEpoch#5 / Block#7 (1/2)
+	// NRBEpoch#5 / PlasmaBlock#7 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#5 / Block#8 (2/2)
+	// NRBEpoch#5 / PlasmaBlock#8 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#6 / Block#9 (1/1): invalid withdrawal
+	// ORBEpoch#6 / PlasmaBlock#9 (1/1): invalid withdrawal
 
-	if err := checkBlock(pls, events, true); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#7 / Block#10 (1/2)
+	// NRBEpoch#7 / PlasmaBlock#10 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#7 / Block#11 (2/2)
+	// NRBEpoch#7 / PlasmaBlock#11 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#8 / Block#12 (1/2)
+	// NRBEpoch#8 / PlasmaBlock#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#8 / Block#12 (2/2)
+	// NRBEpoch#8 / PlasmaBlock#12 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, events, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -931,24 +950,45 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
-func startETHDeposit(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value *big.Int) {
+func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value *big.Int) {
 	if value.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 ETH")
 	}
+
+	watchOpt := &bind.WatchOpts{Start: nil, Context: context.Background()}
+	event := make(chan *rootchain.RootChainRequestCreated)
+	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
+	defer filterer.Unsubscribe()
 
 	opt := makeTxOpt(key, 0, nil, value)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	isTransfer := true
 
-	if _, err := rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes); err != nil {
+	tx, err := rcm.rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes)
+
+	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
+	}
+
+	<-event
+
+	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatalf("Failed to send eth deposit tx: %v", err)
+	} else if receipt.Status == 0 {
+		t.Fatal("ETH deposit tx is reverted")
 	}
 }
 
-func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount *big.Int) {
+func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount *big.Int) {
 	if amount.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 Token")
 	}
+
+	watchOpt := &bind.WatchOpts{Start: nil, Context: context.Background()}
+	event := make(chan *rootchain.RootChainRequestCreated)
+	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
+	defer filterer.Unsubscribe()
 
 	opt := makeTxOpt(key, 0, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -962,24 +1002,38 @@ func startTokenDeposit(t *testing.T, rootchainContract *rootchain.RootChain, tok
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rootchainContract.StartEnter(opt, isTransfer, tokenAddress, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, isTransfer, tokenAddress, trieKey, trieValue32Bytes)
 
 	if err != nil {
+		log.Error("Failed to make an token deposit request", "err", err, "hash", tx.Hash())
 		t.Fatalf("Failed to make an token deposit request: %v", err)
 	}
 
-	wait(2)
+	request := <-event
+	log.Debug("Token deposit request", "request", request)
 
-	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+
+	log.Debug("Token deposit", "hash", tx.Hash().String(), "receipt", receipt)
+
 	if err != nil {
-		t.Fatalf("Failed to get receipt: %v", err)
+		t.Fatalf("Failed to send token deposit tx: %v", err)
+	} else if receipt.Status == 0 {
+		t.Fatal("Token deposit tx is reverted")
 	}
-	if receipt == nil {
-		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
-	}
-	if receipt.Status == 0 {
-		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
-	}
+
+	//wait(2)
+	//
+	//receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	//if err != nil {
+	//	t.Fatalf("Failed to get receipt: %v", err)
+	//}
+	//if receipt == nil {
+	//	t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
+	//}
+	//if receipt.Status == 0 {
+	//	t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
+	//}
 }
 
 func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
@@ -1057,7 +1111,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 	}
 }
 
-func deployRootChain(genesis *types.Block) (address common.Address, rootchainContract *rootchain.RootChain, err error) {
+func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
 	opt := bind.NewKeyedTransactor(operatorKey)
 
 	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
@@ -1067,9 +1121,11 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 		return common.Address{}, nil, err
 	}
 
+	log.Info("EpochHandler is deployed in root chain", "rootchainAddress", epochhandlerAddress)
+
 	wait(2)
 
-	address, _, rootchainContract, err = rootchain.DeployRootChain(
+	rootchainAddress, _, rootchainContract, err = rootchain.DeployRootChain(
 		opt,
 		ethClient,
 		epochhandlerAddress,
@@ -1085,11 +1141,13 @@ func deployRootChain(genesis *types.Block) (address common.Address, rootchainCon
 		return common.Address{}, nil, err
 	}
 
-	testPlsConfig.RootChainContract = address
+	log.Info("RootChain is deployed in root chain", "rootchainAddress", rootchainAddress)
+
+	testPlsConfig.RootChainContract = rootchainAddress
 
 	wait(2)
 
-	return address, rootchainContract, err
+	return rootchainAddress, rootchainContract, err
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
@@ -1414,27 +1472,162 @@ func makeSampleTx(rcm *RootChainManager) error {
 	return nil
 }
 
-func checkBlock(pls *Plasma, events *event.TypeMuxSubscription, expectedIsRequest bool) error {
-	ev := <-events.Chan()
-	blockInfo := ev.Data.(core.NewMinedBlockEvent)
+func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool) error {
+	outC := make(chan struct{})
+	errC := make(chan error)
+	defer close(outC)
+	defer close(errC)
 
-	log.Info("Check Block Number", "current block number", pls.blockchain.CurrentBlock().NumberU64(), "event block number", blockInfo.Block.NumberU64())
+	timer := time.NewTimer(4 * time.Second)
+	defer timer.Stop()
 
-	// check block number.
-	if pls.blockchain.CurrentBlock().NumberU64() != blockInfo.Block.NumberU64() {
-		return errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", blockInfo.Block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
+	go func() {
+		<-timer.C
+		if !timer.Stop() {
+			//errC <- errors.New("Out of time")
+		}
+	}()
+
+	go func() {
+		ev := <-pbMinedEvents.Chan()
+		<-pbSubmitedEvents
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		block := blockInfo.Block
+
+		log.Info("Check PlasmaBlock Number", "localBlockNumber", pls.blockchain.CurrentBlock().NumberU64(), "minedBlockNumber", block.NumberU64())
+
+		// check block number.
+		if pls.blockchain.CurrentBlock().NumberU64() != block.NumberU64() {
+			errC <- errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
+		}
+
+		// check isRequest.
+		if block.IsRequest() != expectedIsRequest {
+			log.Error("txs length check", "length", len(block.Transactions()))
+
+			tx, _ := block.Transactions()[0].AsMessage(types.HomesteadSigner{})
+			log.Error("tx sender address", "sender", tx.From())
+			errC <- errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, block.IsRequest()))
+		}
+
+		pb, _ := pls.rootchainManager.getBlock(big.NewInt(int64(pls.rootchainManager.state.currentFork)), block.Number())
+
+		if pb.Timestamp == 0 {
+			log.Debug("Submitted plasma block", "pb", pb)
+			log.Debug("Mined plasma block", "b", block)
+			errC <- errors.New("Plasma block is not submitted yet.")
+		}
+
+		if pb.IsRequest != block.IsRequest() {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected isRequest: %t, Actual isRequest %t", pb.IsRequest, block.IsRequest()))
+		}
+
+		pbStateRoot := pb.StatesRoot[:]
+		bStateRoot := block.Header().Root.Bytes()
+		if bytes.Compare(pbStateRoot, bStateRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected stateRoot: %s, Actual stateRoot: %s", pbStateRoot, bStateRoot))
+		}
+
+		pbTxRoot := pb.TransactionsRoot[:]
+		bTxRoot := block.Header().TxHash.Bytes()
+		if bytes.Compare(pbTxRoot, bTxRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected txRoot: %s, Actual txRoot: %s", pbTxRoot, bTxRoot))
+		}
+
+		pbReceiptsRoot := pb.ReceiptsRoot[:]
+		bReceiptsRoot := block.Header().ReceiptHash.Bytes()
+		if bytes.Compare(pbReceiptsRoot, bReceiptsRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected receiptsRoot: %s, Actual receiptsRoot: %s", pbReceiptsRoot, bReceiptsRoot))
+		}
+		log.Debug("Check block finished")
+		outC <- struct{}{}
+	}()
+
+	select {
+	case <-outC:
+		return nil
+	case err := <-errC:
+		return err
 	}
+}
 
-	// check isRequest.
-	if blockInfo.Block.IsRequest() != expectedIsRequest {
-		log.Error("txs length check", "length", len(blockInfo.Block.Transactions()))
+func checkBlock2(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool) error {
+	outC := make(chan struct{})
+	errC := make(chan error)
+	defer close(outC)
+	defer close(errC)
 
-		tx, _ := blockInfo.Block.Transactions()[0].AsMessage(types.HomesteadSigner{})
-		log.Error("tx sender address", "sender", tx.From())
-		return errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, blockInfo.Block.IsRequest()))
+	timer := time.NewTimer(4 * time.Second)
+	defer timer.Stop()
+
+	go func() {
+		<-timer.C
+		if !timer.Stop() {
+			//errC <- errors.New("Out of time")
+		}
+	}()
+
+	go func() {
+		<-pbSubmitedEvents
+		ev := <-pbMinedEvents.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		block := blockInfo.Block
+
+		log.Info("Check PlasmaBlock Number", "localBlockNumber", pls.blockchain.CurrentBlock().NumberU64(), "minedBlockNumber", block.NumberU64())
+
+		// check block number.
+		if pls.blockchain.CurrentBlock().NumberU64() != block.NumberU64() {
+			errC <- errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
+		}
+
+		// check isRequest.
+		if block.IsRequest() != expectedIsRequest {
+			log.Error("txs length check", "length", len(block.Transactions()))
+
+			tx, _ := block.Transactions()[0].AsMessage(types.HomesteadSigner{})
+			log.Error("tx sender address", "sender", tx.From())
+			errC <- errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, block.IsRequest()))
+		}
+
+		pb, _ := pls.rootchainManager.getBlock(big.NewInt(int64(pls.rootchainManager.state.currentFork)), block.Number())
+
+		if pb.Timestamp == 0 {
+			log.Debug("Submitted plasma block", "pb", pb)
+			log.Debug("Mined plasma block", "b", block)
+			errC <- errors.New("Plasma block is not submitted yet.")
+		}
+
+		if pb.IsRequest != block.IsRequest() {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected isRequest: %t, Actual isRequest %t", pb.IsRequest, block.IsRequest()))
+		}
+
+		pbStateRoot := pb.StatesRoot[:]
+		bStateRoot := block.Header().Root.Bytes()
+		if bytes.Compare(pbStateRoot, bStateRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected stateRoot: %s, Actual stateRoot: %s", pbStateRoot, bStateRoot))
+		}
+
+		pbTxRoot := pb.TransactionsRoot[:]
+		bTxRoot := block.Header().TxHash.Bytes()
+		if bytes.Compare(pbTxRoot, bTxRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected txRoot: %s, Actual txRoot: %s", pbTxRoot, bTxRoot))
+		}
+
+		pbReceiptsRoot := pb.ReceiptsRoot[:]
+		bReceiptsRoot := block.Header().ReceiptHash.Bytes()
+		if bytes.Compare(pbReceiptsRoot, bReceiptsRoot) != 0 {
+			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected receiptsRoot: %s, Actual receiptsRoot: %s", pbReceiptsRoot, bReceiptsRoot))
+		}
+		log.Debug("Check block finished")
+		outC <- struct{}{}
+	}()
+
+	select {
+	case <-outC:
+		return nil
+	case err := <-errC:
+		return err
 	}
-
-	return nil
 }
 
 // checkBalance check after = before + diff if offset is nil.
@@ -1474,22 +1667,23 @@ func checkBalance(before, after *big.Int, diff, offset *big.Int, caption string)
 			dt := toString(truncate(diff))
 
 			wait(1)
-			return errors.New(fmt.Sprintf(caption+"\t : Expected %s != %s + %s, but it isn't", bt, at, dt))
+			return errors.New(fmt.Sprintf(caption+"\t : Expected %s (after) == %s (before) + %s (diff), but it isn't", at, bt, dt))
 		}
-	} else {
-		target := new(big.Int).Sub(new(big.Int).Sub(a, b), diff)
-		s := new(big.Int).Neg(offset)
-		e := offset
+		return nil
+	}
 
-		// out of range
-		if s.Cmp(target) > 0 || target.Cmp(e) > 0 {
-			st := toString(truncate(s))
-			et := toString(truncate(e))
-			targett := toString(truncate(target))
+	target := new(big.Int).Sub(new(big.Int).Sub(a, b), diff)
+	e := new(big.Int).Abs(offset)
+	s := new(big.Int).Neg(e)
 
-			wait(1)
-			return errors.New(fmt.Sprintf(caption+"\t : Expected %s < %s < %s, but it isn't", st, targett, et))
-		}
+	// out of range
+	if s.Cmp(target) > 0 || target.Cmp(e) > 0 {
+		st := toString(truncate(s))
+		et := toString(truncate(e))
+		targett := toString(truncate(target))
+
+		wait(1)
+		return errors.New(fmt.Sprintf(caption+"\t : Expected %s (-offset) < %s (after - before - diff) < %s (+offset), but it isn't", st, targett, et))
 	}
 
 	return nil

@@ -371,24 +371,23 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 
+		currentFork := big.NewInt(int64(rcm.state.currentFork))
+		epoch, err := rcm.getEpoch(currentFork, e.EpochNumber)
+		if err != nil {
+			return err
+		}
+
+		// TODO: URE, ORE' should handle requestBlockId in a different way.
+		requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
-			currentFork, err := rcm.rootchainContract.CurrentFork(baseCallOpt)
-			if err != nil {
-				return err
-			}
 
-			pb, err := rcm.rootchainContract.GetBlock(baseCallOpt, currentFork, blockNumber)
-			if err != nil {
-				return err
-			}
-
-			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, big.NewInt(int64(pb.RequestBlockId)))
+			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, requestBlockId)
 			if err != nil {
 				return err
 			}
 
 			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Debug("Fetching ORB", "requestBlockId", pb.RequestBlockId, "numRequests", numRequests)
+			log.Debug("Fetching ORB", "requestBlockId", requestBlockId, "numRequests", numRequests)
 
 			body := make(types.Transactions, 0, numRequests)
 
@@ -398,7 +397,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 					return err
 				}
 
-				log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]))
+				log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]), "request", request)
 
 				var to common.Address
 				var input []byte
@@ -418,7 +417,13 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 						log.Error("Failed to pack applyRequestInChildChain", "err", err)
 					}
 
+					log.Debug("Request tx.data", "payload", input)
+				}
+
 				requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
+
+				log.Debug("Request Transaction", "tx", requestTx)
+
 				eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
 				if err != nil {
 					log.Error("Failed to get ERO bytes", "err", err)
@@ -434,11 +439,12 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 				requestId += 1
 			}
 
-			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", pb.RequestBlockId, "body", body)
+			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "body", body)
 
 			bodies = append(bodies, body)
 
 			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
+			requestBlockId = new(big.Int).Add(requestBlockId, big.NewInt(1))
 		}
 
 		var numMinedORBs uint64 = 0
@@ -591,6 +597,15 @@ func (rcm *RootChainManager) runDetector() {
 	}
 }
 
+func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (*PlasmaEpoch, error) {
+	b, err := rcm.rootchainContract.GetEpoch(baseCallOpt, forkNumber, epochNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return newPlasmaEpoch(b), nil
+}
 func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (*PlasmaBlock, error) {
 	b, err := rcm.rootchainContract.GetBlock(baseCallOpt, forkNumber, blockNumber)
 
