@@ -112,7 +112,7 @@ func (self *Miner) operate() {
 				payload := ev.Data.(EpochPrepared).Payload
 				switch payload.IsRequest {
 				case true:
-					// start mining ORBs
+					// ORB epoch
 					if !payload.UserActivated {
 						self.env.setORBepochLength(big.NewInt(0))
 						if payload.EpochIsEmpty == true {
@@ -126,9 +126,10 @@ func (self *Miner) operate() {
 							self.Start(params.Operator)
 							log.Info("ORB epoch is prepared, ORB epoch is started", "ORBepochLength", self.env.ORBepochLength)
 						}
-						// stop current mining operation and restart to mine URBs
+						// URB epoch
 					} else {
-						// stop and reset current mining operation
+						self.env.setIsUserActivated(true)
+						// stop current mining operation and restart to mine URBs
 						self.Stop()
 						atomic.StoreInt32(&self.canStart, 2)
 						switch self.env.IsRequest {
@@ -140,26 +141,24 @@ func (self *Miner) operate() {
 							log.Info("current NRB epoch is canceled, URB epoch is prepared")
 						}
 						// start mining URBs
-						self.env.SetEmergency(false) // emergency is now relieved
 						self.env.setURBepochLength(big.NewInt(0))
-						// TODO: should we check the URB epoch is empty?
-						if payload.EpochIsEmpty == true {
-							self.env.setIsRequest(false)
-							self.Start(params.Operator)
-							log.Info("URB epoch is empty, NRB epoch is started")
-						} else {
-							self.env.setIsRequest(true)
-							URBepochLength := new(big.Int).Add(new(big.Int).Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
-							self.env.setURBepochLength(URBepochLength)
-							self.Start(params.Operator)
-							log.Info("URB epoch is started", "URBepochLength", URBepochLength)
-						}
+						self.env.setIsRequest(true)
+						URBepochLength := new(big.Int).Add(new(big.Int).Sub(payload.EndBlockNumber, payload.StartBlockNumber), big.NewInt(1))
+						self.env.setURBepochLength(URBepochLength)
+						self.Start(params.Operator)
+
+						log.Info("URB epoch is started", "URBepochLength", URBepochLength)
 					}
+				// NRB epoch
 				case false:
 					self.env.setIsRequest(false)
 					self.Start(params.Operator)
 					log.Info("NRB epoch is prepared, NRB epoch is started", "NRBepochLength", self.env.NRBepochLength)
 				}
+			case LastFinalizedBlock:
+				self.worker.lastFinalizedBlock = ev.Data.(LastFinalizedBlock).Number
+			case CurrentFork:
+				self.worker.currentFork = ev.Data.(CurrentFork).Number
 			}
 		case <-self.exitCh:
 			return
@@ -281,15 +280,14 @@ func (self *Miner) SetNRBepochLength(NRBepochLength *big.Int) {
 type EpochEnvironment struct {
 	IsRequest       bool
 	IsUserActivated bool
+	IsRebase        bool
 	NumNRBmined     *big.Int
 	NumORBmined     *big.Int
 	NumURBmined     *big.Int
 	NRBepochLength  *big.Int
 	ORBepochLength  *big.Int
 	URBepochLength  *big.Int
-	LastFinalized   *big.Int
 	Completed       bool
-	Emergency       bool
 
 	lock sync.Mutex
 }
@@ -304,21 +302,15 @@ func NewEpochEnvironment() *EpochEnvironment {
 		NRBepochLength:  big.NewInt(0),
 		ORBepochLength:  big.NewInt(0),
 		URBepochLength:  big.NewInt(0),
-		LastFinalized:   big.NewInt(0),
 		Completed:       false,
-		Emergency:       false,
 	}
 }
 
 func (env *EpochEnvironment) setCompletedTrue() {
-	env.lock.Lock()
-	defer env.lock.Unlock()
 	env.Completed = true
 }
 
 func (env *EpochEnvironment) setCompletedFalse() {
-	env.lock.Lock()
-	defer env.lock.Unlock()
 	env.Completed = false
 }
 
@@ -335,20 +327,14 @@ func (env *EpochEnvironment) setIsUserActivated(IsUserActivated bool) {
 }
 
 func (env *EpochEnvironment) setNumNRBmined(NumNRBmined *big.Int) {
-	env.lock.Lock()
-	defer env.lock.Unlock()
 	env.NumNRBmined = NumNRBmined
 }
 
 func (env *EpochEnvironment) setNumORBmined(NumORBmined *big.Int) {
-	env.lock.Lock()
-	defer env.lock.Unlock()
 	env.NumORBmined = NumORBmined
 }
 
 func (env *EpochEnvironment) setNumURBmined(NumURBmined *big.Int) {
-	env.lock.Lock()
-	defer env.lock.Unlock()
 	env.NumURBmined = NumURBmined
 }
 
@@ -368,16 +354,4 @@ func (env *EpochEnvironment) setURBepochLength(URBepochLength *big.Int) {
 	env.lock.Lock()
 	defer env.lock.Unlock()
 	env.URBepochLength = URBepochLength
-}
-
-func (env *EpochEnvironment) SetLastFinalized(n *big.Int) {
-	env.lock.Lock()
-	defer env.lock.Unlock()
-	env.LastFinalized = n
-}
-
-func (env *EpochEnvironment) SetEmergency(e bool) {
-	env.lock.Lock()
-	defer env.lock.Unlock()
-	env.Emergency = e
 }

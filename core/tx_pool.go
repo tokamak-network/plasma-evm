@@ -204,6 +204,7 @@ type TxPool struct {
 	pending     map[common.Address]*txList   // All currently processable transactions
 	queue       map[common.Address]*txList   // Queued but non-processable transactions
 	requestTxCh chan types.Transactions      // Queued request transactions
+	rebasedTxCh chan types.Transactions      // Queued rebased transactions only for rebased NRB
 	beats       map[common.Address]time.Time // Last heartbeat from each known account
 	all         *txLookup                    // All transactions to allow lookups
 	priced      *txPricedList                // All transactions sorted by price
@@ -228,6 +229,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		requestTxCh: make(chan types.Transactions),
+		rebasedTxCh: make(chan types.Transactions),
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
@@ -554,6 +556,11 @@ func (pool *TxPool) Requests() types.Transactions {
 	return <-pool.requestTxCh
 }
 
+// RebasedTxs retrieves all rebased transactions for rebased NRB
+func (pool *TxPool) RebasedTxs() types.Transactions {
+	return <-pool.rebasedTxCh
+}
+
 // local retrieves all currently known local transactions, groupped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
@@ -728,9 +735,15 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	return old != nil, nil
 }
 
-func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (bool, error) {
+func (pool *TxPool) EnqueueRequestTxs(rtxs types.Transactions) (bool, error) {
 	// TODO: validate all txs are from null address
 	pool.requestTxCh <- rtxs
+
+	return true, nil
+}
+
+func (pool *TxPool) EnqueueRebasedTxs(rtxs types.Transactions) (bool, error) {
+	pool.rebasedTxCh <- rtxs
 
 	return true, nil
 }

@@ -177,6 +177,9 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 
 	epochLength *big.Int // NRB epoch length
+	// TODO (aiden): add a way to get currentFork from rcm
+	currentFork        *big.Int
+	lastFinalizedBlock *big.Int
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *EpochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64) *worker {
@@ -299,6 +302,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
+		w.env.lock.Lock()
+
 		if interrupt != nil {
 			atomic.StoreInt32(interrupt, s)
 		}
@@ -348,17 +353,10 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			// commit new mining work again only when the epoch is not completed.
-			if !w.env.Completed && !w.env.Emergency {
+			if w.isRunning() {
 				clearPending(head.Block.NumberU64())
 				timestamp = time.Now().Unix()
 				commit(true, commitInterruptNewHead)
-			} else {
-				switch w.env.Emergency {
-				case true:
-					log.Info("alert! emergency detected, stop committing new mining work")
-				case false:
-					log.Info("epoch is completed. stop committing new mining work")
-				}
 			}
 
 		case <-timer.C:
@@ -417,10 +415,18 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
-			if w.env.IsRequest {
+			switch w.env.IsRequest {
+			case true:
+				// ORB, Rebased ORB, URB
 				w.commitNewWorkForRB(req.interrupt, req.noempty, req.timestamp)
-			} else {
-				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+			case false:
+				if w.env.IsRebase {
+					// Rebase NRB
+					w.commitNewWorkForRebasedNRB(req.interrupt, req.noempty, req.timestamp)
+				} else {
+					// NRB
+					w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+				}
 			}
 
 		case ev := <-w.chainSideCh:
@@ -608,12 +614,15 @@ func (w *worker) resultLoop() {
 			switch w.env.IsRequest {
 			case true:
 				if w.env.IsUserActivated && w.env.NumURBmined.Cmp(w.env.URBepochLength) == 0 {
+					// set URB epoch is completed
 					w.env.setCompletedTrue()
 				} else if !w.env.IsUserActivated && w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 {
+					// set ORB epoch is completed
 					w.env.setCompletedTrue()
 				}
 			case false:
 				if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
+					// set NRB epoch is completed
 					w.env.setCompletedTrue()
 				}
 			}
@@ -621,8 +630,12 @@ func (w *worker) resultLoop() {
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
+			isURB := w.env.IsUserActivated
+
 			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			w.mux.Post(core.NewMinedBlockEvent{Block: block, IsURB: isURB})
+
+			w.env.lock.Unlock()
 
 			var events []interface{}
 			switch stat {
@@ -1049,7 +1062,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
-// commitNewWorkForORB generates several new sealing tasks based on the parent block.
+// TODO: I think we can integrate commitNewWork, commitNewWorkForRB, and commitNewWorkForRebasedNRB by just adding some conditions in the function body.
+// commitNewWorkForRB generates several new sealing tasks based on the parent block.
+// It handles ORB, rebase ORB, URB
 func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp int64) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -1057,9 +1072,10 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 	tstart := time.Now()
 
 	var parent *types.Block
+
 	// if the block to be mined is first block of URB epoch, then parent block is last finalized block
 	if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
-		parent = w.chain.GetBlockByNumber(w.env.LastFinalized.Uint64())
+		parent = w.chain.GetBlockByNumber(w.lastFinalizedBlock.Uint64())
 	} else {
 		parent = w.chain.CurrentBlock()
 	}
@@ -1155,6 +1171,124 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 	}
 
 	if w.commitRequestTransactions(requestTxs, w.coinbase, interrupt) {
+		return
+	}
+
+	w.commit(uncles, w.fullTaskHook, true, tstart)
+}
+
+// commitNewWorkForRebasedNRB generates several new sealing tasks based on the parent block.
+// It only handles rebased NRB.
+func (w *worker) commitNewWorkForRebasedNRB(interrupt *int32, noempty bool, timestamp int64) {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	tstart := time.Now()
+	parent := w.chain.CurrentBlock()
+
+	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
+		timestamp = parent.Time().Int64() + 1
+	}
+	// this will ensure we're not going off too far in the future
+	if now := time.Now().Unix(); timestamp > now+1 {
+		wait := time.Duration(timestamp-now) * time.Second
+		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+		time.Sleep(wait)
+	}
+
+	num := parent.Number()
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     num.Add(num, common.Big1),
+		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		Extra:      w.extra,
+		Time:       big.NewInt(timestamp),
+	}
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return
+		}
+		// NOTE: change w.coinbase to params.NullAddress
+		header.Coinbase = params.NullAddress
+	}
+	if err := w.engine.Prepare(w.chain, header); err != nil {
+		log.Error("Failed to prepare header for mining", "err", err)
+		return
+	}
+
+	// TODO: delete because pls block is frontier spec
+	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
+	if daoBlock := w.config.DAOForkBlock; daoBlock != nil {
+		// Check whether the block is among the fork extra-override range
+		limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
+		if header.Number.Cmp(daoBlock) >= 0 && header.Number.Cmp(limit) < 0 {
+			// Depending whether we support or oppose the fork, override differently
+			if w.config.DAOForkSupport {
+				header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
+			} else if bytes.Equal(header.Extra, params.DAOForkBlockExtra) {
+				header.Extra = []byte{} // If miner opposes, don't let it use the reserved extra-data
+			}
+		}
+	}
+	// Could potentially happen if starting to mine in an odd state.
+	err := w.makeCurrent(parent, header)
+	if err != nil {
+		log.Error("Failed to create mining context", "err", err)
+		return
+	}
+	// Create the current work task and check any fork transitions needed
+	env := w.current
+	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
+		misc.ApplyDAOHardFork(env.state)
+	}
+	// // Accumulate the uncles for the current block
+	// for hash, uncle := range w.possibleUncles {
+	// 	if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
+	// 		delete(w.possibleUncles, hash)
+	// 	}
+	// }
+
+	// TODO: delete uncle because POA don't have uncles
+	uncles := make([]*types.Header, 0, 2)
+	for hash, uncle := range w.possibleUncles {
+		if len(uncles) == 2 {
+			break
+		}
+		if err := w.commitUncle(env, uncle.Header()); err != nil {
+			log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
+		} else {
+			log.Debug("Committing new uncle to block", "hash", hash)
+			uncles = append(uncles, uncle.Header())
+		}
+	}
+
+	if !noempty {
+		// Create an empty block based on temporary copied state for sealing in advance without waiting block
+		// execution finished.
+		w.commit(uncles, nil, false, tstart)
+	}
+
+	rebasedTxs := w.pls.TxPool().RebasedTxs()
+	if len(rebasedTxs) == 0 {
+		w.updateSnapshot()
+		return
+	}
+
+	txs := make(map[common.Address]types.Transactions)
+
+	for _, tx := range rebasedTxs {
+		m, err := tx.AsMessage(w.current.signer)
+		if err != nil {
+			log.Error("Failed to convert tx to message")
+			continue
+		}
+		txs[m.From()] = append(txs[m.From()], tx)
+	}
+
+	orderedTxs := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+	if w.commitTransactions(orderedTxs, w.coinbase, interrupt) {
 		return
 	}
 
