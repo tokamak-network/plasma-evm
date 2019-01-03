@@ -25,7 +25,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
-	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
@@ -107,18 +106,11 @@ func (b *PlsAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.
 }
 
 func (b *PlsAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
-	if number := rawdb.ReadHeaderNumber(b.pls.chainDb, hash); number != nil {
-		return rawdb.ReadReceipts(b.pls.chainDb, hash, *number), nil
-	}
-	return nil, nil
+	return b.pls.blockchain.GetReceiptsByHash(hash), nil
 }
 
 func (b *PlsAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
-	number := rawdb.ReadHeaderNumber(b.pls.chainDb, hash)
-	if number == nil {
-		return nil, nil
-	}
-	receipts := rawdb.ReadReceipts(b.pls.chainDb, hash, *number)
+	receipts := b.pls.blockchain.GetReceiptsByHash(hash)
 	if receipts == nil {
 		return nil, nil
 	}
@@ -133,12 +125,12 @@ func (b *PlsAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 	return b.pls.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *PlsAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
+func (b *PlsAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header) (*vm.EVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.pls.BlockChain(), nil)
-	return vm.NewEVM(context, state, b.pls.chainConfig, vmCfg), vmError, nil
+	return vm.NewEVM(context, state, b.pls.chainConfig, *b.pls.blockchain.GetVMConfig()), vmError, nil
 }
 
 func (b *PlsAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {

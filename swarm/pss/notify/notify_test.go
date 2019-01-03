@@ -13,7 +13,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/node"
-	"github.com/Onther-Tech/plasma-evm/p2p/discover"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations/adapters"
 	"github.com/Onther-Tech/plasma-evm/swarm/network"
@@ -121,7 +121,7 @@ func TestStart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	rmsgC := make(chan *pss.APIMsg)
-	rightSub, err := rightRpc.Subscribe(ctx, "pss", rmsgC, "receive", controlTopic)
+	rightSub, err := rightRpc.Subscribe(ctx, "pss", rmsgC, "receive", controlTopic, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestStart(t *testing.T) {
 		t.Fatalf("expected payload length %d, have %d", len(updateMsg)+symKeyLength, len(dMsg.Payload))
 	}
 
-	rightSubUpdate, err := rightRpc.Subscribe(ctx, "pss", rmsgC, "receive", rsrcTopic)
+	rightSubUpdate, err := rightRpc.Subscribe(ctx, "pss", rmsgC, "receive", rsrcTopic, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,12 +203,11 @@ func TestStart(t *testing.T) {
 
 func newServices(allowRaw bool) adapters.Services {
 	stateStore := state.NewInmemoryStore()
-	kademlias := make(map[discover.NodeID]*network.Kademlia)
-	kademlia := func(id discover.NodeID) *network.Kademlia {
+	kademlias := make(map[enode.ID]*network.Kademlia)
+	kademlia := func(id enode.ID) *network.Kademlia {
 		if k, ok := kademlias[id]; ok {
 			return k
 		}
-		addr := network.NewAddrFromNodeID(id)
 		params := network.NewKadParams()
 		params.MinProxBinSize = 2
 		params.MaxBinSize = 3
@@ -216,7 +215,7 @@ func newServices(allowRaw bool) adapters.Services {
 		params.MaxRetries = 1000
 		params.RetryExponent = 2
 		params.RetryInterval = 1000000
-		kademlias[id] = network.NewKademlia(addr.Over(), params)
+		kademlias[id] = network.NewKademlia(id[:], params)
 		return kademlias[id]
 	}
 	return adapters.Services{
@@ -224,7 +223,13 @@ func newServices(allowRaw bool) adapters.Services {
 			ctxlocal, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 			keys, err := wapi.NewKeyPair(ctxlocal)
+			if err != nil {
+				return nil, err
+			}
 			privkey, err := w.GetPrivateKey(keys)
+			if err != nil {
+				return nil, err
+			}
 			pssp := pss.NewPssParams().WithPrivateKey(privkey)
 			pssp.MsgTTL = time.Second * 30
 			pssp.AllowRaw = allowRaw
@@ -238,7 +243,7 @@ func newServices(allowRaw bool) adapters.Services {
 			return ps, nil
 		},
 		"bzz": func(ctx *adapters.ServiceContext) (node.Service, error) {
-			addr := network.NewAddrFromNodeID(ctx.Config.ID)
+			addr := network.NewAddr(ctx.Config.Node())
 			hp := network.NewHiveParams()
 			hp.Discovery = false
 			config := &network.BzzConfig{

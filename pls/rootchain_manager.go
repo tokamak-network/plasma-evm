@@ -56,16 +56,15 @@ type RootChainManager struct {
 	eventMux       *event.TypeMux
 	accountManager *accounts.Manager
 
-	miner *miner.Miner
-	env   *miner.EpochEnvironment
+	miner    *miner.Miner
+	minerEnv *miner.EpochEnvironment
+	state    *rootchainState
 
 	lastFinalizedBlock *big.Int
 	currentFork        *big.Int
 
 	// fork => block number => invalidExits
 	invalidExits map[uint64]map[uint64]invalidExits
-
-	contractParams *rootchainParameters
 
 	// channels
 	quit             chan struct{}
@@ -76,8 +75,8 @@ type RootChainManager struct {
 }
 
 func (rcm *RootChainManager) RootchainContract() *rootchain.RootChain { return rcm.rootchainContract }
-func (rcm *RootChainManager) NRBEpochLength() (*big.Int, error) {
-	return rcm.rootchainContract.NRBEpochLength(baseCallOpt)
+func (rcm *RootChainManager) NRELength() (*big.Int, error) {
+	return rcm.rootchainContract.NRELength(baseCallOpt)
 }
 
 func NewRootChainManager(
@@ -102,7 +101,7 @@ func NewRootChainManager(
 		eventMux:           eventMux,
 		accountManager:     accountManager,
 		miner:              miner,
-		env:                env,
+		minerEnv:           env,
 		lastFinalizedBlock: big.NewInt(0),
 		currentFork:        big.NewInt(0),
 		invalidExits:       make(map[uint64]map[uint64]invalidExits),
@@ -112,7 +111,9 @@ func NewRootChainManager(
 		blockFinalizedCh:   make(chan *rootchain.RootChainBlockFinalized),
 	}
 
-	epochLength, err := rcm.NRBEpochLength()
+	rcm.state = newRootchainState(rcm)
+
+	epochLength, err := rcm.NRELength()
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +268,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				return
 			}
 			// if the epoch is completed, stop mining operation and wait next epoch
-			if rcm.env.Completed {
+			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
 			}
 
@@ -275,11 +276,11 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 
-			if blockInfo.IsURB != rcm.env.IsUserActivated {
+			if blockInfo.IsURB != rcm.minerEnv.IsUserActivated {
 				return
 			}
 
-			Nonce := rcm.contractParams.getNonce(rcm.backend)
+			Nonce := rcm.state.getNonce()
 
 			//TODO (aiden): rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
 			networkID, err := rcm.backend.NetworkID(context.Background())
@@ -289,12 +290,16 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 
 			var btype string
-			if !rcm.env.IsRequest {
+			var cost *big.Int
+			if !rcm.minerEnv.IsRequest {
 				btype = "NRB"
-			} else if rcm.env.IsRequest && !rcm.env.IsUserActivated {
+				cost = big.NewInt(int64(rcm.state.costNRB))
+			} else if rcm.minerEnv.IsRequest && !rcm.minerEnv.IsUserActivated {
 				btype = "ORB"
-			} else if rcm.env.IsRequest && rcm.env.IsUserActivated {
+				cost = big.NewInt(int64(rcm.state.costORB))
+			} else if rcm.minerEnv.IsRequest && rcm.minerEnv.IsUserActivated {
 				btype = "URB"
+				cost = big.NewInt(int64(rcm.state.costURB))
 			}
 
 			input, err := rootchainContractABI.Pack(
@@ -307,7 +312,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				log.Error("Failed to pack submit"+btype, "err", err)
 			}
 			// TODO (aiden): check costURB parameter later.
-			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, rcm.contractParams.costORB, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, cost, params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 
@@ -323,7 +328,8 @@ func (rcm *RootChainManager) runSubmitter() {
 				log.Info(btype+" is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
 			}
 
-			rcm.contractParams.incNonce()
+			rcm.state.incNonce()
+
 			rcm.lock.Unlock()
 		case <-rcm.quit:
 			return
@@ -527,7 +533,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 				return err
 			}
 
-			pb, err := rcm.rootchainContract.Blocks(baseCallOpt, currentFork, blockNumber)
+			pb, err := rcm.rootchainContract.GetBlock(baseCallOpt, currentFork, blockNumber)
 			if err != nil {
 				return err
 			}
@@ -630,7 +636,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		log.Error("Failed to get operator wallet", "err", err)
 	}
 
-	block, err := rcm.rootchainContract.Blocks(callerOpts, e.ForkNumber, e.BlockNumber)
+	block, err := rcm.rootchainContract.GetBlock(callerOpts, e.ForkNumber, e.BlockNumber)
 	if err != nil {
 		return err
 	}
@@ -651,7 +657,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				log.Error("Failed to pack challengeExit", "error", err)
 			}
 
-			Nonce := rcm.contractParams.getNonce(rcm.backend)
+			Nonce := rcm.state.getNonce()
 			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
@@ -690,7 +696,7 @@ func (rcm *RootChainManager) runDetector() {
 		select {
 		case ev := <-events.Chan():
 			rcm.lock.Lock()
-			if rcm.env.IsRequest {
+			if rcm.minerEnv.IsRequest {
 				var invalidExitsList invalidExits
 
 				forkNumber, err := caller.CurrentFork(callerOpts)
@@ -749,112 +755,4 @@ func (rcm *RootChainManager) pingBackend() {
 			return
 		}
 	}
-}
-
-type rootchainParameters struct {
-	// contract parameters
-	costERO        *big.Int
-	costERU        *big.Int
-	costURBPrepare *big.Int
-	costURB        *big.Int
-	costORB        *big.Int
-	costNRB        *big.Int
-	maxRequests    *big.Int
-	requestGas     *big.Int
-	currentEpoch   *big.Int
-	currentFork    *big.Int
-
-	// operator tx parameters
-	nonce uint64
-
-	lastUpdateTime time.Time
-
-	lock sync.Mutex
-}
-
-func newRootchainParameters(rootchainContract *rootchain.RootChain, backend *ethclient.Client) *rootchainParameters {
-	rParams := &rootchainParameters{}
-
-	rParams.getCostERO(rootchainContract)
-	rParams.getCostERU(rootchainContract)
-	rParams.getCostURBPrepare(rootchainContract)
-	rParams.getCostURB(rootchainContract)
-	rParams.getCostORB(rootchainContract)
-	rParams.getCostNRB(rootchainContract)
-	rParams.getMaxRequests(rootchainContract)
-	rParams.getRequestGas(rootchainContract)
-	rParams.getCurrentEpoch(rootchainContract)
-	rParams.getCurrentFork(rootchainContract)
-
-	rParams.getNonce(backend)
-
-	return rParams
-}
-
-func (rp *rootchainParameters) getCostERU(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costERU, _ = rootchainContract.COSTERU(baseCallOpt)
-	return rp.costERU
-}
-func (rp *rootchainParameters) getCostERO(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costERO, _ = rootchainContract.COSTERO(baseCallOpt)
-	return rp.costERO
-}
-func (rp *rootchainParameters) getCostURBPrepare(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costURBPrepare, _ = rootchainContract.COSTURBPREPARE(baseCallOpt)
-	return rp.costURBPrepare
-}
-func (rp *rootchainParameters) getCostURB(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costURB, _ = rootchainContract.COSTURB(baseCallOpt)
-	return rp.costURB
-}
-func (rp *rootchainParameters) getCostORB(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costORB, _ = rootchainContract.COSTORB(baseCallOpt)
-	return rp.costORB
-}
-func (rp *rootchainParameters) getCostNRB(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.costNRB, _ = rootchainContract.COSTNRB(baseCallOpt)
-	return rp.costNRB
-}
-func (rp *rootchainParameters) getMaxRequests(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.maxRequests, _ = rootchainContract.MAXREQUESTS(baseCallOpt)
-	return rp.maxRequests
-}
-func (rp *rootchainParameters) getRequestGas(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.requestGas, _ = rootchainContract.REQUESTGAS(baseCallOpt)
-	return rp.requestGas
-}
-func (rp *rootchainParameters) getCurrentEpoch(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.currentEpoch, _ = rootchainContract.CurrentEpoch(baseCallOpt)
-	return rp.currentEpoch
-}
-func (rp *rootchainParameters) getCurrentFork(rootchainContract *rootchain.RootChain) *big.Int {
-	rp.currentFork, _ = rootchainContract.CurrentFork(baseCallOpt)
-	return rp.currentFork
-}
-func (rp *rootchainParameters) getNonce(backend *ethclient.Client) uint64 {
-	rp.lock.Lock()
-	defer rp.lock.Unlock()
-
-	lastUpdateTime := rp.lastUpdateTime
-	lastUpdateTime = lastUpdateTime.Add(2 * time.Second)
-
-	now := time.Now()
-	if now.Before(lastUpdateTime) {
-		timer := time.NewTimer(lastUpdateTime.Sub(now))
-		<-timer.C
-	}
-
-	rp.lastUpdateTime = time.Now()
-
-	nonce, _ := backend.NonceAt(context.Background(), params.Operator, nil)
-	if rp.nonce < nonce {
-		rp.nonce = nonce
-	}
-	return rp.nonce
-}
-func (rp *rootchainParameters) incNonce() {
-	rp.lock.Lock()
-	defer rp.lock.Unlock()
-
-	rp.nonce += 1
 }

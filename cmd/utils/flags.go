@@ -48,8 +48,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/metrics/influxdb"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
-	"github.com/Onther-Tech/plasma-evm/p2p/discover"
 	"github.com/Onther-Tech/plasma-evm/p2p/discv5"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/nat"
 	"github.com/Onther-Tech/plasma-evm/p2p/netutil"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -140,6 +140,10 @@ var (
 		Name:  "rinkeby",
 		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
 	}
+	ConstantinopleOverrideFlag = cli.Uint64Flag{
+		Name:  "override.constantinople",
+		Usage: "Manually specify constantinople fork-block, overriding the bundled setting",
+	}
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
 		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -181,6 +185,10 @@ var (
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	}
+	WhitelistFlag = cli.StringFlag{
+		Name:  "whitelist",
+		Usage: "Comma separated block number-to-hash mappings to enforce (<number>=<hash>)",
 	}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
@@ -295,7 +303,12 @@ var (
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
 		Usage: "Percentage of cache memory allowance to use for database io",
-		Value: 75,
+		Value: 50,
+	}
+	CacheTrieFlag = cli.IntFlag{
+		Name:  "cache.trie",
+		Usage: "Percentage of cache memory allowance to use for trie caching",
+		Value: 25,
 	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
@@ -629,6 +642,16 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+	EWASMInterpreterFlag = cli.StringFlag{
+		Name:  "vm.ewasm",
+		Usage: "External ewasm configuration (default = built-in interpreter)",
+		Value: "",
+	}
+	EVMInterpreterFlag = cli.StringFlag{
+		Name:  "vm.evm",
+		Usage: "External EVM configuration (default = built-in interpreter)",
+		Value: "",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -700,9 +723,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := discover.ParseNode(url)
+		node, err := enode.ParseV4(url)
 		if err != nil {
 			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
 		}
@@ -827,17 +850,12 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 // makeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
 func makeDatabaseHandles() int {
-	limit, err := fdlimit.Current()
+	limit, err := fdlimit.Maximum()
 	if err != nil {
 		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
 	}
-	if limit < 2048 {
-		if err := fdlimit.Raise(2048); err != nil {
-			Fatalf("Failed to raise file descriptor allowance: %v", err)
-		}
-	}
-	if limit > 2048 { // cap database file descriptors even if more is available
-		limit = 2048
+	if err := fdlimit.Raise(uint64(limit)); err != nil {
+		Fatalf("Failed to raise file descriptor allowance: %v", err)
 	}
 	return limit / 2 // Leave half for networking and other stuff
 }
@@ -981,16 +999,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	setWS(ctx, cfg)
 	setNodeUserIdent(ctx, cfg)
 
-	switch {
-	case ctx.GlobalIsSet(DataDirFlag.Name):
-		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		cfg.DataDir = "" // unless explicitly requested, use memory databases
-	case ctx.GlobalBool(TestnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
-	}
+	setDataDir(ctx, cfg)
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
@@ -1000,6 +1009,19 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(NoUSBFlag.Name) {
 		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
+	}
+}
+
+func setDataDir(ctx *cli.Context, cfg *node.Config) {
+	switch {
+	case ctx.GlobalIsSet(DataDirFlag.Name):
+		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		cfg.DataDir = "" // unless explicitly requested, use memory databases
+	case ctx.GlobalBool(TestnetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
+	case ctx.GlobalBool(RinkebyFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	}
 }
 
@@ -1076,6 +1098,29 @@ func setEthash(ctx *cli.Context, cfg *pls.Config) {
 	}
 }
 
+func setWhitelist(ctx *cli.Context, cfg *pls.Config) {
+	whitelist := ctx.GlobalString(WhitelistFlag.Name)
+	if whitelist == "" {
+		return
+	}
+	cfg.Whitelist = make(map[uint64]common.Hash)
+	for _, entry := range strings.Split(whitelist, ",") {
+		parts := strings.Split(entry, "=")
+		if len(parts) != 2 {
+			Fatalf("Invalid whitelist entry: %s", entry)
+		}
+		number, err := strconv.ParseUint(parts[0], 0, 64)
+		if err != nil {
+			Fatalf("Invalid whitelist block number %s: %v", parts[0], err)
+		}
+		var hash common.Hash
+		if err = hash.UnmarshalText([]byte(parts[1])); err != nil {
+			Fatalf("Invalid whitelist hash %s: %v", parts[1], err)
+		}
+		cfg.Whitelist[number] = hash
+	}
+}
+
 // checkExclusive verifies that only a single instance of the provided flags was
 // set by the user. Each flag might optionally be followed by a string type to
 // specialize it further.
@@ -1093,11 +1138,14 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 		if i+1 < len(args) {
 			switch option := args[i+1].(type) {
 			case string:
-				// Extended flag, expand the name and shift the arguments
+				// Extended flag check, make sure value set doesn't conflict with passed in option
 				if ctx.GlobalString(flag.GetName()) == option {
 					name += "=" + option
+					set = append(set, "--"+name)
 				}
+				// shift arguments and continue
 				i++
+				continue
 
 			case cli.Flag:
 			default:
@@ -1138,6 +1186,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)
+	setWhitelist(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1151,7 +1200,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
-
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
@@ -1162,8 +1210,11 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
 
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cfg.TrieDirtyCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	if ctx.GlobalIsSet(MinerNotifyFlag.Name) {
 		cfg.MinerNotify = strings.Split(ctx.GlobalString(MinerNotifyFlag.Name), ",")
@@ -1201,6 +1252,14 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
 		// TODO(fjl): force-enable this in --dev mode
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(EWASMInterpreterFlag.Name) {
+		cfg.EWASMInterpreter = ctx.GlobalString(EWASMInterpreterFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(EVMInterpreterFlag.Name) {
+		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
@@ -1382,7 +1441,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
 	if err != nil {
 		Fatalf("%v", err)
@@ -1407,15 +1465,19 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit: pls.DefaultConfig.TrieCache,
-		TrieTimeLimit: pls.DefaultConfig.TrieTimeout,
+		Disabled:       ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieCleanLimit: pls.DefaultConfig.TrieCleanCache,
+		TrieDirtyLimit: pls.DefaultConfig.TrieDirtyCache,
+		TrieTimeLimit:  pls.DefaultConfig.TrieTimeout,
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}

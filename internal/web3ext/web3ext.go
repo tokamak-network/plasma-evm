@@ -379,6 +379,24 @@ web3._extend({
 			inputFormatter: [null, null]
 		}),
 		new web3._extend.Method({
+			name: 'traceBadBlock',
+			call: 'debug_traceBadBlock',
+			params: 1,
+			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
+			name: 'standardTraceBadBlockToFile',
+			call: 'debug_standardTraceBadBlockToFile',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'standardTraceBlockToFile',
+			call: 'debug_standardTraceBlockToFile',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
 			name: 'traceBlockByNumber',
 			call: 'debug_traceBlockByNumber',
 			params: 2,
@@ -434,6 +452,11 @@ web3._extend({
 	property: 'eth',
 	methods: [
 		new web3._extend.Method({
+			name: 'chainId',
+			call: 'eth_chainId',
+			params: 0
+		}),
+		new web3._extend.Method({
 			name: 'sign',
 			call: 'eth_sign',
 			params: 2,
@@ -469,6 +492,12 @@ web3._extend({
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
+		}),
+		new web3._extend.Method({
+			name: 'getProof',
+			call: 'eth_getProof',
+			params: 3,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null, web3._extend.formatters.inputBlockNumberFormatter]
 		}),
 	],
 	properties: [

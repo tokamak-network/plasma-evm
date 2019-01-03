@@ -64,6 +64,30 @@ const tmplSourceGo = `
 
 package {{.Package}}
 
+import (
+	"math/big"
+	"strings"
+
+	ethereum "github.com/Onther-Tech/plasma-evm"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/event"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var (
+	_ = big.NewInt
+	_ = strings.NewReader
+	_ = ethereum.NotFound
+	_ = abi.U256
+	_ = bind.Bind
+	_ = common.Big1
+	_ = types.BloomLookup
+	_ = event.NewSubscription
+)
+
 {{range $contract := .Contracts}}
 	// {{.Type}}ABI is the input ABI used to generate the binding from.
 	const {{.Type}}ABI = "{{.InputABI}}"

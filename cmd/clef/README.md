@@ -4,18 +4,18 @@ Clef can be used to sign transactions and data and is meant as a replacement for
 This allows DApps not to depend on geth's account management. When a DApp wants to sign data it can send the data to
 the signer, the signer will then provide the user with context and asks the user for permission to sign the data. If
 the users grants the signing request the signer will send the signature back to the DApp.
-  
+
 This setup allows a DApp to connect to a remote Ethereum node and send transactions that are locally signed. This can
 help in situations when a DApp is connected to a remote node because a local Ethereum node is not available, not
 synchronised with the chain or a particular Ethereum node that has no built-in (or limited) account management.
-  
+
 Clef can run as a daemon on the same machine, or off a usb-stick like [usb armory](https://inversepath.com/usbarmory),
 or a separate VM in a [QubesOS](https://www.qubes-os.org/) type os setup.
 
-Check out 
+Check out
 
 * the [tutorial](tutorial.md) for some concrete examples on how the signer works.
-* the [setup docs](docs/setup.md) for some information on how to configure it to work on QubesOS or USBArmory. 
+* the [setup docs](docs/setup.md) for some information on how to configure it to work on QubesOS or USBArmory.
 
 
 ## Command line flags
@@ -68,7 +68,7 @@ The security model of the signer is as follows:
 The general flow for signing a transaction using e.g. geth is as follows:
 ![image](sign_flow.png)
 
-In this case, `geth` would be started with `--externalsigner=http://localhost:8550` and would relay requests to `eth.sendTransaction`.
+In this case, `geth` would be started with `--externalsigner=http://localhost:8550` and would relay requests to `pls.sendTransaction`.
 
 ## TODOs
 
@@ -91,7 +91,7 @@ invoking methods with the following info:
   * [x] Version info about the signer
   * [x] Address of API (http/ipc)
   * [ ] List of known accounts
-* [ ] Have a default timeout on signing operations, so that if the user has not answered withing e.g. 60 seconds, the request is rejected.
+* [ ] Have a default timeout on signing operations, so that if the user has not answered within e.g. 60 seconds, the request is rejected.
 * [ ] `account_signRawTransaction`
 * [ ] `account_bulkSignTransactions([] transactions)` should
    * only exist if enabled via config/flag
@@ -129,7 +129,7 @@ The signer listens to HTTP requests on `rpcaddr`:`rpcport`, with the same JSONRP
 expected to be JSON [jsonrpc 2.0 standard](http://www.jsonrpc.org/specification).
 
 Some of these call can require user interaction. Clients must be aware that responses
-may be delayed significanlty or may never be received if a users decides to ignore the confirmation request.
+may be delayed significantly or may never be received if a users decides to ignore the confirmation request.
 
 The External API is **untrusted** : it does not accept credentials over this api, nor does it expect
 that requests have any authority.
@@ -180,7 +180,7 @@ None
 #### Result
   - address [string]: account address that is derived from the generated key
   - url [string]: location of the keyfile
-  
+
 #### Sample call
 ```json
 {
@@ -212,9 +212,9 @@ None
 #### Result
   - array with account records:
      - account.address [string]: account address that is derived from the generated key
-     - account.type [string]: type of the 
+     - account.type [string]: type of the
      - account.url [string]: location of the account
-  
+
 #### Sample call
 ```json
 {
@@ -261,7 +261,7 @@ None
 
 #### Result
   - signed transaction in RLP encoded form [data]
-  
+
 #### Sample call
 ```json
 {
@@ -358,7 +358,7 @@ Bash example:
 
 #### Result
   - calculated signature [data]
-  
+
 #### Sample call
 ```json
 {
@@ -385,14 +385,14 @@ Response
 
 #### Recover address
    Derive the address from the account that was used to sign data from the data and signature.
-   
+
 #### Arguments
   - data [data]: data that was signed
   - signature [data]: the signature to verify
 
 #### Result
   - derived account [address]
-  
+
 #### Sample call
 ```json
 {
@@ -421,16 +421,16 @@ Response
 #### Import account
    Import a private key into the keystore. The imported key is expected to be encrypted according to the web3 keystore
    format.
-   
+
 #### Arguments
-  - account [object]: key in [web3 keystore format](https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition) (retrieved with account_export) 
+  - account [object]: key in [web3 keystore format](https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition) (retrieved with account_export)
 
 #### Result
   - imported key [object]:
      - key.address [address]: address of the imported key
      - key.type [string]: type of the account
      - key.url [string]: key URL
-  
+
 #### Sample call
 ```json
 {
@@ -481,14 +481,14 @@ Response
 #### Export account from keystore
    Export a private key from the keystore. The exported private key is encrypted with the original passphrase. When the
    key is imported later this passphrase is required.
-   
+
 #### Arguments
   - account [address]: export private key that is associated with this account
 
 #### Result
   - exported key, see [web3 keystore format](https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition) for
   more information
-  
+
 #### Sample call
 ```json
 {
@@ -862,16 +862,17 @@ A UI should conform to the following rules.
 * A UI SHOULD inform the user about the `SHA256` or `MD5` hash of the binary being executed
 * A UI SHOULD NOT maintain a secondary storage of data, e.g. list of accounts
   * The signer provides accounts
-* A UI SHOULD, to the best extent possible, use static linking / bundling, so that requried libraries are bundled
+* A UI SHOULD, to the best extent possible, use static linking / bundling, so that required libraries are bundled
 along with the UI.
 
 
-### UI Implementations 
+### UI Implementations
 
-There are a couple of implementation for a UI. We'll try to keep this list up to date. 
+There are a couple of implementation for a UI. We'll try to keep this list up to date.
 
 | Name | Repo | UI type| No external resources| Blocky support| Verifies permissions | Hash information | No secondary storage | Statically linked| Can modify parameters|
 | ---- | ---- | -------| ---- | ---- | ---- |---- | ---- | ---- | ---- |
 | QtSigner| https://github.com/holiman/qtsigner/| Python3/QT-based| :+1:| :+1:| :+1:| :+1:| :+1:| :x: |  :+1: (partially)|
 | GtkSigner| https://github.com/holiman/gtksigner| Python3/GTK-based| :+1:| :x:| :x:| :+1:| :+1:| :x: |  :x: |
 | Frame | https://github.com/floating/frame/commits/go-signer| Electron-based| :x:| :x:| :x:| :x:| ?| :x: |  :x: |
+| Clef UI| https://github.com/kyokan/clef-ui| Golang/QT-based| :+1:| :+1:| :x:| :+1:| :+1:| :x: |  :+1: (approve tx only)|

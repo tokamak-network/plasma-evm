@@ -1,6 +1,6 @@
 ## Plasma EVM PoC Implementation
 
-Proof-of-concept Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX), forked from [ethereum/go-ethereum](https://github.com/ethereum/go-ethereum). You can check the RootChain smart contract [here](https://github.com/Onther-Tech/plasma-evm-contracts).
+Proof-of-concept Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX), forked from [Onther-Tech/plasma-evm](https://github.com/Onther-Tech/plasma-evm). You can check the RootChain smart contract [here](https://github.com/Onther-Tech/plasma-evm-contracts).
 
 
 ## Development Status
@@ -13,6 +13,9 @@ Implementing TrueBit's verification game is under research as well as challenges
 
 
 ## Ethereum client
+Building geth requires both a Go (version 1.9 or later) and a C compiler.
+You can install them using your favourite package manager.
+Once the dependencies are installed, run
 
 We're using [Onther-Tech/go-ethereum](https://github.com/Onther-Tech/go-ethereum) as an ethereum client instead of `ganache-cli` due to the support for WebSocket JSONRPC endpoint. Especially, the client is modified with respect to genesis and developer accounts setup like `ganache-cli`.
 
@@ -32,8 +35,8 @@ ROOTCHAIN OPTIONS:
   --rootchain.operatorKey   Specify operator key as hex
   --rootchain.contract      The address of RootChain contract
   --rootchain.url           JSONRPC endpoint of rootchain provider. Use WebSocket to subscribe events. (default: ws://localhost:8546)
-  
-DEVELOPER CHAIN OPTIONS:    
+
+DEVELOPER CHAIN OPTIONS:
   --dev.key                 Comma seperated keys as hex for developer accounts
 ```
 
