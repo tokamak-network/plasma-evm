@@ -252,6 +252,7 @@ func (rcm *RootChainManager) runSubmitter() {
 	w, err := rcm.accountManager.Find(rcm.config.Operator)
 	if err != nil {
 		log.Error("Failed to get operator wallet", "err", err)
+		return
 	}
 
 	for {
@@ -272,10 +273,11 @@ func (rcm *RootChainManager) runSubmitter() {
 				log.Error("NetworkId error", "err", err)
 			}
 
-			// send request block to root chain contract
 			if !rcm.minerEnv.IsRequest {
+				// send non request block to root chain contract
 				input, err := rootchainContractABI.Pack(
 					"submitNRB",
+					big.NewInt(int64(rcm.state.currentFork)),
 					blockInfo.Block.Header().Root,
 					blockInfo.Block.Header().TxHash,
 					blockInfo.Block.Header().ReceiptHash,
@@ -287,21 +289,34 @@ func (rcm *RootChainManager) runSubmitter() {
 
 				signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 				if err != nil {
-					log.Error("Failed to sign submitTx", "err", err)
+					log.Error("Failed to sign submitNRB", "err", err)
 				}
 
 				err = rcm.backend.SendTransaction(context.Background(), signedTx)
 				if err != nil {
-					log.Error("Failed to send submitTx", "err", err)
-				} else {
-					// TODO: check TX is not reverted
-					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
+					log.Error("Failed to send submitNRB", "err", err)
 				}
 
-				// send non-request block to root chain contract
+				// wait root chain block is mined
+				// TODO: use new block is mined event from root chain
+				timer := time.NewTimer(2 * time.Second)
+				<-timer.C
+
+				receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
+				log.Debug("signex tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
+
+				if err != nil {
+					log.Error("Failed to send submitNRB", "err", err)
+				} else if  receipt.Status == 0 {
+					log.Error("submitNRB is reverted", "hash", signedTx.Hash().Hex())
+				} else {
+					log.Info("NRB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
+				}
 			} else {
+				// send request block to root chain contract
 				input, err := rootchainContractABI.Pack(
 					"submitORB",
+					big.NewInt(int64(rcm.state.currentFork)),
 					blockInfo.Block.Header().Root,
 					blockInfo.Block.Header().TxHash,
 					blockInfo.Block.Header().ReceiptHash,
@@ -320,8 +335,21 @@ func (rcm *RootChainManager) runSubmitter() {
 				err = rcm.backend.SendTransaction(context.Background(), signedTx)
 				if err != nil {
 					log.Error("Failed to send submitTx", "err", err)
+				}
+
+				// wait root chain block is mined
+				// TODO: use new block is mined event from root chain
+				timer := time.NewTimer(2 * time.Second)
+				<-timer.C
+
+				receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
+				log.Debug("signex tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
+
+				if err != nil {
+					log.Error("Failed to send submitORB", "err", err)
+				} else if  receipt.Status == 0 {
+					log.Error("submitORB is reverted", "hash", signedTx.Hash().Hex())
 				} else {
-					// TODO: check TX is not reverted
 					log.Info("ORB is submitted", "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().Hex())
 				}
 			}
