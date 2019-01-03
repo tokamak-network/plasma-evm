@@ -591,6 +591,16 @@ func (rcm *RootChainManager) runDetector() {
 	}
 }
 
+func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (*PlasmaBlock, error) {
+	b, err := rcm.rootchainContract.GetBlock(baseCallOpt, forkNumber, blockNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return newPlasmaBlock(b), nil
+}
+
 // pingBackend checks rootchain backend is alive.
 func (rcm *RootChainManager) pingBackend() {
 	ticker := time.NewTicker(3 * time.Second)

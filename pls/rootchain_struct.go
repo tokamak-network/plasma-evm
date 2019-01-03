@@ -1,8 +1,8 @@
 package pls
 
-// Structs for Epoch and Block
+// Structs for PlasmaEpoch and PlasmaBlock
 
-type Epoch struct {
+type PlasmaEpoch struct {
 	RequestStart        uint64
 	RequestEnd          uint64
 	StartBlockNumber    uint64
@@ -16,7 +16,7 @@ type Epoch struct {
 	Rebase              bool
 }
 
-func newEpoch(res struct {
+func newEpoch(e struct {
 	RequestStart        uint64
 	RequestEnd          uint64
 	StartBlockNumber    uint64
@@ -28,21 +28,63 @@ func newEpoch(res struct {
 	IsRequest           bool
 	UserActivated       bool
 	Rebase              bool
-}) *Epoch {
-	return &Epoch{
-		res.RequestStart,
-		res.RequestEnd,
-		res.StartBlockNumber,
-		res.EndBlockNumber,
-		res.FirstRequestBlockId,
-		res.NumEnter,
-		res.IsEmpty,
-		res.Initialized,
-		res.IsRequest,
-		res.UserActivated,
-		res.Rebase,
+}) *PlasmaEpoch {
+	return &PlasmaEpoch{
+		e.RequestStart,
+		e.RequestEnd,
+		e.StartBlockNumber,
+		e.EndBlockNumber,
+		e.FirstRequestBlockId,
+		e.NumEnter,
+		e.IsEmpty,
+		e.Initialized,
+		e.IsRequest,
+		e.UserActivated,
+		e.Rebase,
 	}
 }
 
-type Block struct {
+type PlasmaBlock struct {
+	EpochNumber      uint64
+	RequestBlockId   uint64
+	ReferenceBlock   uint64
+	Timestamp        uint64
+	StatesRoot       [32]byte
+	TransactionsRoot [32]byte
+	ReceiptsRoot     [32]byte
+	IsRequest        bool
+	UserActivated    bool
+	Challenged       bool
+	Challenging      bool
+	Finalized        bool
+}
+
+func newPlasmaBlock(b struct {
+	EpochNumber      uint64
+	RequestBlockId   uint64
+	ReferenceBlock   uint64
+	Timestamp        uint64
+	StatesRoot       [32]byte
+	TransactionsRoot [32]byte
+	ReceiptsRoot     [32]byte
+	IsRequest        bool
+	UserActivated    bool
+	Challenged       bool
+	Challenging      bool
+	Finalized        bool
+}) *PlasmaBlock {
+	return &PlasmaBlock{
+		b.EpochNumber,
+		b.RequestBlockId,
+		b.ReferenceBlock,
+		b.Timestamp,
+		b.StatesRoot,
+		b.TransactionsRoot,
+		b.ReceiptsRoot,
+		b.IsRequest,
+		b.UserActivated,
+		b.Challenged,
+		b.Challenging,
+		b.Finalized,
+	}
 }
