@@ -1,6 +1,6 @@
 ## Plasma EVM PoC Implementation
 
-Proof-of-concept Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX), forked from [ethereum/go-ethereum](https://github.com/ethereum/go-ethereum). You can check the RootChain smart contract [here](https://github.com/Onther-Tech/plasma-evm-contracts).
+Proof-of-concept Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX), forked from [Onther-Tech/plasma-evm](https://github.com/Onther-Tech/plasma-evm). You can check the RootChain smart contract [here](https://github.com/Onther-Tech/plasma-evm-contracts).
 
 
 ## Development Status

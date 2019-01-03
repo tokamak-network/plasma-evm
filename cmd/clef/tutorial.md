@@ -53,19 +53,19 @@ INFO [02-21|12:14:38] Ruleset attestation updated              sha256=6c21d17374
 
 ...and (this is required only for non-production versions) load a mock-up `4byte.json` by copying the file from the source to your current working directory:
 ```text
-#cp $GOPATH/src/github.com/ethereum/go-ethereum/cmd/clef/4byte.json $PWD
+#cp $GOPATH/src/github.com/Onther-Tech/plasma-evm/cmd/clef/4byte.json $PWD
 ```
 
 At this point, we can start the signer with the rule-file:
 ```text
 #./signer --rules rules.js --rpc
 
-INFO [09-25|20:28:11.866] Using CLI as UI-channel 
+INFO [09-25|20:28:11.866] Using CLI as UI-channel
 INFO [09-25|20:28:11.876] Loaded 4byte db                          signatures=5509 file=./4byte.json
 INFO [09-25|20:28:11.877] Rule engine configured                   file=./rules.js
 DEBUG[09-25|20:28:11.877] FS scan times                            list=100.781µs set=13.253µs diff=5.761µs
-DEBUG[09-25|20:28:11.884] Ledger support enabled 
-DEBUG[09-25|20:28:11.888] Trezor support enabled 
+DEBUG[09-25|20:28:11.884] Ledger support enabled
+DEBUG[09-25|20:28:11.888] Trezor support enabled
 INFO [09-25|20:28:11.888] Audit logs configured                    file=audit.log
 DEBUG[09-25|20:28:11.888] HTTP registered                          namespace=account
 INFO [09-25|20:28:11.890] HTTP endpoint opened                     url=http://localhost:8550
@@ -165,12 +165,12 @@ And start the signer:
 ```
 #./signer --rules rules.js --rpc
 
-INFO [09-25|21:02:16.450] Using CLI as UI-channel 
+INFO [09-25|21:02:16.450] Using CLI as UI-channel
 INFO [09-25|21:02:16.466] Loaded 4byte db                          signatures=5509 file=./4byte.json
 INFO [09-25|21:02:16.467] Rule engine configured                   file=./rules.js
 DEBUG[09-25|21:02:16.468] FS scan times                            list=1.45262ms set=21.926µs diff=6.944µs
-DEBUG[09-25|21:02:16.473] Ledger support enabled 
-DEBUG[09-25|21:02:16.475] Trezor support enabled 
+DEBUG[09-25|21:02:16.473] Ledger support enabled
+DEBUG[09-25|21:02:16.475] Trezor support enabled
 INFO [09-25|21:02:16.476] Audit logs configured                    file=audit.log
 DEBUG[09-25|21:02:16.476] HTTP registered                          namespace=account
 INFO [09-25|21:02:16.478] HTTP endpoint opened                     url=http://localhost:8550
