@@ -619,11 +619,11 @@ func (w *worker) resultLoop() {
 
 			isURB := w.env.IsUserActivated
 
+			// unlock mutex of w.env so that rcm can manipulate the env data
+			w.env.Lock.Unlock()
+
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block, IsURB: isURB})
-
-			// unlock mutex of w.env so that rcm can manipulate the env data
-			w.env.lock.Unlock()
 
 			var events []interface{}
 			switch stat {

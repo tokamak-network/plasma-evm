@@ -67,7 +67,7 @@ type EpochEnvironment struct {
 	EpochLength     *big.Int
 	Completed       bool
 
-	lock sync.Mutex
+	Lock sync.Mutex
 }
 
 func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *EpochEnvironment, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
@@ -165,8 +165,8 @@ func (self *Miner) operate() {
 }
 
 func (self *Miner) Start(coinbase common.Address, epoch *rootchain.RootChainEpochPrepared) {
-	self.env.lock.Lock()
-	defer self.env.lock.Unlock()
+	self.env.Lock.Lock()
+	defer self.env.Lock.Unlock()
 
 	atomic.StoreInt32(&self.shouldStart, 1)
 	self.SetEtherbase(coinbase)
@@ -248,8 +248,8 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 }
 
 func (self *Miner) SetNRBepochLength(length *big.Int) {
-	self.env.lock.Lock()
-	defer self.env.lock.Unlock()
+	self.env.Lock.Lock()
+	defer self.env.Lock.Unlock()
 
 	self.env.EpochLength = length
 }

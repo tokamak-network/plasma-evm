@@ -251,7 +251,6 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
-// TODO (aiden): should not submit block mined just now when the URB epoch event is received. It's considered to be canceled.
 func (rcm *RootChainManager) runSubmitter() {
 	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer plasmaBlockMinedEvents.Unsubscribe()
@@ -281,13 +280,15 @@ func (rcm *RootChainManager) runSubmitter() {
 				rcm.miner.Stop()
 			}
 
-			rcm.lock.Lock()
-
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
+			// if the block is not URB in case of URB epoch, don't submit it
+			rcm.minerEnv.Lock.Lock()
 			if blockInfo.IsURB != rcm.minerEnv.IsUserActivated {
 				return
 			}
+			rcm.minerEnv.Lock.Unlock()
+
+			rcm.lock.Lock()
 
 			Nonce := rcm.state.getNonce()
 
@@ -505,8 +506,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 			}
 		} else {
 			// NRB
-			//TODO (Aiden): change e.IsRequest to e.IsRebase
-			switch e.IsRequest {
+			switch e.Rebase {
 			case false:
 				// ordinary NRB
 				return nil
