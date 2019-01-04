@@ -247,6 +247,13 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 	self.worker.setEtherbase(addr)
 }
 
+func (self *Miner) SetNRBepochLength(length *big.Int) {
+	self.env.lock.Lock()
+	defer self.env.lock.Unlock()
+
+	self.env.EpochLength = length
+}
+
 func (env *EpochEnvironment) setCompleted() {
 	env.Completed = true
 }
