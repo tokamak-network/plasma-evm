@@ -369,8 +369,13 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
 
-	// send EpochPrepared event to miner
-	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+	// stop miner immediately in case of URB epoch
+	if e.UserActivated {
+		rcm.miner.Stop()
+	}
+
+	// start miner
+	go rcm.miner.Start(params.Operator, &e)
 
 	// prepare txs for the epoch
 	switch e.UserActivated {

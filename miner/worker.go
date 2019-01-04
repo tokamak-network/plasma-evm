@@ -179,8 +179,7 @@ type worker struct {
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 
-	epochLength *big.Int // NRB epoch length
-	// TODO (aiden): add a way to get currentFork from rcm
+	// pls chain
 	currentFork        *big.Int
 	lastFinalizedBlock *big.Int
 }
@@ -307,8 +306,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
-		w.env.lock.Lock()
-
 		if interrupt != nil {
 			atomic.StoreInt32(interrupt, s)
 		}
@@ -550,12 +547,6 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
-			// add current fork number only if this block is first block of URB epoch
-			// so that it can make reorg
-			if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
-				task.block.AddCurrentFork()
-			}
-
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
@@ -615,32 +606,12 @@ func (w *worker) resultLoop() {
 			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
 				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
 
-			// add 1 to number of block mined
-			if w.env.IsRequest {
-				if w.env.IsUserActivated {
-					w.env.setNumURBmined(new(big.Int).Add(w.env.NumURBmined, big.NewInt(1)))
-				} else {
-					w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
-				}
-			} else {
-				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
-			}
+			// add 1 to NumBlockMined
+			w.env.setNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
 
 			// check if the epoch is completed
-			switch w.env.IsRequest {
-			case true:
-				if w.env.IsUserActivated && w.env.NumURBmined.Cmp(w.env.URBepochLength) == 0 {
-					// set URB epoch is completed
-					w.env.setCompletedTrue()
-				} else if !w.env.IsUserActivated && w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 {
-					// set ORB epoch is completed
-					w.env.setCompletedTrue()
-				}
-			case false:
-				if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
-					// set NRB epoch is completed
-					w.env.setCompletedTrue()
-				}
+			if w.env.NumBlockMined.Cmp(w.env.EpochLength) == 0 {
+				w.env.setCompleted()
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
@@ -651,6 +622,7 @@ func (w *worker) resultLoop() {
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block, IsURB: isURB})
 
+			// unlock mutex of w.env so that rcm can manipulate the env data
 			w.env.lock.Unlock()
 
 			var events []interface{}
@@ -1099,7 +1071,7 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 	var parent *types.Block
 
 	// if the block to be mined is first block of URB epoch, then parent block is last finalized block
-	if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
+	if w.env.IsUserActivated && w.env.NumBlockMined.Cmp(big.NewInt(0)) == 0 {
 		parent = w.chain.GetBlockByNumber(w.lastFinalizedBlock.Uint64())
 	} else {
 		parent = w.chain.CurrentBlock()
@@ -1271,26 +1243,31 @@ func (w *worker) commitNewWorkForRebasedNRB(interrupt *int32, noempty bool, time
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(env.state)
 	}
-	// // Accumulate the uncles for the current block
-	// for hash, uncle := range w.possibleUncles {
-	// 	if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
-	// 		delete(w.possibleUncles, hash)
-	// 	}
-	// }
 
 	// TODO: delete uncle because POA don't have uncles
 	uncles := make([]*types.Header, 0, 2)
-	for hash, uncle := range w.possibleUncles {
-		if len(uncles) == 2 {
-			break
+	commitUncles := func(blocks map[common.Hash]*types.Block) {
+		// Clean up stale uncle blocks first
+		for hash, uncle := range blocks {
+			if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
+				delete(blocks, hash)
+			}
 		}
-		if err := w.commitUncle(env, uncle.Header()); err != nil {
-			log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
-		} else {
-			log.Debug("Committing new uncle to block", "hash", hash)
-			uncles = append(uncles, uncle.Header())
+		for hash, uncle := range blocks {
+			if len(uncles) == 2 {
+				break
+			}
+			if err := w.commitUncle(env, uncle.Header()); err != nil {
+				log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
+			} else {
+				log.Debug("Committing new uncle to block", "hash", hash)
+				uncles = append(uncles, uncle.Header())
+			}
 		}
 	}
+	// Prefer to locally generated uncle
+	commitUncles(w.localUncles)
+	commitUncles(w.remoteUncles)
 
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
