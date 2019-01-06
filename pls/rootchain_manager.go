@@ -369,16 +369,17 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
 
-		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
-
 		currentFork := big.NewInt(int64(rcm.state.currentFork))
 		epoch, err := rcm.getEpoch(currentFork, e.EpochNumber)
 		if err != nil {
 			return err
 		}
+		log.Debug("rcm.getEpoch", "epoch", epoch)
 
 		// TODO: URE, ORE' should handle requestBlockId in a different way.
 		requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+
+		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "requestBlockId", requestBlockId, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
 
 			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, requestBlockId)

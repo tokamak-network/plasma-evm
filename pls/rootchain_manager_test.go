@@ -12,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"io/ioutil"
+	"os"
+
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
@@ -38,8 +41,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
-	"io/ioutil"
-	"os"
 )
 
 var (
