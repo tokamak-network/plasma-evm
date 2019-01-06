@@ -126,7 +126,7 @@ func init() {
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
-		log.Error("Failed to connect rootchian provider", err)
+		log.Error("Failed to connect rootchian provider", "err", err)
 	}
 
 	keys = []*ecdsa.PrivateKey{key1, key2, key3, key4}
@@ -1479,13 +1479,13 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 	defer close(outC)
 	defer close(errC)
 
-	timer := time.NewTimer(4 * time.Second)
+	timer := time.NewTimer(2 * time.Second)
 	defer timer.Stop()
 
 	go func() {
 		<-timer.C
-		if !timer.Stop() {
-			//errC <- errors.New("Out of time")
+		if timer.Stop() {
+			errC <- errors.New("Out of time")
 		}
 	}()
 
@@ -1500,6 +1500,7 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 		// check block number.
 		if pls.blockchain.CurrentBlock().NumberU64() != block.NumberU64() {
 			errC <- errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
+			return
 		}
 
 		// check isRequest.
@@ -1509,6 +1510,7 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 			tx, _ := block.Transactions()[0].AsMessage(types.HomesteadSigner{})
 			log.Error("tx sender address", "sender", tx.From())
 			errC <- errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, block.IsRequest()))
+			return
 		}
 
 		pb, _ := pls.rootchainManager.getBlock(big.NewInt(int64(pls.rootchainManager.state.currentFork)), block.Number())
@@ -1517,107 +1519,33 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 			log.Debug("Submitted plasma block", "pb", pb)
 			log.Debug("Mined plasma block", "b", block)
 			errC <- errors.New("Plasma block is not submitted yet.")
+			return
 		}
 
 		if pb.IsRequest != block.IsRequest() {
 			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected isRequest: %t, Actual isRequest %t", pb.IsRequest, block.IsRequest()))
+			return
 		}
 
 		pbStateRoot := pb.StatesRoot[:]
 		bStateRoot := block.Header().Root.Bytes()
 		if bytes.Compare(pbStateRoot, bStateRoot) != 0 {
 			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected stateRoot: %s, Actual stateRoot: %s", pbStateRoot, bStateRoot))
+			return
 		}
 
 		pbTxRoot := pb.TransactionsRoot[:]
 		bTxRoot := block.Header().TxHash.Bytes()
 		if bytes.Compare(pbTxRoot, bTxRoot) != 0 {
 			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected txRoot: %s, Actual txRoot: %s", pbTxRoot, bTxRoot))
+			return
 		}
 
 		pbReceiptsRoot := pb.ReceiptsRoot[:]
 		bReceiptsRoot := block.Header().ReceiptHash.Bytes()
 		if bytes.Compare(pbReceiptsRoot, bReceiptsRoot) != 0 {
 			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected receiptsRoot: %s, Actual receiptsRoot: %s", pbReceiptsRoot, bReceiptsRoot))
-		}
-		log.Debug("Check block finished")
-		outC <- struct{}{}
-	}()
-
-	select {
-	case <-outC:
-		return nil
-	case err := <-errC:
-		return err
-	}
-}
-
-func checkBlock2(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool) error {
-	outC := make(chan struct{})
-	errC := make(chan error)
-	defer close(outC)
-	defer close(errC)
-
-	timer := time.NewTimer(4 * time.Second)
-	defer timer.Stop()
-
-	go func() {
-		<-timer.C
-		if !timer.Stop() {
-			//errC <- errors.New("Out of time")
-		}
-	}()
-
-	go func() {
-		<-pbSubmitedEvents
-		ev := <-pbMinedEvents.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		block := blockInfo.Block
-
-		log.Info("Check PlasmaBlock Number", "localBlockNumber", pls.blockchain.CurrentBlock().NumberU64(), "minedBlockNumber", block.NumberU64())
-
-		// check block number.
-		if pls.blockchain.CurrentBlock().NumberU64() != block.NumberU64() {
-			errC <- errors.New(fmt.Sprintf("Expected block number: %d, actual block %d", block.NumberU64(), pls.blockchain.CurrentBlock().NumberU64()))
-		}
-
-		// check isRequest.
-		if block.IsRequest() != expectedIsRequest {
-			log.Error("txs length check", "length", len(block.Transactions()))
-
-			tx, _ := block.Transactions()[0].AsMessage(types.HomesteadSigner{})
-			log.Error("tx sender address", "sender", tx.From())
-			errC <- errors.New(fmt.Sprintf("Expected isRequest: %t, Actual isRequest %t", expectedIsRequest, block.IsRequest()))
-		}
-
-		pb, _ := pls.rootchainManager.getBlock(big.NewInt(int64(pls.rootchainManager.state.currentFork)), block.Number())
-
-		if pb.Timestamp == 0 {
-			log.Debug("Submitted plasma block", "pb", pb)
-			log.Debug("Mined plasma block", "b", block)
-			errC <- errors.New("Plasma block is not submitted yet.")
-		}
-
-		if pb.IsRequest != block.IsRequest() {
-			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected isRequest: %t, Actual isRequest %t", pb.IsRequest, block.IsRequest()))
-		}
-
-		pbStateRoot := pb.StatesRoot[:]
-		bStateRoot := block.Header().Root.Bytes()
-		if bytes.Compare(pbStateRoot, bStateRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected stateRoot: %s, Actual stateRoot: %s", pbStateRoot, bStateRoot))
-		}
-
-		pbTxRoot := pb.TransactionsRoot[:]
-		bTxRoot := block.Header().TxHash.Bytes()
-		if bytes.Compare(pbTxRoot, bTxRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected txRoot: %s, Actual txRoot: %s", pbTxRoot, bTxRoot))
-		}
-
-		pbReceiptsRoot := pb.ReceiptsRoot[:]
-		bReceiptsRoot := block.Header().ReceiptHash.Bytes()
-		if bytes.Compare(pbReceiptsRoot, bReceiptsRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("PlasmaBlock Expected receiptsRoot: %s, Actual receiptsRoot: %s", pbReceiptsRoot, bReceiptsRoot))
+			return
 		}
 		log.Debug("Check block finished")
 		outC <- struct{}{}
