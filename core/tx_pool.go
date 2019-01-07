@@ -728,11 +728,16 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	return old != nil, nil
 }
 
-func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (bool, error) {
-	// TODO: validate all txs are from null address
+func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (error) {
+	for _, rtx := range rtxs {
+		from, _ := types.Sender(pool.signer, rtx)
+		if from != params.NullAddress {
+			return errors.New("invalid request transaction")
+		}
+	}
 	pool.requestTxCh <- rtxs
 
-	return true, nil
+	return nil
 }
 
 // journalTx adds the specified transaction to the local disk journal if it is
