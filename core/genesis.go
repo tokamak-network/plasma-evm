@@ -150,10 +150,10 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, genesis, nil)
+func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address) (*params.ChainConfig, common.Hash, error) {
+	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract)
 }
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -163,7 +163,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultGenesisBlock(rootChainContract)
 		} else {
 			log.Info("Writing custom genesis block")
 		}
@@ -304,10 +304,10 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 }
 
 // DefaultGenesisBlock returns the Plasma main net genesis block.
-func DefaultGenesisBlock() *Genesis {
+func DefaultGenesisBlock(rootChainContract common.Address) *Genesis {
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
-		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   16777216,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{

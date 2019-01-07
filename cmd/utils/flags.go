@@ -1316,7 +1316,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
 
-	cfg.Genesis = core.DefaultGenesisBlock()
+	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1441,7 +1441,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), common.Address{})
 	if err != nil {
 		Fatalf("%v", err)
 	}
