@@ -350,7 +350,7 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 }
 
 // DeveloperGenesisBlock returns the Plasma genesis block
-func DeveloperGenesisBlock(period uint64) *Genesis {
+func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one
 	config := *params.AllCliqueProtocolChanges
 	config.Clique.Period = period
