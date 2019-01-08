@@ -3,9 +3,9 @@ package common
 import (
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/contracts/stamina/contract"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/stamina/contract"
 )
 
 type accountWrapper struct {

@@ -25,17 +25,17 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	staminaCommon "github.com/ethereum/go-ethereum/stamina/common"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/common/math"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
+	"github.com/Onther-Tech/plasma-evm/core/state"
+	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/rlp"
+	staminaCommon "github.com/Onther-Tech/plasma-evm/stamina/common"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go

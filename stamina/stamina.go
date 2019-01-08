@@ -4,9 +4,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/vm"
-	staminaCommon "github.com/ethereum/go-ethereum/stamina/common"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/core/vm"
+	staminaCommon "github.com/Onther-Tech/plasma-evm/stamina/common"
 )
 
 var (

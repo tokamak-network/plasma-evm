@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/Onther-Tech/plasma-evm/common"
 )
 
 var StaminaContractAddressHex = "0x000000000000000000000000000000000000dead"
