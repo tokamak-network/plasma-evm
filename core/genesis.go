@@ -306,6 +306,10 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the Plasma main net genesis block.
 func DefaultGenesisBlock() *Genesis {
+	staminaBinBytes, err := hex.DecodeString(staminaCommon.StaminaContractBin[2:])
+	if err != nil {
+		panic(err)
+	}
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
@@ -321,6 +325,10 @@ func DefaultGenesisBlock() *Genesis {
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
 			params.Operator:                  {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			staminaCommon.StaminaContractAddress: {
+				Code:    staminaBinBytes,
+				Balance: big.NewInt(0),
+			},
 		},
 	}
 }
@@ -355,7 +363,6 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 	config := *params.AllCliqueProtocolChanges
 	config.Clique.Period = period
 
-	var err error
 	staminaBinBytes, err := hex.DecodeString(staminaCommon.StaminaContractBin[2:])
 	if err != nil {
 		panic(err)
