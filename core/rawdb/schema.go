@@ -79,6 +79,13 @@ func encodeBlockNumber(number uint64) []byte {
 	return enc
 }
 
+// encodeForkNumber encodes a fork number as big endian uint64
+func encodeForkNumber(fork uint64) []byte {
+	enc := make([]byte, 8)
+	binary.BigEndian.PutUint64(enc, fork)
+	return enc
+}
+
 // headerKey = headerPrefix + num (uint64 big endian) + hash
 func headerKey(number uint64, hash common.Hash) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
