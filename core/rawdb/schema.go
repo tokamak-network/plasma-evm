@@ -72,6 +72,14 @@ type TxLookupEntry struct {
 	Index      uint64
 }
 
+// InvalidExitReceiptsLookupEntry is a positional metadata to help looking up the data content of
+// a invalid exit receipt
+type InvalidExitReceiptsLookupEntry struct {
+	BlockHash  common.Hash
+	BlockIndex uint64
+	Indices    []uint64
+}
+
 // encodeBlockNumber encodes a block number as big endian uint64
 func encodeBlockNumber(number uint64) []byte {
 	enc := make([]byte, 8)
