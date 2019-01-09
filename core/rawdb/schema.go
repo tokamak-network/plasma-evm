@@ -50,8 +50,9 @@ var (
 	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
 	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
 
-	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
-	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
+	txLookupPrefix                  = []byte("l")  // txLookupPrefix + hash -> transaction/receipt lookup metadata
+	invalidExitReceiptsLookupPrefix = []byte("rl") // invalidExitReceiptsLookupPrefix + num (uint64 big endian)+ num (uint64 big endian) -> invalid exit receipt lookup metadata
+	bloomBitsPrefix                 = []byte("B")  // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
@@ -111,6 +112,11 @@ func blockReceiptsKey(number uint64, hash common.Hash) []byte {
 // txLookupKey = txLookupPrefix + hash
 func txLookupKey(hash common.Hash) []byte {
 	return append(txLookupPrefix, hash.Bytes()...)
+}
+
+// invalidExitReceiptsLookupKey = invalidExitReceiptsLookupPrefix + fork (uint64 big endian) + num (uint64 big endian) + hash
+func invalidExitReceiptsLookupKey(fork uint64, num uint64) []byte {
+	return append(append(invalidExitReceiptsLookupPrefix, encodeForkNumber(fork)...), encodeBlockNumber(num)...)
 }
 
 // bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash
