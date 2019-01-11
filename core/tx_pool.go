@@ -35,8 +35,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/stamina"
-	staminaCommon "github.com/Onther-Tech/plasma-evm/stamina/common"
 )
 
 const (
@@ -616,16 +614,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNonceTooLow
 	}
 
-	// moscow - delegatee 고려하기
-	// 검증할 때의 스태미나와 마이닝 될 때의 스태미나가 다를 텐데..
 	evm := pool.newStaticEVM()
-	delegatee, err := stamina.GetDelegatee(evm, from)
+	delegatee, err := GetDelegatee(evm, from)
 	if err != nil {
 		return ErrStaminaGetDelegatee
 	}
 
 	mgval := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(tx.Gas())))
-	availableStamina, _ := stamina.GetStamina(evm, delegatee)
+	availableStamina, _ := GetStamina(evm, delegatee)
 
 	// moscow - only if can pay with stamina
 	if availableStamina.Cmp(mgval) >= 0 {
@@ -997,8 +993,8 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 		// Drop all transactions that are too costly (low balance or out of gas)
 		// moscow - do not drop tx if delegatee has enough stamina
 		evm := pool.newStaticEVM()
-		delegatee, _ := stamina.GetDelegatee(evm, addr)
-		stamina, _ := stamina.GetStamina(evm, delegatee)
+		delegatee, _ := GetDelegatee(evm, addr)
+		stamina, _ := GetStamina(evm, delegatee)
 		balance := pool.currentState.GetBalance(addr)
 
 		var costlimit *big.Int
@@ -1160,8 +1156,8 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 // moscow - arbitrary msg & header & author
 func (pool *TxPool) newStaticEVM() *vm.EVM {
 	msg := types.NewMessage(
-		staminaCommon.BlockchainAccount.Address(),
-		&staminaCommon.StaminaContractAddress,
+		blockchainAccount.Address(),
+		&staminaContractAddress,
 		0,
 		big.NewInt(0),
 		1000000,

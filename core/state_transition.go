@@ -25,7 +25,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/stamina"
 )
 
 var (
@@ -173,7 +172,7 @@ func (st *StateTransition) buyGas() error {
 
 func (st *StateTransition) buyDelegateeGas(delegatee common.Address) error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	balance, err := stamina.GetStamina(st.evm, delegatee)
+	balance, err := GetStamina(st.evm, delegatee)
 	if err != nil {
 		return err
 	}
@@ -187,7 +186,7 @@ func (st *StateTransition) buyDelegateeGas(delegatee common.Address) error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	stamina.SubtractStamina(st.evm, delegatee, mgval)
+	SubtractStamina(st.evm, delegatee, mgval)
 	return nil
 }
 
@@ -238,8 +237,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	contractCreation := msg.To() == nil
 
 	// get delegatee
-	delegatee, _ := stamina.GetDelegatee(evm, msg.From())
-	availableStamina, _ := stamina.GetStamina(evm, delegatee)
+	delegatee, _ := GetDelegatee(evm, msg.From())
+	availableStamina, _ := GetStamina(evm, delegatee)
 	upfrontGasCost := new(big.Int).Mul(msg.GasPrice(), big.NewInt(int64(msg.Gas())))
 
 	// moscow - if delegatee can pay up-front gas cost
@@ -346,7 +345,7 @@ func (st *StateTransition) refundDelegateeGas(delegatee common.Address) {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	stamina.AddStamina(st.evm, delegatee, remaining)
+	AddStamina(st.evm, delegatee, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

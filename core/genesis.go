@@ -35,7 +35,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
-	staminaCommon "github.com/Onther-Tech/plasma-evm/stamina/common"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -306,7 +305,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the Plasma main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-	staminaBinBytes, err := hex.DecodeString(staminaCommon.StaminaContractBin[2:])
+	staminaBinBytes, err := hex.DecodeString(staminaContractBin[2:])
 	if err != nil {
 		panic(err)
 	}
@@ -325,7 +324,7 @@ func DefaultGenesisBlock() *Genesis {
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
 			params.Operator:                  {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
-			staminaCommon.StaminaContractAddress: {
+			staminaContractAddress: {
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
 			},
@@ -363,7 +362,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 	config := *params.AllCliqueProtocolChanges
 	config.Clique.Period = period
 
-	staminaBinBytes, err := hex.DecodeString(staminaCommon.StaminaContractBin[2:])
+	staminaBinBytes, err := hex.DecodeString(staminaContractBin[2:])
 	if err != nil {
 		panic(err)
 	}
@@ -383,7 +382,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			staminaCommon.StaminaContractAddress: {
+			staminaContractAddress: {
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
 			},
