@@ -35,10 +35,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
-	"github.com/Onther-Tech/plasma-evm/pls/filters"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls/filters"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 )
 
@@ -156,6 +156,11 @@ func (b *SimulatedBackend) StorageAt(ctx context.Context, contract common.Addres
 	statedb, _ := b.blockchain.State()
 	val := statedb.GetState(contract, key)
 	return val[:], nil
+}
+
+// CurrentBlock returns current block number.
+func (b *SimulatedBackend) CurrentBlock() *big.Int {
+	return b.blockchain.CurrentBlock().Number()
 }
 
 // TransactionReceipt returns the receipt of a transaction.
