@@ -1157,7 +1157,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 func (pool *TxPool) newStaticEVM() *vm.EVM {
 	msg := types.NewMessage(
 		blockchainAccount.Address(),
-		&staminaContractAddress,
+		&StaminaContractAddress,
 		0,
 		big.NewInt(0),
 		1000000,
