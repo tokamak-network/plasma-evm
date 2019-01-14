@@ -2,7 +2,6 @@ pragma solidity ^0.4.24;
 
 
 contract Stamina {
-  // Withdrawal handles withdrawal request
   struct Withdrawal {
     uint128 amount;
     uint128 requestBlockNumber;
@@ -50,8 +49,7 @@ contract Stamina {
 
 
   bool public development = true;   // if the contract is inserted directly into
-                                    // genesis block, it will be false
-
+                                    // genesis block without state, it will be false
 
   /**
    * Modifiers
@@ -70,9 +68,11 @@ contract Stamina {
    * Events
    */
   event Deposited(address indexed depositor, address indexed delegatee, uint amount);
-  event DelegateeChanged(address delegator, address oldDelegatee, address newDelegatee);
+  event DelegateeChanged(address indexed delegator, address oldDelegatee, address newDelegatee);
   event WithdrawalRequested(address indexed depositor, address indexed delegatee, uint amount, uint requestBlockNumber, uint withdrawalIndex);
-  event Withdrawan(address indexed depositor, address indexed delegatee, uint amount, uint withdrawalIndex);
+  event Withdrawn(address indexed depositor, address indexed delegatee, uint amount, uint withdrawalIndex);
+  event StaminaAdded(address indexed delegatee, uint amount, bool recovered);
+  event StaminaSubtracted(address indexed delegatee, uint amount);
 
   /**
    * Init
@@ -143,8 +143,6 @@ contract Stamina {
    * Setters
    */
   /// @notice Set `msg.sender` as delegatee of `delegator`
-  /* TODO: unset */
-  /* TODO: prevent setting if _delegatee is not 0x00 */
   function setDelegator(address delegator)
     external
     onlyInitialized
@@ -213,7 +211,7 @@ contract Stamina {
     _total_deposit[delegatee] = totalDeposit - amount;
     _deposit[msg.sender][delegatee] = deposit - amount;
 
-    // NOTE: Is accepting the request right when stamina < amount?
+    // NOTE: Is it right to accept the request when stamina < amount?
     if (stamina > amount) {
       _stamina[delegatee] = stamina - amount;
     } else {
@@ -251,7 +249,7 @@ contract Stamina {
       withdrawalIndex = lastWithdrawalIndex + 1;
     }
 
-    // double check out of index
+    // check out of index
     require(withdrawalIndex < withdrawals.length);
 
     Withdrawal storage withdrawal = _withdrawal[msg.sender][withdrawalIndex];
@@ -262,28 +260,23 @@ contract Stamina {
 
     uint amount = uint(withdrawal.amount);
 
-    // withdrawal is processed
+    // update state
     withdrawal.processed = true;
-
-    // mark processed withdrawal index
     _last_processed_withdrawal[msg.sender] = withdrawalIndex;
 
     // tranfser ether to depositor
     msg.sender.transfer(amount);
-    emit Withdrawan(msg.sender, withdrawal.delegatee, amount, withdrawalIndex);
+    emit Withdrawn(msg.sender, withdrawal.delegatee, amount, withdrawalIndex);
 
     return true;
   }
 
   /**
    * Stamina modification (only blockchain)
-   * No event emitted during these functions.
    */
   /// @notice Add stamina of delegatee. The upper bound of stamina is total deposit of delegatee.
   ///         addStamina is called when remaining gas is refunded. So we can recover stamina
   ///         if RECOVER_EPOCH_LENGTH blocks are passed.
-  ///
-  ///         NOTE: can use block.number here?
   function addStamina(address delegatee, uint amount) external onlyChain returns (bool) {
     // if enough blocks has passed since the last recovery, recover whole used stamina.
     if (_last_recovery_block[delegatee] + RECOVER_EPOCH_LENGTH <= block.number) {
@@ -291,6 +284,7 @@ contract Stamina {
       _last_recovery_block[delegatee] = block.number;
       _num_recovery[delegatee] += 1;
 
+      emit StaminaAdded(delegatee, 0, true);
       return true;
     }
 
@@ -303,6 +297,7 @@ contract Stamina {
     if (targetBalance > totalDeposit) _stamina[delegatee] = totalDeposit;
     else _stamina[delegatee] = targetBalance;
 
+    emit StaminaAdded(delegatee, amount, false);
     return true;
   }
 
@@ -312,6 +307,8 @@ contract Stamina {
 
     require(stamina - amount < stamina);
     _stamina[delegatee] = stamina - amount;
+
+    emit StaminaSubtracted(delegatee, amount);
     return true;
   }
 }
