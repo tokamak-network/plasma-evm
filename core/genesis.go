@@ -350,13 +350,9 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 
 // DeveloperGenesisBlock returns the Plasma genesis block
 func DeveloperGenesisBlock(period uint64) *Genesis {
-	// Override the default period to the user requested one
-	config := *params.AllCliqueProtocolChanges
-	config.Clique.Period = period
-
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
-		Config:     &config,
+		Config:     params.PlasmaChainConfig,
 		ExtraData:  append(append(make([]byte, 32), params.Operator[:]...), make([]byte, 65)...),
 		GasLimit:   6283185,
 		Difficulty: big.NewInt(1),
