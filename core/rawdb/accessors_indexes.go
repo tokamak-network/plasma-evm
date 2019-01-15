@@ -62,6 +62,60 @@ func DeleteTxLookupEntry(db DatabaseDeleter, hash common.Hash) {
 	db.Delete(txLookupKey(hash))
 }
 
+// ReadInvalidExitReceiptsLookupEntry retrieves the metadata associated with invalid exit receipts.
+func ReadInvalidExitReceiptsLookupEntry(db DatabaseReader, fork uint64, num uint64) (common.Hash, uint64, []uint64) {
+	data, _ := db.Get(invalidExitReceiptsLookupKey(fork, num))
+	if len(data) == 0 {
+		return common.Hash{}, 0, []uint64{}
+	}
+
+	var entry InvalidExitReceiptsLookupEntry
+	if err := rlp.DecodeBytes(data, &entry); err != nil {
+		log.Error("Invalid invalid exit receipt lookup entry RLP", "fork number", fork, "block number", num, "err", err)
+		return common.Hash{}, 0, []uint64{}
+	}
+	return entry.BlockHash, entry.BlockIndex, entry.Indices
+}
+
+// WriteInvalidExitReceiptsLookupEntry stores a metadata for invalid exit receipts.
+func WriteInvalidExitReceiptsLookupEntry(db DatabaseWriter, fork uint64, hash common.Hash, num uint64, indices []uint64) {
+	entry := InvalidExitReceiptsLookupEntry{
+		BlockHash:  hash,
+		BlockIndex: num,
+		Indices:    indices,
+	}
+	data, err := rlp.EncodeToBytes(entry)
+	if err != nil {
+		log.Crit("Failed to encode invalid exit receipt lookup entries", "err", err)
+	}
+	if err := db.Put(invalidExitReceiptsLookupKey(fork, num), data); err != nil {
+		log.Crit("Failed to store transaction lookup entry", "err", err)
+	}
+}
+
+// DeleteInvalidExitReceiptsLookupEntry removes matadata for invalid exit receipts.
+func DeleteInvalidExitReceiptsLookupEntry(db DatabaseDeleter, fork uint64, num uint64) {
+	db.Delete(invalidExitReceiptsLookupKey(fork, num))
+}
+
+// ReadInvalidExitReceipts retrieves all the invalid exit receipts.
+func ReadInvalidExitReceipts(db DatabaseReader, fork uint64, num uint64) map[uint64]*types.Receipt {
+	blockHash, blockNumber, indices := ReadInvalidExitReceiptsLookupEntry(db, fork, num)
+	if blockHash == (common.Hash{}) {
+		return nil
+	}
+	receipts := ReadReceipts(db, blockHash, blockNumber)
+	invalidExitReceipts := make(map[uint64]*types.Receipt)
+
+	if len(receipts) == 0 {
+		return nil
+	}
+	for _, index := range indices {
+		invalidExitReceipts[index] = receipts[index]
+	}
+	return invalidExitReceipts
+}
+
 // ReadTransaction retrieves a specific transaction from the database, along with
 // its added positional metadata.
 func ReadTransaction(db DatabaseReader, hash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {

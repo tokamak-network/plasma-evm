@@ -50,8 +50,9 @@ var (
 	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
 	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
 
-	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
-	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
+	txLookupPrefix                  = []byte("l")  // txLookupPrefix + hash -> transaction/receipt lookup metadata
+	invalidExitReceiptsLookupPrefix = []byte("rl") // invalidExitReceiptsLookupPrefix + num (uint64 big endian)+ num (uint64 big endian) -> invalid exit receipt lookup metadata
+	bloomBitsPrefix                 = []byte("B")  // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
@@ -71,10 +72,25 @@ type TxLookupEntry struct {
 	Index      uint64
 }
 
+// InvalidExitReceiptsLookupEntry is a positional metadata to help looking up the data content of
+// a invalid exit receipt
+type InvalidExitReceiptsLookupEntry struct {
+	BlockHash  common.Hash
+	BlockIndex uint64
+	Indices    []uint64
+}
+
 // encodeBlockNumber encodes a block number as big endian uint64
 func encodeBlockNumber(number uint64) []byte {
 	enc := make([]byte, 8)
 	binary.BigEndian.PutUint64(enc, number)
+	return enc
+}
+
+// encodeForkNumber encodes a fork number as big endian uint64
+func encodeForkNumber(fork uint64) []byte {
+	enc := make([]byte, 8)
+	binary.BigEndian.PutUint64(enc, fork)
 	return enc
 }
 
@@ -111,6 +127,11 @@ func blockReceiptsKey(number uint64, hash common.Hash) []byte {
 // txLookupKey = txLookupPrefix + hash
 func txLookupKey(hash common.Hash) []byte {
 	return append(txLookupPrefix, hash.Bytes()...)
+}
+
+// invalidExitReceiptsLookupKey = invalidExitReceiptsLookupPrefix + fork (uint64 big endian) + num (uint64 big endian) + hash
+func invalidExitReceiptsLookupKey(fork uint64, num uint64) []byte {
+	return append(append(invalidExitReceiptsLookupPrefix, encodeForkNumber(fork)...), encodeBlockNumber(num)...)
 }
 
 // bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash
