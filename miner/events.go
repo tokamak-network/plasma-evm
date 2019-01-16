@@ -7,7 +7,3 @@ import (
 type LastFinalizedBlock struct {
 	Number *big.Int
 }
-
-type CurrentFork struct {
-	Number *big.Int
-}

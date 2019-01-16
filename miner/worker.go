@@ -178,10 +178,6 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
-
-	// pls chain
-	currentFork        *big.Int
-	lastFinalizedBlock *big.Int
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *EpochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
@@ -228,7 +224,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend,
 	go worker.taskLoop()
 
 	// Submit first work to initialize pending state.
-	worker.startCh <- struct{}{}
+	//worker.startCh <- struct{}{}
 
 	return worker
 }
@@ -306,13 +302,15 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
-		if interrupt != nil {
-			atomic.StoreInt32(interrupt, s)
+		if w.isRunning() && !w.env.Completed {
+			if interrupt != nil {
+				atomic.StoreInt32(interrupt, s)
+			}
+			interrupt = new(int32)
+			w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
+			timer.Reset(recommit)
+			atomic.StoreInt32(&w.newTxs, 0)
 		}
-		interrupt = new(int32)
-		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
-		timer.Reset(recommit)
-		atomic.StoreInt32(&w.newTxs, 0)
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
 	recalcRecommit := func(target float64, inc bool) {
@@ -355,7 +353,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			// commit new mining work again only when the epoch is not completed.
-			if w.isRunning() {
+			if w.isRunning() && !w.env.Completed {
 				clearPending(head.Block.NumberU64())
 				timestamp = time.Now().Unix()
 				commit(true, commitInterruptNewHead)
@@ -422,7 +420,7 @@ func (w *worker) mainLoop() {
 				// ORB, Rebased ORB, URB
 				w.commitNewWorkForRB(req.interrupt, req.noempty, req.timestamp)
 			case false:
-				if w.env.IsRebase {
+				if w.env.Rebase {
 					// Rebase NRB
 					w.commitNewWorkForRebasedNRB(req.interrupt, req.noempty, req.timestamp)
 				} else {
@@ -597,6 +595,12 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
+
+			// if fork of the block is not same as current fork, throw it.
+			if w.env.CurrentFork.Cmp(block.Difficulty()) != 0 {
+				continue
+			}
+
 			// Commit block and state to database.
 			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
 			if err != nil {
@@ -611,19 +615,15 @@ func (w *worker) resultLoop() {
 
 			// check if the epoch is completed
 			if w.env.NumBlockMined.Cmp(w.env.EpochLength) == 0 {
-				w.env.setCompleted()
+				w.env.setCompleted(true)
+				log.Info("Current Epoch is completed")
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
-			isURB := w.env.IsUserActivated
-
-			// unlock mutex of w.env so that rcm can manipulate the env data
-			w.env.Lock.Unlock()
-
 			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block, IsURB: isURB})
+			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 
 			var events []interface{}
 			switch stat {
@@ -1071,8 +1071,8 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 	var parent *types.Block
 
 	// if the block to be mined is first block of URB epoch, then parent block is last finalized block
-	if w.env.IsUserActivated && w.env.NumBlockMined.Cmp(big.NewInt(0)) == 0 {
-		parent = w.chain.GetBlockByNumber(w.lastFinalizedBlock.Uint64())
+	if w.env.UserActivated && w.env.NumBlockMined.Cmp(big.NewInt(0)) == 0 {
+		parent = w.chain.GetBlockByNumber(w.env.LastFinalizedBlock.Uint64())
 	} else {
 		parent = w.chain.CurrentBlock()
 	}
@@ -1107,6 +1107,10 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
+	}
+
+	if w.env.UserActivated && w.env.NumBlockMined.Cmp(big.NewInt(0)) == 0 {
+		header.Difficulty.Add(header.Difficulty, big.NewInt(1))
 	}
 
 	// TODO: delete because pls block is frontier spec

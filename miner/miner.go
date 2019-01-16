@@ -60,14 +60,30 @@ type Miner struct {
 }
 
 type EpochEnvironment struct {
-	IsRequest       bool
-	IsUserActivated bool
-	IsRebase        bool
-	NumBlockMined   *big.Int
-	EpochLength     *big.Int
-	Completed       bool
+	IsRequest          bool
+	UserActivated      bool
+	Rebase             bool
+	Completed          bool
+	NumBlockMined      *big.Int
+	EpochLength        *big.Int
+	CurrentFork        *big.Int
+	LastFinalizedBlock *big.Int
 
-	Lock sync.Mutex
+	lock sync.Mutex
+}
+
+// TODO (aiden): it's only for test
+var NRE = rootchain.RootChainEpochPrepared{
+	ForkNumber:       big.NewInt(0),
+	EpochNumber:      big.NewInt(1),
+	StartBlockNumber: big.NewInt(1),
+	EndBlockNumber:   big.NewInt(2),
+	RequestStart:     new(big.Int),
+	RequestEnd:       new(big.Int),
+	EpochIsEmpty:     false,
+	IsRequest:        false,
+	UserActivated:    false,
+	Rebase:           false,
 }
 
 func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *EpochEnvironment, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
@@ -81,18 +97,20 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		canStart: 2,
 	}
 	go miner.update()
-	go miner.operate()
 
 	return miner
 }
 
 func NewEpochEnvironment() *EpochEnvironment {
 	return &EpochEnvironment{
-		IsRequest:       false,
-		IsUserActivated: false,
-		NumBlockMined:   big.NewInt(0),
-		EpochLength:     big.NewInt(0),
-		Completed:       false,
+		IsRequest:          false,
+		UserActivated:      false,
+		Rebase:             false,
+		Completed:          false,
+		NumBlockMined:      big.NewInt(0),
+		EpochLength:        big.NewInt(0),
+		CurrentFork:        big.NewInt(0),
+		LastFinalizedBlock: big.NewInt(0),
 	}
 }
 
@@ -124,7 +142,8 @@ func (self *Miner) update() {
 				atomic.StoreInt32(&self.canStart, 1)
 				atomic.StoreInt32(&self.shouldStart, 0)
 				if shouldStart {
-					self.Start(self.coinbase)
+					// TODO (aiden): there's no need to start miner in here, it starts when rcm connect to root chain contract by reading 1st NRE.
+					//self.Start(self.coinbase, &NRE)
 				}
 				// stop immediately and ignore all further pending events
 				return
@@ -135,38 +154,12 @@ func (self *Miner) update() {
 	}
 }
 
-// operate manages finality and fork number according to the events sent by rootchain manager.
-func (self *Miner) operate() {
-	events := self.mux.Subscribe(LastFinalizedBlock{}, CurrentFork{})
-	defer events.Unsubscribe()
-
-	for {
-		select {
-		case ev := <-events.Chan():
-			if ev == nil {
-				return
-			}
-			switch ev.Data.(type) {
-			case LastFinalizedBlock:
-				self.worker.mu.Lock()
-				defer self.worker.mu.Unlock()
-
-				self.worker.lastFinalizedBlock = ev.Data.(LastFinalizedBlock).Number
-			case CurrentFork:
-				self.worker.mu.Lock()
-				defer self.worker.mu.Unlock()
-
-				self.worker.currentFork = ev.Data.(CurrentFork).Number
-			}
-		case <-self.exitCh:
-			return
-		}
-	}
-}
-
 func (self *Miner) Start(coinbase common.Address, epoch *rootchain.RootChainEpochPrepared) {
-	self.env.Lock.Lock()
-	defer self.env.Lock.Unlock()
+
+	if epoch.EpochIsEmpty {
+		log.Info("ORB epoch is empty, NRB epoch will be started")
+		return
+	}
 
 	atomic.StoreInt32(&self.shouldStart, 1)
 	self.SetEtherbase(coinbase)
@@ -176,17 +169,18 @@ func (self *Miner) Start(coinbase common.Address, epoch *rootchain.RootChainEpoc
 		return
 	}
 
-	self.env.IsRequest = epoch.IsRequest
-	self.env.IsUserActivated = epoch.UserActivated
-	self.env.IsRebase = epoch.Rebase
-	self.env.NumBlockMined = new(big.Int)
-	self.env.EpochLength = new(big.Int).Add(new(big.Int).Sub(epoch.EndBlockNumber, epoch.StartBlockNumber), big.NewInt(1))
-	self.env.Completed = false
+	self.env.setIsRequest(epoch.IsRequest)
+	self.env.setUserActivated(epoch.UserActivated)
+	self.env.setRebase(epoch.Rebase)
+	self.env.setCompleted(false)
+	self.env.setNumBlockMined(big.NewInt(0))
+	self.env.setEpochLength(new(big.Int).Add(new(big.Int).Sub(epoch.EndBlockNumber, epoch.StartBlockNumber), big.NewInt(1)))
+	self.env.setCurrentFork(epoch.ForkNumber)
 
 	if epoch.IsRequest && !epoch.UserActivated {
-		log.Info("NRB epoch is prepared, ORB epoch is started", "ORBepochLength", self.env.EpochLength)
+		log.Info("ORB epoch is prepared, ORB epoch is started", "ORBepochLength", self.env.EpochLength)
 	} else if epoch.IsRequest && epoch.UserActivated {
-		log.Info("NRB epoch is prepared, URB epoch is started", "URBepochLength", self.env.EpochLength)
+		log.Info("URB epoch is prepared, URB epoch is started", "URBepochLength", self.env.EpochLength)
 	} else if !epoch.IsRequest {
 		log.Info("NRB epoch is prepared, NRB epoch is started", "NRBepochLength", self.env.EpochLength)
 	}
@@ -248,16 +242,64 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 }
 
 func (self *Miner) SetNRBepochLength(length *big.Int) {
-	self.env.Lock.Lock()
-	defer self.env.Lock.Unlock()
+	self.env.lock.Lock()
+	defer self.env.lock.Unlock()
 
 	self.env.EpochLength = length
 }
 
-func (env *EpochEnvironment) setCompleted() {
-	env.Completed = true
+func (env *EpochEnvironment) setIsRequest(b bool) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.IsRequest = b
+}
+
+func (env *EpochEnvironment) setUserActivated(b bool) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.UserActivated = b
+}
+
+func (env *EpochEnvironment) setRebase(b bool) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.Rebase = b
+}
+
+func (env *EpochEnvironment) setCompleted(b bool) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.Completed = b
 }
 
 func (env *EpochEnvironment) setNumBlockMined(n *big.Int) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
 	env.NumBlockMined = n
+}
+
+func (env *EpochEnvironment) setEpochLength(l *big.Int) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.EpochLength = l
+}
+
+func (env *EpochEnvironment) setCurrentFork(f *big.Int) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.CurrentFork = f
+}
+
+func (env *EpochEnvironment) SetLastFinalizedBlock(n *big.Int) {
+	env.lock.Lock()
+	defer env.lock.Unlock()
+
+	env.LastFinalizedBlock = n
 }
