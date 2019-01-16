@@ -24,7 +24,6 @@ import (
 	"runtime"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/consensus"
@@ -34,6 +33,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
+	"github.com/deckarep/golang-set"
 )
 
 // Ethash proof-of-work protocol constants.
@@ -558,7 +558,7 @@ func (ethash *Ethash) Prepare(chain consensus.ChainReader, header *types.Header)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = ethash.CalcDifficulty(chain, header.Time.Uint64(), parent)
+	header.Difficulty = parent.Difficulty
 	return nil
 }
 
