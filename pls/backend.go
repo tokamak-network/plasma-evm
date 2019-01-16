@@ -472,7 +472,8 @@ func (s *Plasma) StartMining(threads int) error {
 		// introduced to speed sync times.
 		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
 
-		go s.miner.Start(eb)
+		// TODO (aiden): there's no need to start miner in here, it starts when rcm connect to root chain contract by reading 1st NRE.
+		//go s.miner.Start(eb, &miner.NRE)
 	}
 	return nil
 }
