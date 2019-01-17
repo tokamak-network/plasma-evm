@@ -21,7 +21,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
-	// "math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1441,7 +1440,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), common.Address{})
+	rootChainContract := common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract)
 	if err != nil {
 		Fatalf("%v", err)
 	}
