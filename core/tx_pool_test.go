@@ -233,7 +233,7 @@ func TestInvalidTransactions(t *testing.T) {
 	from, _ := deriveSender(tx)
 
 	if err := pool.EnqueueReqeustTxs(txs); err == nil {
-		t.Error("invalid request transaction")
+		t.Error("Non-request transaction cannot be enqueued into request tx pool")
 	}
 
 	pool.currentState.AddBalance(from, big.NewInt(1))
