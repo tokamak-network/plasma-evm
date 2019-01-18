@@ -188,7 +188,7 @@ func initGenesis(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	if len(genesis.ExtraData) < 20 {
+	if len(genesis.ExtraData) != 20 {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
 	// Open an initialise both full and light databases
