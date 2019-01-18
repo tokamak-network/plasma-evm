@@ -451,7 +451,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 		var numMinedORBs uint64 = 0
 
 		for numMinedORBs < numORBs.Uint64() {
-			rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs])
+			if err := rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs]); err != nil {
+				return err
+			}
 
 			log.Info("Waiting new request block mined event...")
 

@@ -229,7 +229,12 @@ func TestInvalidTransactions(t *testing.T) {
 	defer pool.Stop()
 
 	tx := transaction(0, 100, key)
+	txs := types.Transactions{tx}
 	from, _ := deriveSender(tx)
+
+	if err := pool.EnqueueReqeustTxs(txs); err == nil {
+		t.Error("Non-request transaction cannot be enqueued into request tx pool")
+	}
 
 	pool.currentState.AddBalance(from, big.NewInt(1))
 	if err := pool.AddRemote(tx); err != ErrInsufficientFunds {
