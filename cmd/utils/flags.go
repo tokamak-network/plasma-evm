@@ -1360,7 +1360,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			cfg.MinerGasPrice = big.NewInt(1)
 		}
 	}
-	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
