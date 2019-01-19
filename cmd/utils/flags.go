@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1314,7 +1315,51 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		Fatalf("RootChain contract address must be set, using --rootchain.contract")
 	}
 	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	switch {
+	case ctx.GlobalBool(TestnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 3
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(RinkebyFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 4
+		}
+		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 1337
+		}
+		// hard coding for dev mode
+		var (
+			operatorKey       = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
+			rootChainContract = common.HexToAddress("0x880ec53af800b5cd051531672ef4fc4de233bd5d")
+			rootChainURL      = "ws://localhost:8546"
+		)
 
+		key, _ := crypto.HexToECDSA(operatorKey)
+		var (
+			account accounts.Account
+			err     error
+		)
+		if account, err = ks.ImportECDSA(key, ""); err != nil {
+			Fatalf("Faild to import operator account: %v", err)
+		}
+		log.Info("Unlocking operator account", "address", account.Address)
+
+		if err = ks.Unlock(account, ""); err != nil {
+			Fatalf("Failed to unlock operator account: %v", err)
+		}
+
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), account.Address)
+		cfg.Operator = account
+		cfg.RootChainURL = rootChainURL
+		cfg.RootChainContract = rootChainContract
+
+		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+			cfg.MinerGasPrice = big.NewInt(1)
+		}
+	}
 	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 
 	// TODO(fjl): move trie cache generations into config

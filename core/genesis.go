@@ -357,16 +357,7 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 }
 
 // DeveloperGenesisBlock returns the Plasma genesis block
-func DeveloperGenesisBlock(period uint64) *Genesis {
-	// Override the default period to the user requested one
-	config := *params.AllCliqueProtocolChanges
-	config.Clique.Period = period
-
-	staminaBinBytes, err := hex.DecodeString(StaminaContractDeployedBin[2:])
-	if err != nil {
-		panic(err)
-	}
-
+func DeveloperGenesisBlock(period uint64, operator common.Address) *Genesis {
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
@@ -382,11 +373,7 @@ func DeveloperGenesisBlock(period uint64) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			params.Operator:                  {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
-			StaminaContractAddress: {
-				Code:    staminaBinBytes,
-				Balance: big.NewInt(0),
-			},
+			operator:                         {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
