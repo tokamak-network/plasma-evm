@@ -61,6 +61,16 @@ func NewPublicPlasmaAPI(b Backend) *PublicPlasmaAPI {
 	return &PublicPlasmaAPI{b}
 }
 
+// RootChain returns RootChain contract address
+func (s *PublicPlasmaAPI) RootChain() common.Address {
+	return s.b.RootChain()
+}
+
+// GetRequestableContract returns requestable contract address in child chain
+func (s *PublicPlasmaAPI) GetRequestableContract(addr common.Address) (common.Address, error) {
+	return s.b.GetRequestableContract(addr)
+}
+
 // GasPrice returns a suggestion for a gas price.
 func (s *PublicPlasmaAPI) GasPrice(ctx context.Context) (*hexutil.Big, error) {
 	price, err := s.b.SuggestPrice(ctx)

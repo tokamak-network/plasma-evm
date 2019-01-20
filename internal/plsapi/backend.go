@@ -37,13 +37,17 @@ import (
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
 type Backend interface {
-	// General Ethereum API
+	// General Plasma API
 	Downloader() *downloader.Downloader
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
 	ChainDb() ethdb.Database
 	EventMux() *event.TypeMux
 	AccountManager() *accounts.Manager
+
+	// Plasma API
+	RootChain() common.Address
+	GetRequestableContract(addr common.Address) (common.Address, error)
 
 	// BlockChain API
 	SetHead(number uint64)
