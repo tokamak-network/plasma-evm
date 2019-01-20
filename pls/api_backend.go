@@ -42,6 +42,16 @@ type PlsAPIBackend struct {
 	gpo *gasprice.Oracle
 }
 
+// RootChain returns RootChain contract address
+func (b *PlsAPIBackend) RootChain() common.Address {
+	return b.pls.config.RootChainContract
+}
+
+// GetRequestableContract returns requestable contract address in child chain
+func (b *PlsAPIBackend) GetRequestableContract(addr common.Address) (common.Address, error) {
+	return b.pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, addr)
+}
+
 // ChainConfig returns the active chain configuration.
 func (b *PlsAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.pls.chainConfig
