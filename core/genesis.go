@@ -357,11 +357,11 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 }
 
 // DeveloperGenesisBlock returns the Plasma genesis block
-func DeveloperGenesisBlock(period uint64, operator common.Address) *Genesis {
+func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, operator common.Address) *Genesis {
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
-		ExtraData:  append(append(make([]byte, 32), params.Operator[:]...), make([]byte, 65)...),
+		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   6283185,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{

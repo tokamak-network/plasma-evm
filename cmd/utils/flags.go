@@ -29,17 +29,21 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/fdlimit"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
 	"github.com/Onther-Tech/plasma-evm/les"
@@ -1332,17 +1336,43 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 		// hard coding for dev mode
 		var (
-			operatorKey       = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
-			rootChainContract = common.HexToAddress("0x880ec53af800b5cd051531672ef4fc4de233bd5d")
-			rootChainURL      = "ws://localhost:8546"
+			operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+			rootChainURL   = "ws://localhost:8546"
+
+			_statesRoot       [32]byte
+			_transactionsRoot [32]byte
+			_receiptsRoot     [32]byte
+
+			development      = true
+			NRELength        = big.NewInt(2)
+			statesRoot       = "0ded2f89db1e11454ba4ba90e31850587943ed4a412f2ddf422bd948eae8b164"
+			transactionsRoot = "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+			receiptsRoot     = "0000000000000000000000000000000000000000000000000000000000000000"
 		)
 
-		key, _ := crypto.HexToECDSA(operatorKey)
-		var (
-			account accounts.Account
-			err     error
-		)
-		if account, err = ks.ImportECDSA(key, ""); err != nil {
+		rootchainBackend, err := ethclient.Dial(rootChainURL)
+		if err != nil {
+			Fatalf("Failed to connect rootchain: %v", err)
+		}
+
+		opt := bind.NewKeyedTransactor(operatorKey)
+		eh, _, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+		if err != nil {
+			Fatalf("Failed to deploy epoch handler contract")
+		}
+
+		copy(_statesRoot[:], statesRoot)
+		copy(_transactionsRoot[:], transactionsRoot)
+		copy(_receiptsRoot[:], receiptsRoot)
+
+		rootchainContract, _, _, err := rootchain.DeployRootChain(opt, rootchainBackend, eh, development, NRELength, _statesRoot, _transactionsRoot, _receiptsRoot)
+		if err != nil {
+			Fatalf("Failed to deploy rootchain contract")
+		}
+		log.Info("Deploy rootchain contract", "address", rootchainContract)
+
+		account, err := ks.ImportECDSA(operatorKey, "")
+		if err != nil {
 			Fatalf("Faild to import operator account: %v", err)
 		}
 		log.Info("Unlocking operator account", "address", account.Address)
@@ -1351,10 +1381,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), account.Address)
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, account.Address)
 		cfg.Operator = account
 		cfg.RootChainURL = rootChainURL
-		cfg.RootChainContract = rootChainContract
+		cfg.RootChainContract = rootchainContract
 
 		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
 			cfg.MinerGasPrice = big.NewInt(1)
