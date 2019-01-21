@@ -21,6 +21,8 @@ import (
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -177,6 +179,10 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
+
+	// plasma root chain
+	RootchainAddress common.Address
+	RootchainURL     string
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.

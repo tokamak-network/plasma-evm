@@ -159,6 +159,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieCleanLimit: config.TrieCleanCache, TrieDirtyLimit: config.TrieDirtyCache, TrieTimeLimit: config.TrieTimeout}
 	)
+
+	pls.chainConfig.RootchainAddress = config.RootChainContract
+	pls.chainConfig.RootchainURL = config.RootChainURL
+
 	pls.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, pls.chainConfig, pls.engine, vmConfig, pls.shouldPreserve)
 	if err != nil {
 		return nil, err

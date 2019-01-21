@@ -17,31 +17,57 @@
 package core
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/consensus"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
 )
+
+var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 
 // BlockValidator is responsible for validating block headers, uncles and
 // processed state.
 //
 // BlockValidator implements Validator.
 type BlockValidator struct {
-	config *params.ChainConfig // Chain configuration options
-	bc     *BlockChain         // Canonical block chain
-	engine consensus.Engine    // Consensus engine used for validating
+	config    *params.ChainConfig // Chain configuration options
+	bc        *BlockChain         // Canonical block chain
+	engine    consensus.Engine    // Consensus engine used for validating
+	rootchain *rootchain.RootChain
 }
 
 // NewBlockValidator returns a new block validator which is safe for re-use
 func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engine consensus.Engine) *BlockValidator {
-	validator := &BlockValidator{
-		config: config,
-		engine: engine,
-		bc:     blockchain,
+	// Dial rootchain provider
+	rootchainBackend, err := ethclient.Dial(config.RootchainURL)
+	if err != nil {
+		log.Error("failed to make rootchainBackend", "err", err)
+		return nil
 	}
+	log.Info("Rootchain provider connected", "url", config.RootchainURL)
+
+	// Instantiate RootChain contract
+	rootchainContract, err := rootchain.NewRootChain(config.RootchainAddress, rootchainBackend)
+	if err != nil {
+		log.Error("failed to make rootchainContract", "err", err)
+		return nil
+	}
+
+	validator := &BlockValidator{
+		config:    config,
+		engine:    engine,
+		bc:        blockchain,
+		rootchain: rootchainContract,
+	}
+
 	return validator
 }
 
@@ -98,7 +124,42 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	if root := statedb.IntermediateRoot(v.config.IsEIP158(header.Number)); header.Root != root {
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Root, root)
 	}
-	return nil
+
+	// Validate 3 roots from block committed on root chain against the received roots
+	// and throw an error if they don't match
+	validate := func() error {
+		tblock, err := v.rootchain.GetBlock(baseCallOpt, block.Difficulty(), block.Number())
+		if err != nil {
+			log.Error("failed to get block from rootchain", "err", err)
+		}
+
+		if header.TxHash != tblock.TransactionsRoot {
+			return fmt.Errorf("transaction root hash mismatch: have %x, want %x", header.TxHash, tblock.TransactionsRoot)
+		}
+
+		if header.Root != tblock.StatesRoot {
+			return fmt.Errorf("state root hash mismatch: have %x, want %x", header.Root, tblock.StatesRoot)
+		}
+
+		if header.ReceiptHash != tblock.ReceiptsRoot {
+			return fmt.Errorf("receipt root hash mismatch: have %x, want %x", header.ReceiptHash, tblock.ReceiptsRoot)
+		}
+		return nil
+	}
+
+	timer := time.NewTimer(0)
+
+	for {
+		select {
+		case <-timer.C:
+			if v.bc.LastSubmittedNumber.Cmp(block.Number()) < 0 && v.bc.LastSubmittedFork.Cmp(block.Difficulty()) < 0 {
+				timer.Reset(1 * time.Second)
+				continue
+			}
+			validate()
+			return nil
+		}
+	}
 }
 
 // CalcGasLimit computes the gas limit of the next block after parent. It aims

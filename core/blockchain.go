@@ -143,6 +143,8 @@ type BlockChain struct {
 	LastFinalizedBlock  *common.Hash // block Hash of Last Finalized Block at Root Chain
 	LastFinalizedNumber *big.Int     // block height of Last Finalized Block at Root Chain
 	CurrentForks        *big.Int     // +=1 Counter when Plasma chain fork
+	LastSubmittedNumber *big.Int     // block height of Last Submitted Block at Root Chain
+	LastSubmittedFork   *big.Int     // fork number of Last Submitted Block at Root Chain
 }
 
 // NewBlockChain returns a fully initialised block chain using information
