@@ -1350,6 +1350,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			receiptsRoot     = "0000000000000000000000000000000000000000000000000000000000000000"
 		)
 
+		t := time.NewTimer(2 * time.Second)
+		defer t.Stop()
+
 		rootchainBackend, err := ethclient.Dial(rootChainURL)
 		if err != nil {
 			Fatalf("Failed to connect rootchain: %v", err)
@@ -1361,6 +1364,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to deploy epoch handler contract")
 		}
 
+		<-t.C
 		copy(_statesRoot[:], statesRoot)
 		copy(_transactionsRoot[:], transactionsRoot)
 		copy(_receiptsRoot[:], receiptsRoot)
