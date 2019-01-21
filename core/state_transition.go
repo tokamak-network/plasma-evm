@@ -170,6 +170,26 @@ func (st *StateTransition) buyGas() error {
 	}
 }
 
+func (st *StateTransition) buyDelegateeGas(delegatee common.Address) error {
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	balance, err := GetStamina(st.evm, delegatee)
+	if err != nil {
+		return err
+	}
+
+	if balance.Cmp(mgval) < 0 {
+		return errInsufficientBalanceForGas
+	}
+	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
+		return err
+	}
+	st.gas += st.msg.Gas()
+
+	st.initialGas = st.msg.Gas()
+	SubtractStamina(st.evm, delegatee, mgval)
+	return nil
+}
+
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -183,17 +203,86 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
-// TransitionDb will transition the state by applying the current message and
-// returning the result including the used gas. It returns an error if failed.
-// An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
-	if err = st.preCheck(); err != nil {
-		return
+func (st *StateTransition) preDelegateeCheck(delegatee common.Address) error {
+	// Make sure this transaction's nonce is correct.
+	if st.msg.CheckNonce() {
+		nonce := st.state.GetNonce(st.msg.From())
+		if nonce < st.msg.Nonce() {
+			return ErrNonceTooHigh
+		} else if nonce > st.msg.Nonce() {
+			return ErrNonceTooLow
+		}
 	}
+
+	return st.buyDelegateeGas(delegatee)
+}
+
+// TransitionDb will transition the state by applying the current message and
+// returning the result including the the used gas. It returns an error if it
+// failed. An error indicates a consensus issue.
+// TODO: moscow - apply message 수정 부분.
+//       st.evm.Context에 추가 구현된 Stamina 함수들을 사용.
+func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+	var (
+		evm = st.evm
+		// vm errors do not effect consensus and are therefor
+		// not assigned to err, except for insufficient balance
+		// error.
+		vmerr error
+	)
+
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
+
+	// get delegatee
+	delegatee, _ := GetDelegatee(evm, msg.From())
+	availableStamina, _ := GetStamina(evm, delegatee)
+	upfrontGasCost := new(big.Int).Mul(msg.GasPrice(), big.NewInt(int64(msg.Gas())))
+
+	// moscow - if delegatee can pay up-front gas cost
+	if availableStamina.Cmp(upfrontGasCost) >= 0 {
+		if err = st.preDelegateeCheck(delegatee); err != nil {
+			return
+		}
+
+		// Pay intrinsic gas
+		gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		if err = st.useGas(gas); err != nil {
+			return nil, 0, false, err
+		}
+
+		if contractCreation {
+			ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		} else {
+			// Increment the nonce for the next transaction
+			st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
+		if vmerr != nil {
+			log.Debug("VM returned with error", "err", vmerr)
+			// The only possible consensus-error would be if there wasn't
+			// sufficient balance to make the transfer happen. The first
+			// balance transfer may never fail.
+			if vmerr == vm.ErrInsufficientBalance {
+				return nil, 0, false, vmerr
+			}
+		}
+		st.refundDelegateeGas(delegatee)
+		// TODO: gas fee to miner
+		st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+
+		return ret, st.gasUsed(), vmerr != nil, err
+	}
+
+	// moscow - original version
+	if err = st.preCheck(); err != nil {
+		return
+	}
 
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
@@ -204,13 +293,6 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		return nil, 0, false, err
 	}
 
-	var (
-		evm = st.evm
-		// vm errors do not effect consensus and are therefor
-		// not assigned to err, except for insufficient balance
-		// error.
-		vmerr error
-	)
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
@@ -247,6 +329,23 @@ func (st *StateTransition) refundGas() {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining)
+
+	// Also return remaining gas to the block gas counter so it is
+	// available for the next transaction.
+	st.gp.AddGas(st.gas)
+}
+
+func (st *StateTransition) refundDelegateeGas(delegatee common.Address) {
+	// Apply refund counter, capped to half of the used gas.
+	refund := st.gasUsed() / 2
+	if refund > st.state.GetRefund() {
+		refund = st.state.GetRefund()
+	}
+	st.gas += refund
+
+	// Return ETH for remaining gas, exchanged at the original rate.
+	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
+	AddStamina(st.evm, delegatee, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

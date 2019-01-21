@@ -27,8 +27,10 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/prque"
+	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/metrics"
@@ -76,6 +78,13 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+
+	// moscow - stamina related error
+	// TODO: change variable name and message
+	ErrStaminaTxSigner     = errors.New("failed to get signer")
+	ErrStaminaGetDelegatee = errors.New("failed to get delegatee")
+	ErrInsufficientStamina = errors.New("insufficient funds for gas * price")
+	ErrInsufficientValue   = errors.New("insufficient funds for value")
 )
 
 var (
@@ -119,6 +128,10 @@ type blockChain interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
+
+	// moscow - added to create evm
+	Engine() consensus.Engine
+	GetHeader(common.Hash, uint64) *types.Header
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -600,21 +613,42 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
-	// Transactor should have enough funds to cover the costs
-	// cost == V + GP * GL
+	// short circut in case of NATX
 	if from == params.NullAddress {
 		return nil
+	}
+
+	// Transactor should have enough funds (ETH or stamina) to cover the costs
+	// cost == V + GP * GL
+	evm := pool.newStaticEVM()
+	delegatee, err := GetDelegatee(evm, from)
+	if err != nil {
+		return ErrStaminaGetDelegatee
+	}
+
+	mgval := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(tx.Gas())))
+	availableStamina, _ := GetStamina(evm, delegatee)
+
+	// moscow - only if can pay with stamina
+	if availableStamina.Cmp(mgval) >= 0 {
+		// sender should have enough value
+		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
+			return ErrInsufficientValue
+		}
 	} else {
+		// Transactor should have enough funds to cover the costs
+		// cost == V + GP * GL
 		if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 			return ErrInsufficientFunds
 		}
-		intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-		if err != nil {
-			return err
-		}
-		if tx.Gas() < intrGas {
-			return ErrIntrinsicGas
-		}
+	}
+
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	if err != nil {
+		return err
+	}
+	if tx.Gas() < intrGas {
+		return ErrIntrinsicGas
 	}
 	return nil
 }
@@ -728,7 +762,7 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	return old != nil, nil
 }
 
-func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) (error) {
+func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) error {
 	for _, rtx := range rtxs {
 		from, _ := types.Sender(pool.signer, rtx)
 		if from != params.NullAddress {
@@ -966,18 +1000,29 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			pool.all.Remove(hash)
 			pool.priced.Removed()
 		}
+
 		// Drop all transactions that are too costly (low balance or out of gas)
-		if addr == params.NullAddress {
-			continue
+		// moscow - do not drop tx if delegatee has enough stamina
+		evm := pool.newStaticEVM()
+		delegatee, _ := GetDelegatee(evm, addr)
+		stamina, _ := GetStamina(evm, delegatee)
+		balance := pool.currentState.GetBalance(addr)
+
+		var costlimit *big.Int
+
+		if stamina.Cmp(balance) >= 0 {
+			costlimit = stamina
 		} else {
-			drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
-			for _, tx := range drops {
-				hash := tx.Hash()
-				log.Trace("Removed unpayable queued transaction", "hash", hash)
-				pool.all.Remove(hash)
-				pool.priced.Removed()
-				queuedNofundsCounter.Inc(1)
-			}
+			costlimit = balance
+		}
+
+		drops, _ := list.Filter(costlimit, pool.currentMaxGas)
+		for _, tx := range drops {
+			hash := tx.Hash()
+			log.Trace("Removed unpayable queued transaction", "hash", hash)
+			pool.all.Remove(hash)
+			pool.priced.Removed()
+			queuedNofundsCounter.Inc(1)
 		}
 		// Gather all executable transactions and promote them
 		for _, tx := range list.Ready(pool.pendingState.GetNonce(addr)) {
@@ -1117,6 +1162,40 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			}
 		}
 	}
+}
+
+// moscow - arbitrary msg & header & author
+func (pool *TxPool) newStaticEVM() *vm.EVM {
+	msg := types.NewMessage(
+		blockchainAccount.Address(),
+		&StaminaContractAddress,
+		0,
+		big.NewInt(0),
+		1000000,
+		big.NewInt(1e9),
+		nil,
+		false,
+	)
+
+	vmConfig := vm.Config{}
+
+	ctx := NewEVMContext(
+		msg,
+		&types.Header{
+			Number:     big.NewInt(0),
+			Time:       big.NewInt(0),
+			Difficulty: big.NewInt(0),
+		},
+		pool.chain,
+		&common.Address{},
+	)
+
+	return vm.NewEVM(
+		ctx,
+		pool.currentState,
+		pool.chainconfig,
+		vmConfig,
+	)
 }
 
 // demoteUnexecutables removes invalid and processed transactions from the pools

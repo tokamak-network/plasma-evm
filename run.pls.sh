@@ -17,6 +17,7 @@ else
   build/bin/geth \
     --datadir $DATADIR \
     --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
+    --dev \
     --rpc \
     --rpcport 8547 \
     --dev.key $KEY1,$KEY2,$KEY3,$KEY4,$KEY5 \
