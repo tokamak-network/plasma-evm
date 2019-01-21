@@ -270,6 +270,15 @@ func (rcm *RootChainManager) runSubmitter() {
 			if ev == nil {
 				return
 			}
+			bal, err := rcm.backend.BalanceAt(context.Background(), rcm.config.Operator.Address, nil)
+			if err != nil {
+				log.Error("Failed to get balance of opeartor account from rootchain", "err", err)
+			}
+
+			if bal.Cmp(rcm.config.OperatorMinEther) < 0 {
+				log.Warn("Operator account balance on rootchain is too low")
+			}
+
 			rcm.lock.Lock()
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)

@@ -58,6 +58,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	whisper "github.com/Onther-Tech/plasma-evm/whisper/whisperv6"
 	"gopkg.in/urfave/cli.v1"
+	"math/big"
 )
 
 var (
@@ -625,6 +626,14 @@ var (
 	}
 
 	// Plasma flags
+	PlasmaOperatorMinEther = cli.StringFlag{
+		Name:  "rootchain.operatorMinEther",
+		Usage: "Plasma operator minimum balance",
+	}
+	PlasmaOperatorAddressFlag = cli.StringFlag{
+		Name:  "rootchain.operatorAddress",
+		Usage: "Plasma operator address as hex",
+	}
 	PlasmaOperatorKeyFlag = cli.StringFlag{
 		Name:  "rootchain.operatorKey",
 		Usage: "Plasma operator key as hex(for dev)",
@@ -1262,6 +1271,28 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
+	if ctx.GlobalIsSet(PlasmaOperatorMinEther.Name) {
+		v := ctx.GlobalFloat64(PlasmaOperatorMinEther.Name)
+
+		if v <= 0.5 {
+			Fatalf("Operator Minimum Ether is too low: %g", v)
+		}
+
+		cfg.OperatorMinEther = big.NewInt(int64(v * params.Ether))
+	}
+
+	if ctx.GlobalIsSet(PlasmaOperatorAddressFlag.Name) {
+		hex := ctx.GlobalString(PlasmaOperatorAddressFlag.Name)
+		addr := common.HexToAddress(hex)
+
+		account, err := ks.Find(accounts.Account{Address: addr})
+		if err != nil {
+			Fatalf("Failed to find operator account: %v", err)
+		}
+
+		cfg.Operator = account
+	}
+
 	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
 		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
 		key, _ := crypto.HexToECDSA(hex)
@@ -1317,6 +1348,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
 
 	cfg.Genesis = core.DefaultGenesisBlock()
+
+	// default operator min ether = 1ether
+	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {

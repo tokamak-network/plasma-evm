@@ -44,7 +44,7 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     16,
+	NetworkId:      16,
 	LightPeers:     100,
 	DatabaseCache:  512,
 	TrieCleanCache: 256,
@@ -87,6 +87,7 @@ type Config struct {
 	Operator          accounts.Account
 	RootChainURL      string
 	RootChainContract common.Address
+	OperatorMinEther  *big.Int
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

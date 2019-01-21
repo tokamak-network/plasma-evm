@@ -63,6 +63,48 @@
 			"revisionTime": "2017-11-28T15:02:46Z"
 		},
 		{
+			"checksumSHA1": "wB5yJMpoju/0eCGIFslLvXNd1WU=",
+			"path": "github.com/btcsuite/btcd/chaincfg",
+			"revision": "ed77733ec07dfc8a513741138419b8d9d3de9d2d",
+			"revisionTime": "2019-01-15T01:39:29Z"
+		},
+		{
+			"checksumSHA1": "hI5NhyOyOaazvlK8vWFFsPVEPiM=",
+			"path": "github.com/btcsuite/btcd/chaincfg/chainhash",
+			"revision": "ed77733ec07dfc8a513741138419b8d9d3de9d2d",
+			"revisionTime": "2019-01-15T01:39:29Z"
+		},
+		{
+			"checksumSHA1": "ruKchP41kPZFFUS940weplW73I8=",
+			"path": "github.com/btcsuite/btcd/wire",
+			"revision": "ed77733ec07dfc8a513741138419b8d9d3de9d2d",
+			"revisionTime": "2019-01-15T01:39:29Z"
+		},
+		{
+			"checksumSHA1": "a0lhAUra/SLAkKMxrBZIydBVJjU=",
+			"path": "github.com/btcsuite/btcutil",
+			"revision": "bf1e1be935893b7c8ac9f020195f6b0dfd1f14e0",
+			"revisionTime": "2018-07-20T03:53:44Z"
+		},
+		{
+			"checksumSHA1": "oQgLy8KmIOVov04WXH7KgU1bszc=",
+			"path": "github.com/btcsuite/btcutil/base58",
+			"revision": "bf1e1be935893b7c8ac9f020195f6b0dfd1f14e0",
+			"revisionTime": "2018-07-20T03:53:44Z"
+		},
+		{
+			"checksumSHA1": "BBnsAiKyNfocRwmEav5EJpVCwzk=",
+			"path": "github.com/btcsuite/btcutil/bech32",
+			"revision": "bf1e1be935893b7c8ac9f020195f6b0dfd1f14e0",
+			"revisionTime": "2018-07-20T03:53:44Z"
+		},
+		{
+			"checksumSHA1": "sZ3e8Oi8jQmKQX+KJHy7EIKSqYI=",
+			"path": "github.com/btcsuite/btcutil/hdkeychain",
+			"revision": "bf1e1be935893b7c8ac9f020195f6b0dfd1f14e0",
+			"revisionTime": "2018-07-20T03:53:44Z"
+		},
+		{
 			"checksumSHA1": "cDMtzKmdTx4CcIpP4broa+16X9g=",
 			"path": "github.com/cespare/cp",
 			"revision": "165db2f241fd235aec29ba6d9b1ccd5f1c14637c",
@@ -525,6 +567,18 @@
 			"path": "github.com/syndtr/goleveldb/leveldb/util",
 			"revision": "b001fa50d6b27f3f0bb175a87d0cb55426d0a0ae",
 			"revisionTime": "2018-11-28T10:09:59Z"
+		},
+		{
+			"checksumSHA1": "SsMMqb3xn7hg1ZX5ugwZz5rzpx0=",
+			"path": "github.com/tyler-smith/go-bip39",
+			"revision": "dbb3b84ba2ef14e894f5e33d6c6e43641e665738",
+			"revisionTime": "2018-10-17T06:06:43Z"
+		},
+		{
+			"checksumSHA1": "xa+UUbqD3zPfa8mKAxWabRsqSzM=",
+			"path": "github.com/tyler-smith/go-bip39/wordlists",
+			"revision": "dbb3b84ba2ef14e894f5e33d6c6e43641e665738",
+			"revisionTime": "2018-10-17T06:06:43Z"
 		},
 		{
 			"checksumSHA1": "nD6S4KB0S+YHxVMDDE+w3PyXaMk=",

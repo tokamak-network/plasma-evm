@@ -151,6 +151,8 @@ var (
 	}
 
 	plasmaFlags = []cli.Flag{
+		utils.PlasmaOperatorMinEther,
+		utils.PlasmaOperatorAddressFlag,
 		utils.PlasmaOperatorKeyFlag,
 		utils.PlasmaDeveloperKeyFlag,
 		utils.PlasmaRootChainUrlFlag,
