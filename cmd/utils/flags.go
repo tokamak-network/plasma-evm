@@ -1284,7 +1284,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(PlasmaOperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(PlasmaOperatorAddressFlag.Name)
 		addr := common.HexToAddress(hex)
-
 		account, err := ks.Find(accounts.Account{Address: addr})
 		if err != nil {
 			Fatalf("Failed to find operator account: %v", err)
