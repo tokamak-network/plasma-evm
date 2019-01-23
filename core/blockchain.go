@@ -342,6 +342,10 @@ func (bc *BlockChain) SetInvalidExitReceipts(fork uint64, hash common.Hash, num 
 	rawdb.WriteInvalidExitReceiptsLookupEntry(bc.db, fork, hash, num, indices)
 }
 
+func (bc *BlockChain) SetBlockNumberForRootChainContractEvent(num uint64) {
+	rawdb.WriteBlockNumberForRootChainContractEvent(bc.db, num)
+}
+
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
@@ -651,6 +655,15 @@ func (bc *BlockChain) GetInvalidExitReceipts(fork uint64, num uint64) map[uint64
 	// Cache the found block for next time and return
 	bc.invalidExitReceiptsCache.Add(key, ierc)
 	return ierc
+}
+
+// GetBlockNumberForRootChainContractEvent retrieves a block number for rootchain contract event.
+func (bc *BlockChain) GetBlockNumberForRootChainContractEvent() uint64 {
+	num := rawdb.ReadBlockNumberForRootChainContractEvent(bc.db)
+	if num == nil {
+		return 1
+	}
+	return *num
 }
 
 // GetBlockByHash retrieves a block from the database by hash, caching it if found.
