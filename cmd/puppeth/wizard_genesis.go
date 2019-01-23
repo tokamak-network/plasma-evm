@@ -138,8 +138,6 @@ func (w *wizard) makeGenesis() {
 		}
 	}
 
-	//copy(genesis.ExtraData[:common.AddressLength], rootchain[0][:])
-
 	// Query the user for some custom extras
 	fmt.Println()
 	fmt.Println("Specify your chain/network ID if you want an explicit one (default = random)")
