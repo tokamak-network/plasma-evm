@@ -1,6 +1,6 @@
 [submodule "tests"]
 	path = tests/testdata
 	url = https://github.com/ethereum/tests
-[submodule "contracts/plasma/plasma-evm-cotracts"]
-	path = contracts/plasma/plasma-evm-cotracts
+[submodule "contracts/plasma/plasma-evm-contracts"]
+	path = contracts/plasma/plasma-evm-contracts
 	url = https://github.com/Onther-Tech/plasma-evm-contracts.git
