@@ -24,7 +24,6 @@ import (
 	"runtime"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/consensus"
@@ -34,6 +33,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
+	mapset "github.com/deckarep/golang-set"
 )
 
 // Ethash proof-of-work protocol constants.
@@ -254,12 +254,13 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	if header.Time.Cmp(parent.Time) <= 0 {
 		return errZeroBlockTime
 	}
-	// Verify the block's difficulty based in it's timestamp and parent's difficulty
+	// Verify the block's fork number by difficulty
 	expected := ethash.CalcDifficulty(chain, header.Time.Uint64(), parent)
 
-	if expected.Cmp(header.Difficulty) != 0 {
+	if expected.Cmp(header.Difficulty) != 0 && new(big.Int).Sub(header.Difficulty, expected).Cmp(big.NewInt(1)) != 0 {
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
 	}
+
 	// Verify that the gas limit is <= 2^63-1
 	cap := uint64(0x7fffffffffffffff)
 	if header.GasLimit > cap {
@@ -304,6 +305,9 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
 func (ethash *Ethash) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+	if ethash.config.PowMode == ModeFake || ethash.config.PowMode == ModeFullFake {
+		return new(big.Int).Set(parent.Difficulty)
+	}
 	return CalcDifficulty(chain.Config(), time, parent)
 }
 
