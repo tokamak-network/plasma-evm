@@ -26,9 +26,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
@@ -115,7 +115,7 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 		return fmt.Errorf("invalid bloom (remote: %x  local: %x)", header.Bloom, rbloom)
 	}
 	// Tre receipt Trie's root (R = (Tr [[H1, R1], ... [Hn, R1]]))
-	receiptSha := types.DeriveSha(receipts)
+	receiptSha := types.DeriveShaFromBMT(receipts)
 	if receiptSha != header.ReceiptHash {
 		return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", header.ReceiptHash, receiptSha)
 	}
@@ -134,15 +134,15 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 		}
 
 		if header.TxHash != tblock.TransactionsRoot {
-			return fmt.Errorf("transaction root hash mismatch: have %x, want %x", header.TxHash, tblock.TransactionsRoot)
+			return fmt.Errorf("transaction root hash mismatch with rootchain block: local %x, rootchain %x", header.TxHash, tblock.TransactionsRoot)
 		}
 
 		if header.Root != tblock.StatesRoot {
-			return fmt.Errorf("state root hash mismatch: have %x, want %x", header.Root, tblock.StatesRoot)
+			return fmt.Errorf("state root hash mismatch with rootchain block: local %x, rootchain %x", header.Root, tblock.StatesRoot)
 		}
 
 		if header.ReceiptHash != tblock.ReceiptsRoot {
-			return fmt.Errorf("receipt root hash mismatch: have %x, want %x", header.ReceiptHash, tblock.ReceiptsRoot)
+			return fmt.Errorf("receipt root hash mismatch with rootchain block: local %x, rootchain %x", header.ReceiptHash, tblock.ReceiptsRoot)
 		}
 		return nil
 	}
@@ -156,7 +156,10 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 				timer.Reset(1 * time.Second)
 				continue
 			}
-			validate()
+			err := validate()
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	}

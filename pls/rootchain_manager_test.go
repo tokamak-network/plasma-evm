@@ -81,7 +81,7 @@ var (
 
 	// blockchain
 	canonicalSeed = 1
-	engine        = ethash.NewFaker()
+	engine        = ethash.NewFullFaker()
 
 	// node
 	testNodeKey, _ = crypto.GenerateKey()
@@ -951,6 +951,144 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
+func TestValidationByRootChain(t *testing.T) {
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+
+	wait(3)
+
+	log.Info("All backends are set up")
+
+	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	var blocks types.Blocks
+
+	for i := 1; i <= int(pls.blockchain.CurrentBlock().NumberU64()); i++ {
+		blocks = append(blocks, pls.blockchain.GetBlockByNumber(uint64(i)))
+	}
+
+	err = pls.blockchain.ResetWithGenesisBlock(pls.blockchain.Genesis())
+	if err != nil {
+		t.Fatal("Failed to reset blockchain", "err", err)
+	}
+
+	_, err = pls.blockchain.InsertChain(blocks)
+	if err != nil {
+		t.Fatal("Failed to insert blocks", "err", err)
+	}
+
+}
+
+// Invalidate wrong block, It should fail
+func TestValidationByRootChain2(t *testing.T) {
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+
+	wait(3)
+
+	log.Info("All backends are set up")
+
+	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+		t.Fatal(err)
+	}
+
+	err = pls.blockchain.ResetWithGenesisBlock(pls.blockchain.Genesis())
+	if err != nil {
+		t.Fatal("Failed to reset blockchain", "err", err)
+	}
+
+	gen := newGenesisWithRootchainContract(pls.config.RootChainContract, pls.chainConfig)
+	db := ethdb.NewMemDatabase()
+	genesis := gen.MustCommit(db)
+
+	blocks, _ := core.GenerateChain(pls.chainConfig, genesis, ethash.NewFullFaker(), db, 1, nil)
+
+	_, err = pls.blockchain.InsertChain(blocks)
+	if err != nil {
+		t.Fatal("Failed to insert blocks", "err", err)
+	}
+}
+
 func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value *big.Int) {
 	if value.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 ETH")
@@ -1175,6 +1313,54 @@ func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	return db, blockchain, err
 }
 
+func newGenesis() (ethdb.Database, *types.Block) {
+	gspec := core.DefaultGenesisBlock(common.Address{})
+	db := ethdb.NewMemDatabase()
+	genesis := gspec.MustCommit(db)
+
+	return db, genesis
+}
+
+func newGenesisWithRootchainContract(rootChainContract common.Address, cfg *params.ChainConfig) *core.Genesis {
+	return &core.Genesis{
+		Config:     cfg,
+		ExtraData:  rootChainContract.Bytes(),
+		GasLimit:   16777216,
+		Difficulty: big.NewInt(0),
+		Alloc: map[common.Address]core.GenesisAccount{
+			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
+			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
+			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
+			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
+			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
+			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
+			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+			params.Operator:                  {Balance: big.NewInt(0)},
+		},
+	}
+}
+
+func newCanonicalWithRootchainContract(db ethdb.Database, gen *core.Genesis, cfg *params.ChainConfig, n int, full bool) (ethdb.Database, *core.BlockChain, error) {
+	genesis := gen.MustCommit(db)
+
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil)
+	// Create and inject the requested chain
+	if n == 0 {
+		return db, blockchain, nil
+	}
+	if full {
+		// Full block-chain requested
+		blocks := makeBlockChain(genesis, n, engine, db, canonicalSeed)
+		_, err := blockchain.InsertChain(blocks)
+		return db, blockchain, err
+	}
+	// Header-only chain requested
+	headers := makeHeaderChain(genesis.Header(), n, engine, db, canonicalSeed)
+	_, err := blockchain.InsertHeaderChain(headers, 1)
+	return db, blockchain, err
+}
+
 func makeHeaderChain(parent *types.Header, n int, engine consensus.Engine, db ethdb.Database, seed int) []*types.Header {
 	blocks := makeBlockChain(types.NewBlockWithHeader(parent), n, engine, db, seed)
 	headers := make([]*types.Header, len(blocks))
@@ -1223,17 +1409,23 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	var err error
 	var account accounts.Account
 
-	db, blockchain, err := newCanonical(0, true)
-
-	if err != nil {
-		log.Error("Failed to creaet blockchain", "err", err)
-		return nil, nil, "", err
-	}
+	db, genesis := newGenesis()
 
 	config := testPlsConfig
 	chainConfig := params.PlasmaChainConfig
 
-	rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
+	//rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
+	rootchainAddress, rootchainContract, err := deployRootChain(genesis)
+
+	chainConfig.RootchainAddress = rootchainAddress
+	chainConfig.RootchainURL = "ws://localhost:8546"
+
+	gen := newGenesisWithRootchainContract(rootchainAddress, chainConfig)
+	db, blockchain, err := newCanonicalWithRootchainContract(db, gen, chainConfig, 0, true)
+	if err != nil {
+		log.Error("Failed to create blockchain", "err", err)
+		return nil, nil, "", err
+	}
 
 	if err != nil {
 		log.Error("Failed to deploy rootchain contract", "err", err)
