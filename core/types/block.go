@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	EmptyRootHash  = DeriveSha(Transactions{})
+	EmptyRootHash  = DeriveShaFromBMT(Transactions{})
 	EmptyUncleHash = CalcUncleHash(nil)
 )
 
