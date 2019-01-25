@@ -520,6 +520,7 @@ func (bc *BlockChain) insert(block *types.Block) {
 
 	// Add the block to the canonical chain number scheme and mark as the head
 	rawdb.WriteCanonicalHash(bc.db, block.Hash(), block.NumberU64())
+	rawdb.WriteForkHeaderHash(bc.db, block.Hash(), block.CurrentFork(), block.NumberU64())
 	rawdb.WriteHeadBlockHash(bc.db, block.Hash())
 
 	bc.currentBlock.Store(block)
@@ -666,6 +667,16 @@ func (bc *BlockChain) GetBlockByHash(hash common.Hash) *types.Block {
 // (associated with its hash) if found.
 func (bc *BlockChain) GetBlockByNumber(number uint64) *types.Block {
 	hash := rawdb.ReadCanonicalHash(bc.db, number)
+	if hash == (common.Hash{}) {
+		return nil
+	}
+	return bc.GetBlock(hash, number)
+}
+
+// GetBlockByForkAndNumber retrieves a block from the database by fork and number, caching it
+// (associated with its hash) if found.
+func (bc *BlockChain) GetBlockByForkAndNumber(fork uint64, number uint64) *types.Block {
+	hash := rawdb.ReadForkHeaderHash(bc.db, fork, number)
 	if hash == (common.Hash{}) {
 		return nil
 	}

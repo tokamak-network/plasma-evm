@@ -135,6 +135,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 	// Cache some values to prevent constant recalculation
 	var (
 		hash   = header.Hash()
+		fork   = header.Difficulty.Uint64()
 		number = header.Number.Uint64()
 	)
 	// Calculate the total difficulty of the header
@@ -181,6 +182,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 		}
 		// Extend the canonical chain with the new header
 		rawdb.WriteCanonicalHash(hc.chainDb, hash, number)
+		rawdb.WriteForkHeaderHash(hc.chainDb, hash, fork, number)
 		rawdb.WriteHeadHeaderHash(hc.chainDb, hash)
 
 		hc.currentHeaderHash = hash
