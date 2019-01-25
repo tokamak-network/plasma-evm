@@ -63,7 +63,17 @@ func (w *wizard) makeGenesis() {
 	case choice == "1":
 		// In case of ethash, we're pretty much done
 		genesis.Config.Ethash = new(params.EthashConfig)
-		genesis.ExtraData = make([]byte, 32)
+		genesis.ExtraData = make([]byte, 20)
+		genesis.Difficulty = big.NewInt(1)
+
+		// Query for the rootchain contract
+		fmt.Println()
+		fmt.Println("What is the rootchain contract address?")
+		var rootchain []common.Address
+		if address := w.readAddress(); address != nil {
+			rootchain = append(rootchain, *address)
+		}
+		copy(genesis.ExtraData[:common.AddressLength], rootchain[0][:])
 
 	case choice == "" || choice == "2":
 		// In the case of clique, configure the consensus parameters
@@ -127,6 +137,7 @@ func (w *wizard) makeGenesis() {
 			genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
 		}
 	}
+
 	// Query the user for some custom extras
 	fmt.Println()
 	fmt.Println("Specify your chain/network ID if you want an explicit one (default = random)")

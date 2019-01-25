@@ -384,6 +384,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "requestBlockId", requestBlockId, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
+			begin := time.Now()
 
 			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, requestBlockId)
 			if err != nil {
@@ -439,11 +440,10 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 				}
 
 				body = append(body, requestTx)
-
 				requestId += 1
 			}
 
-			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "body", body)
+			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "numRequests", len(body), "elapsed", time.Since(begin))
 
 			bodies = append(bodies, body)
 

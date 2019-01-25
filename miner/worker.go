@@ -1091,6 +1091,10 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
 	}
+	// TODO: use correct field of EpochEnvironment
+	// if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
+	// 	header.Difficulty.Add(header.Difficulty, big.NewInt(1))
+	// }
 
 	// TODO: delete because pls block is frontier spec
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
