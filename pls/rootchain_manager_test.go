@@ -576,7 +576,10 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#6 / Block#9 (1/2)
+	// ORE#6 is empty
+	// TODO (aiden): check epoch
+
+	// NRE#7 / Block#9 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
@@ -591,13 +594,13 @@ func TestScenario3(t *testing.T) {
 	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#6 / Block#10 (2/2)
+	// NRE#7 / Block#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#7 / Block#11 (1/1)
+	// ORE#8 / Block#11 (1/1)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 11); err != nil {
 		t.Fatal(err)
@@ -608,7 +611,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#8 / Block#12 (1/2)
+	// NRE#9 / Block#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
 		t.Fatal(err)
@@ -617,13 +620,13 @@ func TestScenario3(t *testing.T) {
 	// (2/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#8 / Block#13 (2/2)
+	// NRE#9 / Block#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 13); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#9 / Block#14 (1/1)
+	// ORE#10 / Block#14 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 14); err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +636,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#10 / Block#15 (1/2)
+	// NRE#11 / Block#15 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 15); err != nil {
 		t.Fatal(err)
@@ -642,13 +645,13 @@ func TestScenario3(t *testing.T) {
 	// (3/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#10 / Block#16 (2/2)
+	// NRE#12 / Block#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 16); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#11 / Block#17 (1/1)
+	// ORE#13 / Block#17 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 17); err != nil {
 		t.Fatal(err)
 	}
@@ -658,7 +661,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#12 / Block#18 (1/2)
+	// NRE#14 / Block#18 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 18); err != nil {
 		t.Fatal(err)
@@ -667,13 +670,13 @@ func TestScenario3(t *testing.T) {
 	// (4/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#12 / Block#19 (2/2)
+	// NRE#14 / Block#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 19); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#13 / Block#20 (1/1)
+	// ORE#15 / Block#20 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 20); err != nil {
 		t.Fatal(err)
 	}
@@ -683,13 +686,13 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#14 / Block#21 (1/2)
+	// NRE#16 / Block#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 21); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#14 / Block#22 (2/2)
+	// NRE#16 / Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 22); err != nil {
 		t.Fatal(err)
