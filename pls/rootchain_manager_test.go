@@ -472,6 +472,7 @@ func TestScenario3(t *testing.T) {
 
 	// NRE#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
 		t.Fatal(err)
 	}
@@ -510,12 +511,14 @@ func TestScenario3(t *testing.T) {
 
 	// NRE#3 / Block#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#3 / Block#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 5); err != nil {
 		t.Fatal(err)
 	}
@@ -560,6 +563,7 @@ func TestScenario3(t *testing.T) {
 
 	// NRE#5 / Block#8 (2/2)
 	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 8); err != nil {
 		t.Fatal(err)
 	}
@@ -572,10 +576,9 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// ORE#6 is empty
-
-	// NRE#7 / Block#9 (1/2)
+	// NRE#6 / Block#9 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
 		t.Fatal(err)
 	}
@@ -588,13 +591,13 @@ func TestScenario3(t *testing.T) {
 	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#7 / Block#10 (2/2)
+	// NRE#6 / Block#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#8 / Block#11 (1/1)
+	// ORE#7 / Block#11 (1/1)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 11); err != nil {
 		t.Fatal(err)
@@ -605,7 +608,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#9 / Block#12 (1/2)
+	// NRE#8 / Block#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
 		t.Fatal(err)
@@ -614,13 +617,13 @@ func TestScenario3(t *testing.T) {
 	// (2/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#9 / Block#13 (2/2)
+	// NRE#8 / Block#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 13); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#10 / Block#14 (1/1)
+	// ORE#9 / Block#14 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 14); err != nil {
 		t.Fatal(err)
 	}
@@ -630,7 +633,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#11 / Block#15 (1/2)
+	// NRE#10 / Block#15 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 15); err != nil {
 		t.Fatal(err)
@@ -639,13 +642,13 @@ func TestScenario3(t *testing.T) {
 	// (3/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#11 / Block#16 (2/2)
+	// NRE#10 / Block#16 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 16); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#12 / Block#17 (1/1)
+	// ORE#11 / Block#17 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 17); err != nil {
 		t.Fatal(err)
 	}
@@ -655,7 +658,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#13 / Block#18 (1/2)
+	// NRE#12 / Block#18 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 18); err != nil {
 		t.Fatal(err)
@@ -664,13 +667,13 @@ func TestScenario3(t *testing.T) {
 	// (4/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#13 / Block#19 (2/2)
+	// NRE#12 / Block#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 19); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#14 / Block#20 (1/1)
+	// ORE#13 / Block#20 (1/1)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 20); err != nil {
 		t.Fatal(err)
 	}
@@ -680,13 +683,13 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#15 / Block#21 (1/2)
+	// NRE#14 / Block#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 21); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#15 / Block#22 (2/2)
+	// NRE#14 / Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 22); err != nil {
 		t.Fatal(err)
@@ -806,6 +809,7 @@ func TestScenario4(t *testing.T) {
 
 	// NRE#1 / Block#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
 		t.Fatal(err)
 	}
@@ -844,12 +848,14 @@ func TestScenario4(t *testing.T) {
 
 	// NRE#3 / Block#4 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#3 / Block#5 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 5); err != nil {
 		t.Fatal(err)
 	}
@@ -879,41 +885,48 @@ func TestScenario4(t *testing.T) {
 
 	// NRE#5 / Block#7 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#5 / Block#8 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 8); err != nil {
 		t.Fatal(err)
 	}
 
 	// ORE#6 / Block#9 (1/1): invalid withdrawal
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 9); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#7 / Block#10 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#7 / Block#11 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 11); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#8 / Block#12 (1/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRE#8 / Block#13 (2/2)
 	makeSampleTx(pls.rootchainManager)
+
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 13); err != nil {
 		t.Fatal(err)
 	}
@@ -932,8 +945,9 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
-// NRB#1 - NRB#2 - (ORB#3) - NRB#3 - NRB#4 - ORB#5 - NRB#6 - NRB#7 - ORB#8
-// 											     		   ㄴ URB#7 - (ORB#8(#8')) - NRB#8(#7')
+// NRB#1 - NRB#2 - (no ORB) - NRB#3 - NRB#4 - ORB#5 - NRB#6 - NRB#7 - ORB#8
+// 											     		                            ㄴ URB#7 - (ORB#8(#8')) - NRB#8(#7')
+// TODO: test enter is rebased
 func TestScenario5(t *testing.T) {
 	pls, rpcServer, dir, err := makePls()
 	defer os.RemoveAll(dir)
@@ -973,7 +987,7 @@ func TestScenario5(t *testing.T) {
 
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
-	// NRBEpoch#0.1 / PlasmaBlock#0.1 (1/2)
+	// NRE#0.1 / Block#0.1 (1/2)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
 		t.Fatal(err)
 	}
@@ -1014,7 +1028,7 @@ func TestScenario5(t *testing.T) {
 		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain, tokenAddr)
 	}
 
-	// NRBEpoch#0.1 / PlasmaBlock#0.2 (2/2)
+	// NRE#0.1 / Block#0.2 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
@@ -1041,21 +1055,21 @@ func TestScenario5(t *testing.T) {
 
 	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 
-	// NRBEpoch#0.3 / PlasmaBlock#0.3 (1/2)
+	// NRE#0.3 / Block#0.3 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 3); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#0.3 / PlasmaBlock#0.4 (2/2)
+	// NRE#0.3 / Block#0.4 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORBEpoch#0.4 / PlasmaBlock#0.5 (1/1): 4 ETH deposits, deposit 1 token from addr1 (Enter)
+	// ORE#0.4 / Block#0.5 (1/1): 4 ETH deposits, deposit 1 token from addr1 (Enter)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 5); err != nil {
 		t.Fatal(err)
 	}
@@ -1076,13 +1090,13 @@ func TestScenario5(t *testing.T) {
 	// withdraw 1 token from addr 1
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRBEpoch#0.5 / PlasmaBlock#0.6 (1/2)
+	// NRE#0.5 / Block#0.6 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 6); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRBEpoch#0.5 / PlasmaBlock#0.7 (2/2)
+	// NRE#0.5 / Block#0.7 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
 		t.Fatal(err)
@@ -1091,7 +1105,7 @@ func TestScenario5(t *testing.T) {
 	// make ERU
 	startTokenWithdrawWithERU(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// ORBEpoch#0.6 / PlasmaBlock#0.8  (1/1): 1 token withdrawal from addr1 (Exit)
+	// ORE#0.6 / Block#0.8  (1/1): 1 token withdrawal from addr1 (Exit)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 8); err != nil {
 		t.Fatal(err)
 	}
@@ -1099,17 +1113,23 @@ func TestScenario5(t *testing.T) {
 	// Prepare URB
 	prepareToSubmitURB(t, pls.rootchainManager.rootchainContract, key1, big.NewInt(int64(pls.rootchainManager.state.costURBPrepare)))
 
-	// Fork: URBEpoch#1.5 / PlasmaBlock#1.6 (1/1) / parent: PlasmaBlock#0.6
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 1, 6); err != nil {
+	fork0, _ := pls.rootchainManager.rootchainContract.Forks(baseCallOpt, big.NewInt(0))
+	if fork0.ForkedBlock != 7 {
+		t.Fatalf("Expected chain is forked at block#7, but at block#%d", fork0.ForkedBlock)
+	}
+
+	// Fork: URE#1.5 / Block#1.7 (1/1) / parent: Block#0.6
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 1, 7); err != nil {
 		t.Fatal(err)
 	}
 
-	// Rebased(empty): ORBEpoch#1.6 / PlasmaBlock#1.7 (1/1): 1 ETH withdrawal (Exit)
+	// Rebased: ORE'#1.6 is empty / Reference Block#0.8 (only exit)
 	// TODO (aiden): implement checkEpoch() to check empty epoch
 
-	// Rebased: NRBEpoch#1.7 / PlasmaBlock#1.7 (1/1) / rebased block of 0.7
-	// check rebased txs
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 1, 7); err != nil {
+	// Rebased: NRE'#1.7 / Block#1.8 / Reference Block#0.7
+	// NOTE: NRB#1.8 이 마이닝되지 않음.
+	// TODO: check rebased txs
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 1, 8); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1695,8 +1715,6 @@ func makeSampleTx(rcm *RootChainManager) error {
 }
 
 func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool, expectedFork, expectedBlockNumber int64) error {
-	// TODO: delete below line after genesis.Difficulty is set 0
-	expectedFork += 1
 
 	outC := make(chan struct{})
 	errC := make(chan error)
