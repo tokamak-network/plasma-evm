@@ -143,7 +143,7 @@ type Block struct {
 	ReceivedFrom interface{}
 
 	// fork number
-	currentFork int64
+	currentFork uint64
 }
 
 // DeprecatedTd is an old relic for extracting the TD of a block. It is in the
@@ -154,7 +154,7 @@ func (b *Block) DeprecatedTd() *big.Int {
 }
 
 // This func returns current fork number of the block.
-func (b *Block) CurrentFork() int64 {
+func (b *Block) CurrentFork() uint64 {
 	return b.currentFork
 }
 
@@ -347,7 +347,7 @@ func (b *Block) WithSeal(header *Header) *Block {
 		header:       &cpy,
 		transactions: b.transactions,
 		uncles:       b.uncles,
-		td:           big.NewInt(b.currentFork*1000 + int64(b.NumberU64())),
+		td:           big.NewInt(int64(b.currentFork)*1000 + int64(b.NumberU64())),
 	}
 }
 
@@ -361,7 +361,7 @@ func (b *Block) WithSealFork(header *Header) *Block {
 		header:       &cpy,
 		transactions: b.transactions,
 		uncles:       b.uncles,
-		td:           big.NewInt(addedFork*1000 + int64(b.NumberU64())),
+		td:           big.NewInt(int64(addedFork)*1000 + int64(b.NumberU64())),
 		currentFork:  addedFork,
 	}
 }

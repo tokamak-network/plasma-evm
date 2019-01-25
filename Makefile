@@ -24,6 +24,11 @@ swarm:
 all:
 	build/env.sh go run build/ci.go install
 
+puppeth:
+	build/env.sh go run build/ci.go install ./cmd/puppeth
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/puppeth\" to launch puppeth."
+
 android:
 	build/env.sh go run build/ci.go aar --local
 	@echo "Done building."

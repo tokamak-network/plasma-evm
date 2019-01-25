@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -66,6 +67,14 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 
 func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription {
 	return bc.chainHeadFeed.Subscribe(ch)
+}
+
+// moscow - new interface
+func (bc *testBlockChain) Engine() consensus.Engine {
+	return nil
+}
+func (bc *testBlockChain) GetHeader(common.Hash, uint64) *types.Header {
+	return nil
 }
 
 func transaction(nonce uint64, gaslimit uint64, key *ecdsa.PrivateKey) *types.Transaction {
@@ -229,7 +238,12 @@ func TestInvalidTransactions(t *testing.T) {
 	defer pool.Stop()
 
 	tx := transaction(0, 100, key)
+	txs := types.Transactions{tx}
 	from, _ := deriveSender(tx)
+
+	if err := pool.EnqueueReqeustTxs(txs); err == nil {
+		t.Error("Non-request transaction cannot be enqueued into request tx pool")
+	}
 
 	pool.currentState.AddBalance(from, big.NewInt(1))
 	if err := pool.AddRemote(tx); err != ErrInsufficientFunds {

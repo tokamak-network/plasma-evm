@@ -29,19 +29,8 @@ func newPlasmaEpoch(e struct {
 	UserActivated       bool
 	Rebase              bool
 }) *PlasmaEpoch {
-	return &PlasmaEpoch{
-		e.RequestStart,
-		e.RequestEnd,
-		e.StartBlockNumber,
-		e.EndBlockNumber,
-		e.FirstRequestBlockId,
-		e.NumEnter,
-		e.IsEmpty,
-		e.Initialized,
-		e.IsRequest,
-		e.UserActivated,
-		e.Rebase,
-	}
+	e2 := PlasmaEpoch(e)
+	return &e2
 }
 
 type PlasmaBlock struct {
@@ -73,18 +62,6 @@ func newPlasmaBlock(b struct {
 	Challenging      bool
 	Finalized        bool
 }) *PlasmaBlock {
-	return &PlasmaBlock{
-		b.EpochNumber,
-		b.RequestBlockId,
-		b.ReferenceBlock,
-		b.Timestamp,
-		b.StatesRoot,
-		b.TransactionsRoot,
-		b.ReceiptsRoot,
-		b.IsRequest,
-		b.UserActivated,
-		b.Challenged,
-		b.Challenging,
-		b.Finalized,
-	}
+	b2 := PlasmaBlock(b)
+	return &b2
 }
