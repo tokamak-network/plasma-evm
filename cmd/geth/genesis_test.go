@@ -23,43 +23,29 @@ import (
 	"testing"
 )
 
-var customGenesisTests = []struct {
+type CustomGenesisTest struct {
 	genesis string
 	query   string
 	result  string
-}{
-	// Plain genesis file without anything extra
-	{
-		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"difficulty" : "0x20000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
-			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00"
-		}`,
-		query:  "pls.getBlock(0).nonce",
-		result: "0x0000000000000042",
-	},
+}
+
+var genesisTests = []CustomGenesisTest{
 	// Genesis file with an empty chain configuration (ensure missing fields work)
 	{
 		genesis: `{
 			"alloc"      : {},
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
 			"difficulty" : "0x20000",
-			"extraData"  : "",
+			"extraData"  : "0x880ec53af800b5cd051531672ef4fc4de233bd5d",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
+			"nonce"      : "0x07",
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {}
 		}`,
-		query:  "pls.getBlock(0).nonce",
-		result: "0x0000000000000042",
+		query:  "eth.rootchain()",
+		result: "0x880ec53af800b5cd051531672ef4fc4de233bd5d",
 	},
 	// Genesis file with specific chain configurations
 	{
@@ -67,9 +53,9 @@ var customGenesisTests = []struct {
 			"alloc"      : {},
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
 			"difficulty" : "0x20000",
-			"extraData"  : "",
+			"extraData"  : "0x880ec53af800b5cd051531672ef4fc4de233bd5d",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000000042",
+			"nonce"      : "0x07",
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
@@ -79,15 +65,15 @@ var customGenesisTests = []struct {
 				"daoForkSupport" : true
 			}
 		}`,
-		query:  "pls.getBlock(0).nonce",
-		result: "0x0000000000000042",
+		query:  "eth.rootchain()",
+		result: "0x880ec53af800b5cd051531672ef4fc4de233bd5d",
 	},
 }
 
 // Tests that initializing Geth with a custom genesis block and chain definitions
 // work properly.
 func TestCustomGenesis(t *testing.T) {
-	for i, tt := range customGenesisTests {
+	for i, tt := range genesisTests {
 		// Create a temporary data directory to use and inspect later
 		datadir := tmpdir(t)
 		defer os.RemoveAll(datadir)

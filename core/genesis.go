@@ -162,10 +162,13 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		if genesis == nil {
-			log.Info("Writing default main-net genesis block")
+			log.Info("Writing default main-net genesis block", "rootChainContract", rootChainContract)
+			if (rootChainContract == common.Address{}) {
+				return nil, common.Hash{}, errors.New(fmt.Sprintf("RootChain contract address must be set, but %s", rootChainContract.Hex()))
+			}
 			genesis = DefaultGenesisBlock(rootChainContract)
 		} else {
-			log.Info("Writing custom genesis block")
+			log.Info("Writing custom genesis block", "rootChainContract", rootChainContract)
 		}
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err

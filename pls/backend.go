@@ -125,6 +125,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
+	genesisBlock := rawdb.ReadBlock(chainDb, genesisHash, 0)
+	config.RootChainContract = common.BytesToAddress(genesisBlock.Extra())
+
+	if (config.RootChainContract == common.Address{}) {
+		return nil, errors.New("RootChain contract address must be set. Use rootchain.contract or initalize genesis with extra data")
+	}
+
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	pls := &Plasma{
