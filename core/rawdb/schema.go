@@ -46,6 +46,7 @@ var (
 	headerTDSuffix     = []byte("t") // headerPrefix + num (uint64 big endian) + hash + headerTDSuffix -> td
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
 	headerNumberPrefix = []byte("H") // headerNumberPrefix + hash -> num (uint64 big endian)
+	headerForkSuffix   = []byte("f") // headerNumberPrefix + fork (uint64 big endian) + num (uint64 big endian) -> hash
 
 	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
 	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
@@ -112,6 +113,11 @@ func headerHashKey(number uint64) []byte {
 // headerNumberKey = headerNumberPrefix + hash
 func headerNumberKey(hash common.Hash) []byte {
 	return append(headerNumberPrefix, hash.Bytes()...)
+}
+
+// headerForkKey = headerNumberPrefix + fork (uint64 big endian) + num (uint64 big endian) + headerForkSuffix
+func headerForkKey(fork uint64, number uint64) []byte {
+	return append(append(append(append(headerPrefix, encodeForkNumber(fork)...), encodeBlockNumber(number)...), headerForkSuffix...))
 }
 
 // blockBodyKey = blockBodyPrefix + num (uint64 big endian) + hash

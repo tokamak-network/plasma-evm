@@ -30,7 +30,7 @@ var (
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
 	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
 
-	//TODO: sholud delete this after fixing rcm.backend.NetworkId
+	//TODO (aiden): sholud delete this after fixing rcm.backend.NetworkId
 	rootchainNetworkId = big.NewInt(1337)
 )
 
@@ -61,11 +61,16 @@ type RootChainManager struct {
 	minerEnv *miner.EpochEnvironment
 	state    *rootchainState
 
+	lastFinalizedBlock *big.Int
+	currentFork        *big.Int
+
 	// fork => block number => invalidExits
 	invalidExits map[uint64]map[uint64]invalidExits
 
 	// channels
 	quit             chan struct{}
+	exitCh           chan struct{}
+	interruptCh      chan struct{}
 	epochPreparedCh  chan *rootchain.RootChainEpochPrepared
 	blockFinalizedCh chan *rootchain.RootChainBlockFinalized
 
@@ -90,20 +95,24 @@ func NewRootChainManager(
 	env *miner.EpochEnvironment,
 ) (*RootChainManager, error) {
 	rcm := &RootChainManager{
-		config:            config,
-		stopFn:            stopFn,
-		txPool:            txPool,
-		blockchain:        blockchain,
-		backend:           backend,
-		rootchainContract: rootchainContract,
-		eventMux:          eventMux,
-		accountManager:    accountManager,
-		miner:             miner,
-		minerEnv:          env,
-		invalidExits:      make(map[uint64]map[uint64]invalidExits),
-		quit:              make(chan struct{}),
-		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
-		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized),
+		config:             config,
+		stopFn:             stopFn,
+		txPool:             txPool,
+		blockchain:         blockchain,
+		backend:            backend,
+		rootchainContract:  rootchainContract,
+		eventMux:           eventMux,
+		accountManager:     accountManager,
+		miner:              miner,
+		minerEnv:           env,
+		lastFinalizedBlock: big.NewInt(0),
+		currentFork:        big.NewInt(0),
+		invalidExits:       make(map[uint64]map[uint64]invalidExits),
+		quit:               make(chan struct{}),
+		exitCh:             make(chan struct{}),
+		interruptCh:        make(chan struct{}),
+		epochPreparedCh:    make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
+		blockFinalizedCh:   make(chan *rootchain.RootChainBlockFinalized),
 	}
 
 	rcm.state = newRootchainState(rcm)
@@ -162,6 +171,11 @@ func (rcm *RootChainManager) watchEvents() error {
 		Context: context.Background(),
 	}
 
+	watchOpts := &bind.WatchOpts{
+		Context: context.Background(),
+		Start:   &startBlockNumber, // read events from rootchain block#1
+	}
+
 	// iterate previous events
 	// TODO: the events fired while syncing should be dealt with in different way.
 	iterator, err := filterer.FilterEpochPrepared(filterOpts)
@@ -169,18 +183,36 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
+	// watch events from now
+	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
+	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
+
+	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
+	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
+	if err != nil {
+		return err
+	}
+
+	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
+
 	log.Info("Iterating EpochPrepared event")
 
 	for iterator.Next() {
 		e := iterator.Event
 		if e != nil {
+			log.Error("EpochPrepared event iterated")
 			rcm.handleEpochPrepared(e)
 		}
-	}
-
-	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
-	if err != nil {
-		return err
 	}
 
 	log.Info("Iterating BlockFinalized event")
@@ -192,33 +224,15 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
-	// watch events from now
-	watchOpts := &bind.WatchOpts{
-		Context: context.Background(),
-		Start:   &startBlockNumber, // read events from rootchain block#1
-	}
-
-	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
-	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
-
-	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
-	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
-	if err != nil {
-		return err
-	}
-
-	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
-
 	go func() {
 		for {
 			select {
 			case e := <-epochPrepareWatchCh:
 				if e != nil {
+					// interrupt ORE in case of URE is prepared
+					if e.UserActivated && rcm.minerEnv.IsRequest {
+						rcm.interruptCh <- struct{}{}
+					}
 					rcm.epochPreparedCh <- e
 				}
 
@@ -268,14 +282,24 @@ func (rcm *RootChainManager) runSubmitter() {
 		select {
 		case ev := <-plasmaBlockMinedEvents.Chan():
 			if ev == nil {
-				return
+				continue
 			}
-			rcm.lock.Lock()
+			// if the epoch is completed, stop mining operation and wait next epoch
+			if rcm.minerEnv.Completed {
+				rcm.miner.Stop()
+			}
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
+			// if fork number of the block is not same as minerEnv, don't submit it. (double-check)
+			if blockInfo.Block.Difficulty().Cmp(rcm.minerEnv.CurrentFork) != 0 {
+				continue
+			}
+
+			rcm.lock.Lock()
+
 			Nonce := rcm.state.getNonce()
 
-			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
+			//TODO (aiden): rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
 			networkID, err := rcm.backend.NetworkID(context.Background())
 			log.Info("network Id", "id", networkID)
 			if err != nil {
@@ -283,8 +307,13 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 
 			funcName := "submitNRB"
-			if rcm.minerEnv.IsRequest {
+			submitCost := rcm.state.costNRB
+			if rcm.minerEnv.UserActivated {
+				funcName = "submitURB"
+				submitCost = rcm.state.costURB
+			} else if rcm.minerEnv.IsRequest {
 				funcName = "submitORB"
+				submitCost = rcm.state.costORB
 			}
 
 			input, err := rootchainContractABI.Pack(
@@ -298,12 +327,14 @@ func (rcm *RootChainManager) runSubmitter() {
 			if err != nil {
 				log.Error("Failed to pack "+funcName, "err", err)
 			}
-			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(submitCost)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 			if err != nil {
 				log.Error("Failed to sign "+funcName, "err", err)
 			}
+
+			log.Info("TxHash check", "txHash", blockInfo.Block.Header().TxHash)
 
 			err = rcm.backend.SendTransaction(context.Background(), signedTx)
 			if err != nil {
@@ -325,6 +356,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 
 			rcm.state.incNonce()
+
 			rcm.lock.Unlock()
 		case <-rcm.quit:
 			return
@@ -351,133 +383,350 @@ func (rcm *RootChainManager) runHandlers() {
 
 // handleEpochPrepared handles EpochPrepared event from RootChain contract after
 // plasma chain is *SYNCED*.
+// TODO (aiden): merge ORB, rebased ORB and URB logic if possible
 func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPrepared) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
 	e := *ev
 
-	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
-	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
-	// prepare request tx for ORBs
-	if e.IsRequest && !e.EpochIsEmpty {
-		events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-		defer events.Unsubscribe()
+	if e.EpochIsEmpty {
+		log.Info("epoch is empty, jump to next epoch")
+		return nil
+	}
 
-		numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
-		numORBs = new(big.Int).Add(numORBs, big.NewInt(1))
+	// stop miner immediately in case of URB epoch
+	if e.UserActivated {
+		rcm.miner.Stop()
+	}
 
-		bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
+	length := new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1))
 
-		currentFork := big.NewInt(int64(rcm.state.currentFork))
-		epoch, err := rcm.getEpoch(currentFork, e.EpochNumber)
-		if err != nil {
-			return err
-		}
-		log.Debug("rcm.getEpoch", "epoch", epoch)
+	// start miner
+	if !e.Rebase || e.IsRequest {
+		log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
+		go rcm.miner.Start(params.Operator, &e)
+	}
 
-		// TODO: URE, ORE' should handle requestBlockId in a different way.
-		requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer events.Unsubscribe()
 
-		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "requestBlockId", requestBlockId, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
-		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
-			begin := time.Now()
+	// prepare txs for the epoch
+	if e.IsRequest {
+		if e.UserActivated {
+			// URE
 
-			orb, err := rcm.rootchainContract.ORBs(baseCallOpt, requestBlockId)
+			if e.EpochIsEmpty {
+				log.Error("URB epoch is empty")
+				return nil
+			}
+			rcm.currentFork = new(big.Int).Add(rcm.currentFork, big.NewInt(1))
+			rcm.state.currentFork++
+
+			numURBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
+			numURBs = new(big.Int).Add(numURBs, big.NewInt(1))
+
+			bodies := make([]types.Transactions, 0, numURBs.Uint64()) // [][]types.Transaction
+
+			log.Debug("Num URBs", "epochNumber", e.EpochNumber, "numURBs", numURBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
+
+			currentFork := big.NewInt(int64(rcm.state.currentFork))
+			epoch, err := rcm.getEpoch(currentFork, e.EpochNumber)
 			if err != nil {
 				return err
 			}
 
-			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Debug("Fetching ORB", "requestBlockId", requestBlockId, "numRequests", numRequests)
+			// TODO: URE, ORE' should handle requestBlockId in a different way.
+			requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+			for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
 
-			body := make(types.Transactions, 0, numRequests)
+				urb, err := rcm.rootchainContract.URBs(baseCallOpt, requestBlockId)
 
-			for requestId := orb.RequestStart; requestId <= orb.RequestEnd; {
-				request, err := rcm.rootchainContract.EROs(baseCallOpt, big.NewInt(int64(requestId)))
 				if err != nil {
 					return err
 				}
 
-				log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]), "request", request)
+				numRequests := urb.RequestEnd - urb.RequestStart + 1
+				log.Debug("Fetching URB", "requestBlockId", requestBlockId, "numRequests", numRequests)
 
-				var to common.Address
-				var input []byte
+				body := make(types.Transactions, 0, numRequests)
 
-				if request.IsTransfer {
-					to = request.Requestor
-				} else {
-					to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
-					input, err = requestableContractABI.Pack("applyRequestInChildChain",
-						request.IsExit,
-						big.NewInt(int64(requestId)),
-						request.Requestor,
-						request.TrieKey,
-						request.TrieValue,
-					)
+				for requestId := urb.RequestStart; requestId <= urb.RequestEnd; {
+					request, err := rcm.rootchainContract.ERUs(baseCallOpt, big.NewInt(int64(requestId)))
 					if err != nil {
-						log.Error("Failed to pack applyRequestInChildChain", "err", err)
+						return err
 					}
 
-					log.Debug("Request tx.data", "payload", input)
+					log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]), "request", request)
+
+					var to common.Address
+					var input []byte
+
+					if request.IsTransfer {
+						to = request.Requestor
+					} else {
+						to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
+						input, err = requestableContractABI.Pack("applyRequestInChildChain",
+							request.IsExit,
+							big.NewInt(int64(requestId)),
+							request.Requestor,
+							request.TrieKey,
+							request.TrieValue,
+						)
+						if err != nil {
+							log.Error("Failed to pack applyRequestInChildChain", "err", err)
+						}
+
+						log.Debug("Request tx.data", "payload", input)
+					}
+
+					requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
+					log.Debug("Request Transaction", "tx", requestTx)
+
+					// TODO (aiden): add GetERUBytes method in root chain contract
+					eruBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
+
+					if err != nil {
+						log.Error("Failed to get ERU bytes", "err", err)
+					}
+
+					// TODO: check only in test
+					if !bytes.Equal(eruBytes, requestTx.GetRlp()) {
+						log.Error("ERU TX and request tx are different", "requestId", requestId, "eruBytes", common.Bytes2Hex(eruBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
+
+						body = append(body, requestTx)
+
+						requestId += 1
+					}
+
+					log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "body", body)
+
+					bodies = append(bodies, body)
+
+					blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
+					requestBlockId = new(big.Int).Add(requestBlockId, big.NewInt(1))
 				}
-
-				requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
-
-				log.Debug("Request Transaction", "tx", requestTx)
-
-				eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
-				if err != nil {
-					log.Error("Failed to get ERO bytes", "err", err)
-				}
-
-				// TODO: check only in test
-				if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
-					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", common.Bytes2Hex(eroBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
-				}
-
-				body = append(body, requestTx)
-				requestId += 1
 			}
 
-			log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "numRequests", len(body), "elapsed", time.Since(begin))
+			var numMinedURBs uint64 = 0
 
-			bodies = append(bodies, body)
+			for numMinedURBs < numURBs.Uint64() {
+				rcm.txPool.EnqueueRequestTxs(bodies[numMinedURBs])
 
-			blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
-			requestBlockId = new(big.Int).Add(requestBlockId, big.NewInt(1))
+				log.Info("Waiting new user request block mined event...")
+
+				e := <-events.Chan()
+				block := e.Data.(core.NewMinedBlockEvent).Block
+
+				log.Info("New user request block is mined", "block", block)
+
+				if !block.IsRequest() {
+					return errors.New("Invalid request block type.")
+				}
+
+				receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
+
+				for _, receipt := range receipts {
+					if receipt.Status == 0 {
+						log.Error("User request transaction is reverted", "blockNumber", block.Number(), "hash", receipt.TxHash)
+					}
+				}
+				numMinedURBs += 1
+			}
+			return nil
 		}
+		// ORE, rebase ORE
+		if !e.EpochIsEmpty {
+			// cancel ORE in case of URE is prepared
+			go func() {
+				for {
+					select {
+					case <-rcm.interruptCh:
+						return
+					case <-rcm.exitCh:
+						return
+					}
+				}
+			}()
 
-		var numMinedORBs uint64 = 0
+			numORBs := new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber)
+			numORBs = new(big.Int).Add(numORBs, big.NewInt(1))
 
-		for numMinedORBs < numORBs.Uint64() {
-			if err := rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs]); err != nil {
+			bodies := make([]types.Transactions, 0, numORBs.Uint64()) // [][]types.Transaction
+
+			log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
+
+			currentFork := big.NewInt(int64(rcm.state.currentFork))
+			epoch, err := rcm.getEpoch(currentFork, e.EpochNumber)
+			if err != nil {
 				return err
 			}
 
-			log.Info("Waiting new request block mined event...")
+			// TODO: URE, ORE' should handle requestBlockId in a different way.
+			requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+			for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
 
-			e := <-events.Chan()
-			block := e.Data.(core.NewMinedBlockEvent).Block
-
-			log.Info("New request block is mined", "block", block)
-
-			if !block.IsRequest() {
-				return errors.New("Invalid request block type.")
-			}
-
-			receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
-
-			for _, receipt := range receipts {
-				if receipt.Status == 0 {
-					log.Error("Request transaction is reverted", "blockNumber", block.Number(), "hash", receipt.TxHash)
+				orb, err := rcm.rootchainContract.ORBs(baseCallOpt, requestBlockId)
+				if err != nil {
+					return err
 				}
+
+				numRequests := orb.RequestEnd - orb.RequestStart + 1
+				log.Debug("Fetching ORB", "requestBlockId", requestBlockId, "numRequests", numRequests)
+
+				body := make(types.Transactions, 0, numRequests)
+
+				for requestId := orb.RequestStart; requestId <= orb.RequestEnd; {
+					request, err := rcm.rootchainContract.EROs(baseCallOpt, big.NewInt(int64(requestId)))
+					if err != nil {
+						return err
+					}
+
+					log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]), "request", request)
+
+					var to common.Address
+					var input []byte
+
+					if request.IsTransfer {
+						to = request.Requestor
+					} else {
+						to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
+						input, err = requestableContractABI.Pack("applyRequestInChildChain",
+							request.IsExit,
+							big.NewInt(int64(requestId)),
+							request.Requestor,
+							request.TrieKey,
+							request.TrieValue,
+						)
+						if err != nil {
+							log.Error("Failed to pack applyRequestInChildChain", "err", err)
+						}
+
+						log.Debug("Request tx.data", "payload", input)
+					}
+
+					requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
+
+					log.Debug("Request Transaction", "tx", requestTx)
+
+					eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
+					if err != nil {
+						log.Error("Failed to get ERO bytes", "err", err)
+					}
+
+					// TODO: check only in test
+					if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
+						log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", common.Bytes2Hex(eroBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
+					}
+
+					body = append(body, requestTx)
+
+					requestId += 1
+				}
+
+				log.Info("Request txs fetched", "blockNumber", blockNumber, "requestBlockId", requestBlockId, "body", body)
+
+				bodies = append(bodies, body)
+
+				blockNumber = new(big.Int).Add(blockNumber, big.NewInt(1))
+				requestBlockId = new(big.Int).Add(requestBlockId, big.NewInt(1))
 			}
 
-			numMinedORBs += 1
+			var numMinedORBs uint64 = 0
+
+			for numMinedORBs < numORBs.Uint64() {
+
+				rcm.txPool.EnqueueRequestTxs(bodies[numMinedORBs])
+
+				log.Info("Waiting new request block mined event...")
+
+				e := <-events.Chan()
+				block := e.Data.(core.NewMinedBlockEvent).Block
+
+				log.Info("New request block is mined", "block", block)
+
+				if !block.IsRequest() {
+					return errors.New("Invalid request block type.")
+				}
+
+				receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
+
+				for _, receipt := range receipts {
+					if receipt.Status == 0 {
+						log.Error("Request transaction is reverted", "blockNumber", block.Number(), "hash", receipt.TxHash)
+					}
+				}
+
+				numMinedORBs += 1
+			}
+			rcm.exitCh <- struct{}{}
+			return nil
 		}
 	}
 
+	if e.Rebase {
+		// rebase NRE
+		n, err := rcm.rootchainContract.CurrentFork(baseCallOpt)
+		if err != nil {
+			log.Error("failed to get current fork number from root chain", "error", err)
+		}
+
+		curFork, err := rcm.rootchainContract.Forks(baseCallOpt, n)
+		if err != nil {
+			log.Error("failed to get current fork data from root chain", "error", err)
+		}
+		preForkNum := new(big.Int).Sub(n, big.NewInt(1))
+
+		preFork, err := rcm.rootchainContract.Forks(baseCallOpt, preForkNum)
+		if err != nil {
+			log.Error("failed to get pre fork data from root chain", "error", err)
+		}
+
+		var targets []uint64
+
+		// gather target NRBs to be rebased from pre fork.
+		for i := curFork.FirstBlock; i <= preFork.LastBlock; i++ {
+			block, err := rcm.rootchainContract.GetBlock(baseCallOpt, preForkNum, big.NewInt(int64(i)))
+			if err != nil {
+				log.Error("failed to get block from root chain", "error", err)
+			}
+			if !block.IsRequest {
+				targets = append(targets, i)
+				log.Info("gather target NRB to rebase", "number", i)
+			}
+		}
+
+		bodies := make([]types.Transactions, 0, len(targets)) // [][]types.Transaction
+
+		for i := 0; i < len(targets); i++ {
+			//TODO (aiden): should change to new method 'GetBlockByForkAndNumber'
+			block := rcm.blockchain.GetBlockByNumber(targets[i])
+			txs := block.Transactions()
+			bodies = append(bodies, txs)
+			log.Info("get txs from target block", "number", block.Number())
+		}
+
+		endNum := e.StartBlockNumber.Int64() + int64(len(bodies)) - 1
+		e.EndBlockNumber = big.NewInt(endNum)
+		length = big.NewInt(int64(len(bodies)))
+
+		log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
+
+		rcm.miner.Start(params.Operator, &e)
+
+		var numMinedNRBs uint64 = 0
+		for numMinedNRBs < length.Uint64() {
+			rcm.txPool.EnqueueRebasedTxs(bodies[numMinedNRBs])
+
+			log.Info("Waiting new block mined event...")
+			<-events.Chan()
+
+			numMinedNRBs += 1
+		}
+		return nil
+	}
+
+	// NRE
 	return nil
 }
 
@@ -488,6 +737,11 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 	e := *ev
 
 	log.Info("RootChain block finalized", "forkNumber", e.ForkNumber, "blockNubmer", e.BlockNumber)
+
+	// send LastFinalizedBlock event to miner
+	go rcm.eventMux.Post(miner.LastFinalizedBlock{Number: e.BlockNumber})
+
+	rcm.minerEnv.SetLastFinalizedBlock(e.BlockNumber)
 
 	callerOpts := &bind.CallOpts{
 		Pending: true,
@@ -504,6 +758,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		return err
 	}
 
+	// exit challenge if any
 	if block.IsRequest {
 		invalidExits := rcm.invalidExits[e.ForkNumber.Uint64()][e.BlockNumber.Uint64()]
 		for i := 0; i < len(invalidExits); i++ {
@@ -513,7 +768,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				proof := invalidExits[i].proof[j].Bytes()
 				proofs = append(proofs, proof...)
 			}
-			// TODO: ChallengeExit receipt check
+			// TODO (aiden): ChallengeExit receipt check
 			input, err := rootchainContractABI.Pack("challengeExit", e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
 			if err != nil {
 				log.Error("Failed to pack challengeExit", "error", err)
@@ -549,7 +804,6 @@ func (rcm *RootChainManager) runDetector() {
 		return
 	}
 
-	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
 		Context: context.Background(),
@@ -575,7 +829,7 @@ func (rcm *RootChainManager) runDetector() {
 				blockNumber := blockInfo.Block.Number()
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
 
-				// TODO: should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
+				// TODO (aiden): should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
 				for i := 0; i < len(receipts); i++ {
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{

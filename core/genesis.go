@@ -316,7 +316,7 @@ func DefaultGenesisBlock(rootChainContract common.Address) *Genesis {
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(1),
+		Difficulty: big.NewInt(0),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256

@@ -50,6 +50,22 @@ func DeleteCanonicalHash(db DatabaseDeleter, number uint64) {
 	}
 }
 
+// ReadForkHeaderHash retrieves the hash assigned to a canonical fork and block number.
+func ReadForkHeaderHash(db DatabaseReader, fork uint64, number uint64) common.Hash {
+	data, _ := db.Get(headerForkKey(fork, number))
+	if len(data) == 0 {
+		return common.Hash{}
+	}
+	return common.BytesToHash(data)
+}
+
+// WriteForkHeaderHash stores the hash assigned to a canonical fork and block number.
+func WriteForkHeaderHash(db DatabaseWriter, hash common.Hash, fork uint64, number uint64) {
+	if err := db.Put(headerForkKey(fork, number), hash.Bytes()); err != nil {
+		log.Crit("Failed to store fork and number to hash mapping", "err", err)
+	}
+}
+
 // ReadHeaderNumber returns the header number assigned to a hash.
 func ReadHeaderNumber(db DatabaseReader, hash common.Hash) *uint64 {
 	data, _ := db.Get(headerNumberKey(hash))
