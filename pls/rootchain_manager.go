@@ -328,20 +328,18 @@ func (rcm *RootChainManager) runSubmitter() {
 
 func (rcm *RootChainManager) runHandlers() {
 	for {
-		currentBlockNumber := rcm.blockchain.CurrentBlock().NumberU64()
-
 		select {
 		case e := <-rcm.epochPreparedCh:
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(currentBlockNumber)
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.EndBlockNumber.Uint64())
 			}
 		case e := <-rcm.blockFinalizedCh:
 			if err := rcm.handleBlockFinalzied(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(currentBlockNumber)
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.BlockNumber.Uint64())
 			}
 		case <-rcm.quit:
 			return
