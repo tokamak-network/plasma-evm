@@ -18,6 +18,7 @@
 package les
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -30,10 +31,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/pls/filters"
-	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/internal/ethapi"
 	"github.com/Onther-Tech/plasma-evm/light"
@@ -42,6 +39,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discv5"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/filters"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	rpc "github.com/Onther-Tech/plasma-evm/rpc"
 )
 
@@ -83,6 +84,13 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 		return nil, err
 	}
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract)
+	genesisBlock := rawdb.ReadBlock(chainDb, genesisHash, 0)
+	config.RootChainContract = common.BytesToAddress(genesisBlock.Extra())
+
+	if (config.RootChainContract == common.Address{}) {
+		return nil, errors.New("RootChain contract address must be set. Use rootchain.contract or initalize genesis with extra data")
+	}
+
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}

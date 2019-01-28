@@ -191,6 +191,8 @@ func initGenesis(ctx *cli.Context) error {
 	if len(genesis.ExtraData) != 20 {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
+	rootChainContract := common.BytesToAddress(genesis.ExtraData)
+	log.Info("Using rootchain contract", "rootChainContract", rootChainContract)
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {
@@ -198,7 +200,6 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		rootChainContract := common.BytesToAddress(genesis.ExtraData)
 		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)

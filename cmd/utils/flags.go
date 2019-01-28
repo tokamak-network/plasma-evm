@@ -1309,13 +1309,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
-
-	if !ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
-		Fatalf("RootChain contract address must be set, using --rootchain.contract")
-	}
 	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
-
-	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
