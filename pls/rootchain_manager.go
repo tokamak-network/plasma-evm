@@ -160,8 +160,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		Context: context.Background(),
 	}
 
-	// iterate previous events
-	// TODO: the events fired while syncing should be dealt with in different way.
+	// iterate to find previous epoch prepared events
 	iteratorForEpochPreparedEvent, err := filterer.FilterEpochPrepared(filterOpts)
 	if err != nil {
 		return err
@@ -175,6 +174,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
+	// iterate to find previous block finalized events
 	iteratorForBlockFinalizedEvent, err := filterer.FilterBlockFinalized(filterOpts)
 	if err != nil {
 		return err
@@ -188,10 +188,9 @@ func (rcm *RootChainManager) watchEvents() error {
 		}
 	}
 
-	// watch events from now
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
-		Start:   &startBlockNumber, // read events from rootchain block#1
+		Start:   &startBlockNumber,
 	}
 	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
 	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
