@@ -332,13 +332,13 @@ func (rcm *RootChainManager) runHandlers() {
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.EndBlockNumber.Uint64())
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
 			}
 		case e := <-rcm.blockFinalizedCh:
 			if err := rcm.handleBlockFinalzied(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.BlockNumber.Uint64())
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
 			}
 		case <-rcm.quit:
 			return
