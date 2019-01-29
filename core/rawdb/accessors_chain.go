@@ -24,6 +24,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -381,4 +382,33 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 		}
 	}
 	return a
+}
+
+func WriteEpochEnv(db DatabaseWriter, e *epoch.EpochEnvironment) {
+	data, err := rlp.EncodeToBytes(e)
+	if err != nil {
+		log.Crit("Failed to RLP encode epoch environment", "err", err)
+	}
+	if err := db.Put(epochEnvKey(), data); err != nil {
+		log.Crit("Failed to store epoch environment", "err", err)
+	}
+}
+
+func ReadEpochEnv(db DatabaseReader) *epoch.EpochEnvironment {
+	data, _ := db.Get(epochEnvKey())
+	if len(data) == 0 {
+		return nil
+	}
+	e := new(epoch.EpochEnvironment)
+	if err := rlp.DecodeBytes(data, e); err != nil {
+		log.Error("Falied to RLP decode epoch environment", "err", err)
+		return nil
+	}
+	return e
+}
+
+func DeleteEpochEnv(db DatabaseDeleter) {
+	if err := db.Delete(epochEnvKey()); err != nil {
+		log.Crit("Failed to delete epoch environment", "err", err)
+	}
 }

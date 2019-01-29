@@ -25,6 +25,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -315,5 +316,53 @@ func TestBlockReceiptStorage(t *testing.T) {
 	DeleteReceipts(db, hash, 0)
 	if rs := ReadReceipts(db, hash, 0); len(rs) != 0 {
 		t.Fatalf("deleted receipts returned: %v", rs)
+	}
+}
+
+func TestEpochEnvStorage(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	e := &epoch.EpochEnvironment{
+		IsRequest:          false,
+		UserActivated:      false,
+		Rebase:             false,
+		Completed:          false,
+		NumBlockMined:      big.NewInt(1),
+		EpochLength:        big.NewInt(2),
+		CurrentFork:        big.NewInt(1),
+		LastFinalizedBlock: big.NewInt(1),
+	}
+
+	WriteEpochEnv(db, e)
+	env := ReadEpochEnv(db)
+
+	compareEpoch(t, env, e)
+
+	DeleteEpochEnv(db)
+}
+
+func compareEpoch(t *testing.T, read *epoch.EpochEnvironment, saved *epoch.EpochEnvironment) {
+	if read.IsRequest != saved.IsRequest {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.IsRequest, saved.IsRequest)
+	}
+	if read.UserActivated != saved.UserActivated {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.UserActivated, saved.UserActivated)
+	}
+	if read.Rebase != saved.Rebase {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.Rebase, saved.Rebase)
+	}
+	if read.Completed != saved.Completed {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.Completed, saved.Completed)
+	}
+	if read.NumBlockMined.Cmp(saved.NumBlockMined) != 0 {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.NumBlockMined, saved.NumBlockMined)
+	}
+	if read.EpochLength.Cmp(saved.EpochLength) != 0 {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.EpochLength, saved.EpochLength)
+	}
+	if read.CurrentFork.Cmp(saved.CurrentFork) != 0 {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.CurrentFork, saved.CurrentFork)
+	}
+	if read.LastFinalizedBlock.Cmp(saved.LastFinalizedBlock) != 0 {
+		t.Fatalf("different IsRequest: read IsRequest is %v, saved IsRequest is %v", read.LastFinalizedBlock, saved.LastFinalizedBlock)
 	}
 }
