@@ -449,7 +449,7 @@ func TestScenario3(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
-	wait(e)
+	wait(2)
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
 	wait(2)
@@ -1078,7 +1078,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 
 	wait(3)
 
-	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	receipt, err = ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
