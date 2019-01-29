@@ -28,13 +28,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -129,6 +131,7 @@ type worker struct {
 	chain  *core.BlockChain
 
 	env *epoch.EpochEnvironment
+	db  ethdb.Database
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -183,12 +186,13 @@ type worker struct {
 	epochLength *big.Int // NRB epoch length
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *epoch.EpochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *epoch.EpochEnvironment, db ethdb.Database, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
 		pls:                pls,
 		env:                env,
+		db:                 db,
 		mux:                mux,
 		chain:              pls.BlockChain(),
 		gasFloor:           gasFloor,
@@ -600,15 +604,13 @@ func (w *worker) resultLoop() {
 				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
 
 			// add 1 to number of block mined
-			if w.env.IsRequest {
-				w.env.SetNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
-			} else {
-				w.env.SetNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
-			}
+			w.env.SetNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
+			rawdb.WriteEpochEnv(w.db, w.env)
 
 			// check if the epoch is completed
 			if w.env.NumBlockMined.Cmp(w.env.EpochLength) == 0 {
 				w.env.SetCompleted(true)
+				rawdb.WriteEpochEnv(w.db, w.env)
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations

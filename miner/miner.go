@@ -19,6 +19,7 @@ package miner
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,14 +28,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"math/big"
 )
 
 // Backend wraps all methods required for mining.
@@ -56,18 +58,20 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 
 	env *epoch.EpochEnvironment
+	db  ethdb.Database
 
 	lock sync.Mutex
 }
 
-func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *epoch.EpochEnvironment, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
+func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *epoch.EpochEnvironment, db ethdb.Database, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		pls:      pls,
 		mux:      mux,
 		engine:   engine,
 		env:      env,
+		db:       db,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, pls, env, mux, recommit, gasFloor, gasCeil, isLocalBlock),
+		worker:   newWorker(config, engine, pls, env, db, mux, recommit, gasFloor, gasCeil, isLocalBlock),
 		canStart: 2,
 	}
 	go miner.update()
@@ -116,7 +120,7 @@ func (self *Miner) update() {
 				atomic.StoreInt32(&self.canStart, 1)
 				atomic.StoreInt32(&self.shouldStart, 0)
 				if shouldStart {
-					self.Start(self.coinbase, &rootchain.RootChainEpochPrepared{})
+					self.Start(self.coinbase, &rootchain.RootChainEpochPrepared{}, true)
 				}
 				// stop immediately and ignore all further pending events
 				return
@@ -127,12 +131,19 @@ func (self *Miner) update() {
 	}
 }
 
-func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPrepared) {
+func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPrepared, empty bool) {
 	atomic.StoreInt32(&self.shouldStart, 1)
 	self.SetEtherbase(coinbase)
 
 	if atomic.LoadInt32(&self.canStart) == 0 {
 		log.Info("Network syncing, will start miner afterwards")
+		return
+	}
+
+	if empty {
+		self.env = rawdb.ReadEpochEnv(self.db)
+		self.worker.start()
+		log.Info("current epoch is resumed")
 		return
 	}
 
@@ -143,6 +154,8 @@ func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPre
 	self.env.SetNumBlockMined(big.NewInt(0))
 	self.env.SetEpochLength(new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1)))
 	self.env.SetCurrentFork(e.ForkNumber)
+
+	rawdb.WriteEpochEnv(self.db, self.env)
 
 	if e.IsRequest {
 		log.Info("ORB epoch is prepared, ORB epoch is started", "ORBepochLength", self.env.EpochLength)
