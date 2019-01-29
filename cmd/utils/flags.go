@@ -657,7 +657,7 @@ var (
 		Usage: "Maximum gas price for submitting a block",
 		Value: pls.DefaultConfig.MaxGasPrice,
 	}
-	PlasmaPendingInterval = cli.Uint64Flag{
+	PlasmaPendingInterval = cli.Int64Flag{
 		Name:  "rootchain.interval",
 		Usage: "Pending interval time after submitting a block",
 		Value: pls.DefaultConfig.PendingInterval,
@@ -1428,11 +1428,11 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.GasPrice = new(big.Int).Div(new(big.Int).Add(cfg.MinGasPrice, cfg.MaxGasPrice), big.NewInt(2))
 	}
 	if ctx.GlobalIsSet(PlasmaPendingInterval.Name) {
-		pendingInterval := ctx.GlobalInt(PlasmaPendingInterval.Name)
+		pendingInterval := ctx.GlobalInt64(PlasmaPendingInterval.Name)
 		if pendingInterval < 15 {
 			Fatalf("pending interval time must be at least 15 seconds")
 		}
-		cfg.PendingInterval = ctx.GlobalUint64(PlasmaPendingInterval.Name)
+		cfg.PendingInterval = ctx.GlobalInt64(PlasmaPendingInterval.Name)
 	}
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "gasprice", cfg.GasPrice, "interval", cfg.PendingInterval)
 

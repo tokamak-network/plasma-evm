@@ -96,7 +96,7 @@ type Config struct {
 	MinGasPrice     *big.Int
 	MaxGasPrice     *big.Int
 	GasPrice        *big.Int // initial gas price = (max gas price + min gas price) / 2
-	PendingInterval uint64
+	PendingInterval int64
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
