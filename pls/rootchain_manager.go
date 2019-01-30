@@ -298,6 +298,13 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 
 	for {
+		currentFork := big.NewInt(int64(rcm.state.currentFork))
+		lastBlock, err := rcm.lastBlock(currentFork)
+		if err != nil {
+			log.Error("Failed to get last block", "err", err)
+			return
+		}
+
 		select {
 		case ev := <-plasmaBlockMinedEvents.Chan():
 			if ev == nil {
@@ -325,12 +332,14 @@ func (rcm *RootChainManager) runSubmitter() {
 				select {
 				case _, ok := <-pendingInterval.C:
 					if ok {
+						if block.Number().Cmp(new(big.Int).Sub(lastBlock, big.NewInt(1))) != 0 {
+							break
+						}
 						if nonce == rcm.state.getNonce() {
 							adjust(false)
 						} else {
 							nonce = rcm.state.getNonce()
 						}
-						// TODO: compare with rootchain block number
 						txHash = submit(funcName, block)
 					}
 				case <-blockSubmitEvents:
@@ -656,6 +665,13 @@ func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (*Plasma
 	}
 
 	return newPlasmaBlock(b), nil
+}
+func (rcm *RootChainManager) lastBlock(forkNumber *big.Int) (*big.Int, error) {
+	num, err := rcm.rootchainContract.LastBlock(baseCallOpt, forkNumber)
+	if err != nil {
+		return nil, err
+	}
+	return num, nil
 }
 
 // pingBackend checks rootchain backend is alive.
