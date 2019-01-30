@@ -22,7 +22,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1417,7 +1416,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			}
 			cfg.MinGasPrice = minGasPrice
 			cfg.MaxGasPrice = maxGasPrice
-			cfg.GasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 		} else {
 			Fatalf("--%s flag must use with --%s flag", PlasmaMinGasPriceFlag.Name, PlasmaMaxGasPriceFlag.Name)
 		}
@@ -1425,7 +1423,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
 			Fatalf("--%s flag must use with --%s flag", PlasmaMaxGasPriceFlag.Name, PlasmaMinGasPriceFlag.Name)
 		}
-		cfg.GasPrice = new(big.Int).Div(new(big.Int).Add(cfg.MinGasPrice, cfg.MaxGasPrice), big.NewInt(2))
 	}
 	if ctx.GlobalIsSet(PlasmaPendingInterval.Name) {
 		pendingInterval := ctx.GlobalInt64(PlasmaPendingInterval.Name)
@@ -1434,7 +1431,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 		cfg.PendingInterval = ctx.GlobalInt64(PlasmaPendingInterval.Name)
 	}
-	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "gasprice", cfg.GasPrice, "interval", cfg.PendingInterval)
+	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 
 	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 

@@ -95,7 +95,6 @@ type Config struct {
 	// Gas price options for submitting a block
 	MinGasPrice     *big.Int
 	MaxGasPrice     *big.Int
-	GasPrice        *big.Int // initial gas price = (max gas price + min gas price) / 2
 	PendingInterval int64
 
 	// Protocol options
