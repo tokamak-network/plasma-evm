@@ -188,7 +188,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	}
 
 	epochEnv := miner.NewEpochEnvironment()
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, chainDb, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
@@ -470,8 +470,8 @@ func (s *Plasma) StartMining(threads int) error {
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
 		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
-
-		go s.miner.Start(eb, &rootchain.RootChainEpochPrepared{})
+		// This should be used for restarting miner only
+		go s.miner.Start(eb, &rootchain.RootChainEpochPrepared{}, true)
 	}
 	return nil
 }

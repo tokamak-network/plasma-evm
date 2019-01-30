@@ -1293,7 +1293,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	}
 
 	epochEnv := miner.NewEpochEnvironment()
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, db, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
 	gpoParams := config.GPO
@@ -1393,7 +1393,7 @@ func makeManager() (*RootChainManager, func(), error) {
 
 	mux := new(event.TypeMux)
 	epochEnv := miner.NewEpochEnvironment()
-	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
+	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	var rcm *RootChainManager
 
