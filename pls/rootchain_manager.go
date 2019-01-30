@@ -258,6 +258,45 @@ func (rcm *RootChainManager) runSubmitter() {
 		return
 	}
 
+	var (
+		nonce    = rcm.state.getNonce()
+		gasPrice = rcm.state.gasPrice
+
+		funcName string
+		txHash   common.Hash
+	)
+	// adjust coordinates gas prices at reasonable prices.
+	adjust := func(sufficient bool) {
+		if sufficient {
+			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+		} else {
+			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+		}
+	}
+	// submit sends transaction that submits ORB or NRB
+	submit := func(name string, block *types.Block) common.Hash {
+		input, err := rootchainContractABI.Pack(
+			name,
+			big.NewInt(int64(rcm.state.currentFork)),
+			block.Header().Root,
+			block.Header().TxHash,
+			block.Header().ReceiptHash,
+		)
+		if err != nil {
+			log.Error("Failed to pack "+name, "err", err)
+		}
+		submitTx := types.NewTransaction(nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, gasPrice, input)
+		signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+		if err != nil {
+			log.Error("Failed to sign "+funcName, "err", err)
+		}
+		err = rcm.backend.SendTransaction(context.Background(), signedTx)
+		if err != nil {
+			log.Error("Failed to send "+funcName, "err", err)
+		}
+		return signedTx.Hash()
+	}
+
 	for {
 		select {
 		case ev := <-plasmaBlockMinedEvents.Chan():
@@ -272,62 +311,47 @@ func (rcm *RootChainManager) runSubmitter() {
 			log.Error("check")
 			rcm.lock.Lock()
 
-			blockInfo := ev.Data.(core.NewMinedBlockEvent)
-			Nonce := rcm.state.getNonce()
-
-			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
-			networkID, err := rcm.backend.NetworkID(context.Background())
-			log.Info("network id", "id", networkID)
-			if err != nil {
-				log.Error("NetworkId error", "err", err)
-			}
-
-			funcName := "submitNRB"
-			submitCost := rcm.state.costNRB
 			if rcm.minerEnv.IsRequest {
 				funcName = "submitORB"
-				submitCost = rcm.state.costORB
-			}
-
-			input, err := rootchainContractABI.Pack(
-				funcName,
-				big.NewInt(int64(rcm.state.currentFork)),
-				blockInfo.Block.Header().Root,
-				blockInfo.Block.Header().TxHash,
-				blockInfo.Block.Header().ReceiptHash,
-			)
-
-			if err != nil {
-				log.Error("Failed to pack "+funcName, "err", err)
-			}
-			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(submitCost)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
-
-			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
-			if err != nil {
-				log.Error("Failed to sign "+funcName, "err", err)
-			}
-
-			err = rcm.backend.SendTransaction(context.Background(), signedTx)
-			if err != nil {
-				log.Error("Failed to send "+funcName, "err", err)
-			}
-
-			// wait root chain block is mined
-			<-blockSubmitEvents
-
-			receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
-			log.Debug("signed tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
-
-			if err != nil {
-				log.Error("Failed to send "+funcName, "err", err)
-			} else if receipt.Status == 0 {
-				log.Error(funcName+" is reverted", "hash", signedTx.Hash().Hex())
 			} else {
-				log.Info("Block is submitted", "funcName", funcName, "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
+				funcName = "submitNRB"
 			}
+			blockInfo := ev.Data.(core.NewMinedBlockEvent)
+			block := blockInfo.Block
+			txHash = submit(funcName, block)
 
-			rcm.state.incNonce()
-			rcm.lock.Unlock()
+			pendingInterval := time.NewTicker(time.Duration(rcm.config.PendingInterval) * time.Second)
+			for {
+				select {
+				case _, ok := <-pendingInterval.C:
+					if ok {
+						if nonce == rcm.state.getNonce() {
+							adjust(false)
+						} else {
+							nonce = rcm.state.getNonce()
+						}
+						// TODO: compare with rootchain block number
+						txHash = submit(funcName, block)
+					}
+				case <-blockSubmitEvents:
+					pendingInterval.Stop()
+					rcm.state.incNonce()
+					rcm.lock.Unlock()
+
+					receipt, err := rcm.backend.TransactionReceipt(context.Background(), txHash)
+					log.Debug("signed tx receipt", "receipt", receipt, "hash", txHash.String())
+
+					if err != nil {
+						log.Error("Failed to send "+funcName, "err", err)
+					} else if receipt.Status == 0 {
+						log.Error(funcName+" is reverted", "hash", txHash.Hex())
+					} else {
+						log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String(), "gasprice", gasPrice)
+						adjust(true)
+					}
+					break
+				}
+			}
 		case <-rcm.quit:
 			return
 		}
