@@ -166,10 +166,37 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieCleanLimit: config.TrieCleanCache, TrieDirtyLimit: config.TrieDirtyCache, TrieTimeLimit: config.TrieTimeout}
 	)
-	pls.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, pls.chainConfig, pls.engine, vmConfig, pls.shouldPreserve)
+
+	// Dial rootchain provider
+	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Rootchain provider connected", "url", config.RootChainURL)
+
+	// Instantiate RootChain contract
+	rootchainContract, err := rootchain.NewRootChain(config.RootChainContract, rootchainBackend)
+	if err != nil {
+		return nil, err
+	}
+
+	pls.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, pls.chainConfig, pls.engine, vmConfig, pls.shouldPreserve, rootchainContract)
+	if err != nil {
+		return nil, err
+	}
+
+	// initialize last submitted block
+	forkNum, err := rootchainContract.CurrentFork(baseCallOpt)
+	if err != nil {
+		log.Error("Failed to get current fork number from rootchain", "err", err)
+	}
+	blockNum, err := rootchainContract.LastBlock(baseCallOpt, forkNum)
+	if err != nil {
+		log.Error("Failed to get current block number from rootchain", "err", err)
+	}
+	pls.blockchain.LastSubmittedFork = forkNum
+	pls.blockchain.LastSubmittedNumber = blockNum
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -197,19 +224,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	pls.APIBackend.gpo = gasprice.NewOracle(pls.APIBackend, gpoParams)
-
-	// Dial rootchain provider
-	rootchainBackend, err := ethclient.Dial(config.RootChainURL)
-	if err != nil {
-		return nil, err
-	}
-	log.Info("Rootchain provider connected", "url", config.RootChainURL)
-
-	// Instantiate RootChain contract
-	rootchainContract, err := rootchain.NewRootChain(config.RootChainContract, rootchainBackend)
-	if err != nil {
-		return nil, err
-	}
 
 	stopFn := func() { pls.Stop() }
 

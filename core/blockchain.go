@@ -31,6 +31,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/mclock"
 	"github.com/Onther-Tech/plasma-evm/common/prque"
 	"github.com/Onther-Tech/plasma-evm/consensus"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
@@ -143,12 +144,14 @@ type BlockChain struct {
 	LastFinalizedBlock  *common.Hash // block Hash of Last Finalized Block at Root Chain
 	LastFinalizedNumber *big.Int     // block height of Last Finalized Block at Root Chain
 	CurrentForks        *big.Int     // +=1 Counter when Plasma chain fork
+	LastSubmittedNumber *big.Int     // block height of Last Submitted Block at Root Chain
+	LastSubmittedFork   *big.Int     // fork number of Last Submitted Block at Root Chain
 }
 
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
-func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, rc *rootchain.RootChain) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieCleanLimit: 256,
@@ -182,7 +185,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		vmConfig:                 vmConfig,
 		badBlocks:                badBlocks,
 	}
-	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
+	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine, rc))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
 	var err error

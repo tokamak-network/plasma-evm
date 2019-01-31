@@ -34,8 +34,9 @@ import (
 )
 
 var (
-	EmptyRootHash  = DeriveSha(Transactions{})
-	EmptyUncleHash = CalcUncleHash(nil)
+	EmptyRootHash    = DeriveSha(Transactions{})
+	EmptyBMTRootHash = DeriveShaFromBMT(Transactions{})
+	EmptyUncleHash   = CalcUncleHash(nil)
 )
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
@@ -192,7 +193,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
-		b.header.TxHash = EmptyRootHash
+		b.header.TxHash = EmptyBMTRootHash
 	} else {
 		b.header.TxHash = DeriveShaFromBMT(Transactions(txs))
 		b.transactions = make(Transactions, len(txs))
@@ -200,7 +201,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 	}
 
 	if len(receipts) == 0 {
-		b.header.ReceiptHash = EmptyRootHash
+		b.header.ReceiptHash = EmptyBMTRootHash
 	} else {
 		b.header.ReceiptHash = DeriveShaFromBMT(Receipts(receipts))
 		b.header.Bloom = CreateBloom(receipts)

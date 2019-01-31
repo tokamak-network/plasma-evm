@@ -236,12 +236,14 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Root:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{
-			Number:     parent.Number(),
-			Time:       new(big.Int).Sub(time, big.NewInt(10)),
-			Difficulty: parent.Difficulty(),
-			UncleHash:  parent.UncleHash(),
-		}),
+		Difficulty: big.NewInt(0),
+		// TODO: it's changed only for test
+		//Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{
+		//	Number:     parent.Number(),
+		//	Time:       new(big.Int).Sub(time, big.NewInt(10)),
+		//	Difficulty: parent.Difficulty(),
+		//	UncleHash:  parent.UncleHash(),
+		//}),
 		GasLimit: CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:   new(big.Int).Add(parent.Number(), common.Big1),
 		Time:     time,

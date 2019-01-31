@@ -324,6 +324,9 @@ func (rcm *RootChainManager) runSubmitter() {
 				log.Info("Block is submitted", "funcName", funcName, "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
 			}
 
+			rcm.blockchain.LastSubmittedFork = blockInfo.Block.Difficulty()
+			rcm.blockchain.LastSubmittedNumber = blockInfo.Block.Number()
+
 			rcm.state.incNonce()
 			rcm.lock.Unlock()
 		case <-rcm.quit:

@@ -17,13 +17,20 @@
 package core
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/consensus"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
+
+var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 
 // BlockValidator is responsible for validating block headers, uncles and
 // processed state.
@@ -33,15 +40,18 @@ type BlockValidator struct {
 	config *params.ChainConfig // Chain configuration options
 	bc     *BlockChain         // Canonical block chain
 	engine consensus.Engine    // Consensus engine used for validating
+	rc     *rootchain.RootChain
 }
 
 // NewBlockValidator returns a new block validator which is safe for re-use
-func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engine consensus.Engine) *BlockValidator {
+func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engine consensus.Engine, rc *rootchain.RootChain) *BlockValidator {
 	validator := &BlockValidator{
 		config: config,
 		engine: engine,
 		bc:     blockchain,
+		rc:     rc,
 	}
+
 	return validator
 }
 
@@ -98,7 +108,47 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	if root := statedb.IntermediateRoot(v.config.IsEIP158(header.Number)); header.Root != root {
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Root, root)
 	}
-	return nil
+
+	// Validate 3 roots from block committed on root chain against the received roots
+	// and throw an error if they don't match
+	validate := func() error {
+		tblock, err := v.rc.GetBlock(baseCallOpt, block.Difficulty(), block.Number())
+		if err != nil {
+			log.Error("failed to get block from rootchain", "err", err)
+		}
+		if header.TxHash != tblock.TransactionsRoot {
+			return fmt.Errorf("transaction root hash mismatch with rootchain block: local %x, rootchain %x", header.TxHash, tblock.TransactionsRoot)
+		}
+
+		if header.Root != tblock.StatesRoot {
+			return fmt.Errorf("state root hash mismatch with rootchain block: local %x, rootchain %x", header.Root, tblock.StatesRoot)
+		}
+
+		if header.ReceiptHash != tblock.ReceiptsRoot {
+			return fmt.Errorf("receipt root hash mismatch with rootchain block: local %x, rootchain %x", header.ReceiptHash, tblock.ReceiptsRoot)
+		}
+		return nil
+	}
+
+	if v.rc == nil {
+		return nil
+	}
+
+	timer := time.NewTicker(1 * time.Second)
+
+	for {
+		select {
+		case <-timer.C:
+			if v.bc.LastSubmittedNumber.Cmp(block.Number()) < 0 && v.bc.LastSubmittedFork.Cmp(block.Difficulty()) < 0 {
+				continue
+			}
+			err := validate()
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
 }
 
 // CalcGasLimit computes the gas limit of the next block after parent. It aims
