@@ -449,7 +449,7 @@ func TestScenario3(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
-	wait(e)
+	wait(2)
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
 	wait(2)
@@ -988,13 +988,13 @@ func TestValidationByRootChain(t *testing.T) {
 
 	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1058,13 +1058,13 @@ func TestValidationByRootChain2(t *testing.T) {
 
 	// NRBEpoch#1 / PlasmaBlock#1 (1/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
 		t.Fatal(err)
 	}
 
 	// NRBEpoch#1 / PlasmaBlock#2 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1216,7 +1216,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 
 	wait(3)
 
-	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	receipt, err = ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
@@ -1308,7 +1308,7 @@ func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	db := ethdb.NewMemDatabase()
 	genesis := gspec.MustCommit(db)
 
-	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil, nil)
 	// Create and inject the requested chain
 	if n == 0 {
 		return db, blockchain, nil
@@ -1353,10 +1353,10 @@ func newGenesisWithRootchainContract(rootChainContract common.Address, cfg *para
 	}
 }
 
-func newCanonicalWithRootchainContract(db ethdb.Database, gen *core.Genesis, cfg *params.ChainConfig, n int, full bool) (ethdb.Database, *core.BlockChain, error) {
+func newCanonicalWithRootchainContract(db ethdb.Database, gen *core.Genesis, n int, full bool, rc *rootchain.RootChain) (ethdb.Database, *core.BlockChain, error) {
 	genesis := gen.MustCommit(db)
 
-	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil, rc)
 	// Create and inject the requested chain
 	if n == 0 {
 		return db, blockchain, nil
@@ -1429,11 +1429,8 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	//rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 	rootchainAddress, rootchainContract, err := deployRootChain(genesis)
 
-	chainConfig.RootchainAddress = rootchainAddress
-	chainConfig.RootchainURL = "ws://localhost:8546"
-
 	gen := newGenesisWithRootchainContract(rootchainAddress, chainConfig)
-	db, blockchain, err := newCanonicalWithRootchainContract(db, gen, chainConfig, 0, true)
+	db, blockchain, err := newCanonicalWithRootchainContract(db, gen, 0, true, rootchainContract)
 	if err != nil {
 		log.Error("Failed to create blockchain", "err", err)
 		return nil, nil, "", err
@@ -1678,8 +1675,6 @@ func makeSampleTx(rcm *RootChainManager) error {
 }
 
 func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool, expectedFork, expectedBlockNumber int64) error {
-	// TODO: delete below line after genesis.Difficulty is set 0
-	expectedFork += 1
 
 	outC := make(chan struct{})
 	errC := make(chan error)
