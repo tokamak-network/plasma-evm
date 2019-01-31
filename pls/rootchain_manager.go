@@ -352,12 +352,13 @@ func (rcm *RootChainManager) runSubmitter() {
 
 					if err != nil {
 						log.Error("Failed to send "+funcName, "err", err)
+						break
 					} else if receipt.Status == 0 {
 						log.Error(funcName+" is reverted", "hash", txHash.Hex())
 					} else {
 						log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String(), "gasprice", gasPrice)
-						adjust(true)
 					}
+					adjust(true)
 					break
 				}
 			}
