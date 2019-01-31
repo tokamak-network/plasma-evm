@@ -26,7 +26,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
@@ -38,34 +37,19 @@ var baseCallOpt = &bind.CallOpts{Pending: false, Context: context.Background()}
 //
 // BlockValidator implements Validator.
 type BlockValidator struct {
-	config    *params.ChainConfig // Chain configuration options
-	bc        *BlockChain         // Canonical block chain
-	engine    consensus.Engine    // Consensus engine used for validating
-	rootchain *rootchain.RootChain
+	config *params.ChainConfig // Chain configuration options
+	bc     *BlockChain         // Canonical block chain
+	engine consensus.Engine    // Consensus engine used for validating
+	rc     *rootchain.RootChain
 }
 
 // NewBlockValidator returns a new block validator which is safe for re-use
-func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engine consensus.Engine) *BlockValidator {
-	// Dial rootchain provider
-	rootchainBackend, err := ethclient.Dial(config.RootchainURL)
-	if err != nil {
-		log.Error("failed to make rootchainBackend", "err", err)
-		return nil
-	}
-	log.Info("Rootchain provider connected", "url", config.RootchainURL)
-
-	// Instantiate RootChain contract
-	rootchainContract, err := rootchain.NewRootChain(config.RootchainAddress, rootchainBackend)
-	if err != nil {
-		log.Error("failed to make rootchainContract", "err", err)
-		return nil
-	}
-
+func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engine consensus.Engine, rc *rootchain.RootChain) *BlockValidator {
 	validator := &BlockValidator{
-		config:    config,
-		engine:    engine,
-		bc:        blockchain,
-		rootchain: rootchainContract,
+		config: config,
+		engine: engine,
+		bc:     blockchain,
+		rc:     rc,
 	}
 
 	return validator
@@ -128,11 +112,10 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	// Validate 3 roots from block committed on root chain against the received roots
 	// and throw an error if they don't match
 	validate := func() error {
-		tblock, err := v.rootchain.GetBlock(baseCallOpt, block.Difficulty(), block.Number())
+		tblock, err := v.rc.GetBlock(baseCallOpt, block.Difficulty(), block.Number())
 		if err != nil {
 			log.Error("failed to get block from rootchain", "err", err)
 		}
-
 		if header.TxHash != tblock.TransactionsRoot {
 			return fmt.Errorf("transaction root hash mismatch with rootchain block: local %x, rootchain %x", header.TxHash, tblock.TransactionsRoot)
 		}
@@ -147,13 +130,16 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 		return nil
 	}
 
-	timer := time.NewTimer(0)
+	if v.rc == nil {
+		return nil
+	}
+
+	timer := time.NewTicker(1 * time.Second)
 
 	for {
 		select {
 		case <-timer.C:
 			if v.bc.LastSubmittedNumber.Cmp(block.Number()) < 0 && v.bc.LastSubmittedFork.Cmp(block.Difficulty()) < 0 {
-				timer.Reset(1 * time.Second)
 				continue
 			}
 			err := validate()
