@@ -449,14 +449,13 @@ func TestScenario3(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
-	wait(e)
+	wait(3)
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
-	wait(2)
 	if err != nil {
 		t.Fatalf("Failed to fetch token address from RootChain contract: %v", err)
 	} else if tokenAddr != tokenAddrInChildChain {
-		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain, tokenAddr)
+		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain.Hex(), tokenAddr.Hex())
 	}
 
 	// deposit 1 ether for each account
@@ -1078,7 +1077,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 
 	wait(3)
 
-	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+	receipt, err = ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		t.Fatalf("Failed to get receipt: %v", err)
 	}
