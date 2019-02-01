@@ -17,7 +17,6 @@
 package types
 
 import (
-	"bytes"
 	"container/heap"
 	"errors"
 	"io"
@@ -231,12 +230,13 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		checkNonce: true,
 	}
 
-	if bytes.Compare(msg.From().Bytes(), params.NullAddress.Bytes()) == 0 {
+	var err error
+	msg.from, err = Sender(s, tx)
+
+	if err == nil && msg.from == params.NullAddress {
 		msg.checkNonce = false
 	}
 
-	var err error
-	msg.from, err = Sender(s, tx)
 	return msg, err
 }
 
