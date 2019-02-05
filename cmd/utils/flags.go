@@ -18,9 +18,11 @@
 package utils
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,17 +30,21 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/fdlimit"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
 	"github.com/Onther-Tech/plasma-evm/les"
@@ -1179,6 +1185,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
+	checkExclusive(ctx, DeveloperFlag, PlasmaRootChainContractFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
@@ -1186,6 +1193,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)
 	setWhitelist(ctx, cfg)
+
+	var operatorKey *ecdsa.PrivateKey
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1263,8 +1272,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
 		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
-		key, _ := crypto.HexToECDSA(hex)
-		if addr := crypto.PubkeyToAddress(key.PublicKey); addr != params.Operator {
+		operatorKey, _ = crypto.HexToECDSA(hex)
+
+		if addr := crypto.PubkeyToAddress(operatorKey.PublicKey); addr != params.Operator {
 			Fatalf("Faild to convert operator account: %v is not operator %v", addr.Hex(), params.Operator.Hex())
 		}
 
@@ -1273,7 +1283,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			err     error
 		)
 
-		if account, err = ks.ImportECDSA(key, ""); err != nil {
+		if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
 			Fatalf("Faild to import operator account: %v", err)
 		}
 
@@ -1309,7 +1319,78 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
-	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+
+	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
+		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	}
+
+	switch {
+	case ctx.GlobalBool(TestnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 3
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(RinkebyFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 4
+		}
+		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 1337
+		}
+
+		dummyDB := ethdb.NewMemDatabase()
+		defer dummyDB.Close()
+
+		dummyBlock := core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), common.HexToAddress("0xdead"), crypto.PubkeyToAddress(operatorKey.PublicKey)).ToBlock(dummyDB)
+
+		var (
+			development = true
+			NRELength   = big.NewInt(2)
+		)
+
+		t := time.NewTimer(2 * time.Second)
+		defer t.Stop()
+
+		rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
+		if err != nil {
+			Fatalf("Failed to connect rootchain: %v", err)
+		}
+
+		log.Info("Deploying contracts for development mode")
+
+		opt := bind.NewKeyedTransactor(operatorKey)
+
+		epochHandlerContract, tx1, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+		if err != nil {
+			Fatalf("Failed to deploy epoch handler contract")
+		}
+		log.Info("Deploy epoch handler contract", "hash", tx1.Hash(), "address", epochHandlerContract)
+
+		<-t.C
+
+		rootchainContract, tx2, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+		if err != nil {
+			Fatalf("Failed to deploy rootchain contract")
+		}
+		log.Info("Deploy rootchain contract", "hash", tx2.Hash(), "address", rootchainContract)
+
+		receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+		log.Info("Wait until deploy transactions are mined")
+		for receipt == nil {
+			t := time.NewTimer(1)
+			<-t.C
+			receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+		}
+
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, crypto.PubkeyToAddress(operatorKey.PublicKey))
+		cfg.RootChainContract = rootchainContract
+
+		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+			cfg.MinerGasPrice = big.NewInt(1)
+		}
+	}
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {

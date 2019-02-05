@@ -360,20 +360,15 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 }
 
 // DeveloperGenesisBlock returns the Plasma genesis block
-func DeveloperGenesisBlock(period uint64) *Genesis {
-	// Override the default period to the user requested one
-	config := *params.AllCliqueProtocolChanges
-	config.Clique.Period = period
-
+func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, operator common.Address) *Genesis {
 	staminaBinBytes, err := hex.DecodeString(StaminaContractDeployedBin[2:])
 	if err != nil {
 		panic(err)
 	}
 
-	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
-		ExtraData:  append(append(make([]byte, 32), params.Operator[:]...), make([]byte, 65)...),
+		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   6283185,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
@@ -385,11 +380,11 @@ func DeveloperGenesisBlock(period uint64) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			params.Operator:                  {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 			StaminaContractAddress: {
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
 			},
+			operator: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
