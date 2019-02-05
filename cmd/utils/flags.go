@@ -18,6 +18,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
@@ -1193,6 +1194,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setEthash(ctx, cfg)
 	setWhitelist(ctx, cfg)
 
+	var operatorKey *ecdsa.PrivateKey
+
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
@@ -1269,8 +1272,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
 		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
-		key, _ := crypto.HexToECDSA(hex)
-		if addr := crypto.PubkeyToAddress(key.PublicKey); addr != params.Operator {
+		operatorKey, _ = crypto.HexToECDSA(hex)
+
+		if addr := crypto.PubkeyToAddress(operatorKey.PublicKey); addr != params.Operator {
 			Fatalf("Faild to convert operator account: %v is not operator %v", addr.Hex(), params.Operator.Hex())
 		}
 
@@ -1279,7 +1283,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			err     error
 		)
 
-		if account, err = ks.ImportECDSA(key, ""); err != nil {
+		if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
 			Fatalf("Faild to import operator account: %v", err)
 		}
 
@@ -1335,60 +1339,52 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
 		}
-		// hard coding for dev mode
+
+		dummyDB := ethdb.NewMemDatabase()
+		defer dummyDB.Close()
+
+		dummyBlock := core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), common.HexToAddress("0xdead"), crypto.PubkeyToAddress(operatorKey.PublicKey)).ToBlock(dummyDB)
+
 		var (
-			operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-			rootChainURL   = "ws://localhost:8546"
-
-			_statesRoot       [32]byte
-			_transactionsRoot [32]byte
-			_receiptsRoot     [32]byte
-
-			development      = true
-			NRELength        = big.NewInt(2)
-			statesRoot       = "0ded2f89db1e11454ba4ba90e31850587943ed4a412f2ddf422bd948eae8b164"
-			transactionsRoot = "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
-			receiptsRoot     = "0000000000000000000000000000000000000000000000000000000000000000"
+			development = true
+			NRELength   = big.NewInt(2)
 		)
 
 		t := time.NewTimer(2 * time.Second)
 		defer t.Stop()
 
-		rootchainBackend, err := ethclient.Dial(rootChainURL)
+		rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
 		if err != nil {
 			Fatalf("Failed to connect rootchain: %v", err)
 		}
 
+		log.Info("Deploying contracts for development mode")
+
 		opt := bind.NewKeyedTransactor(operatorKey)
-		eh, _, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+
+		epochHandlerContract, tx1, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
 		if err != nil {
 			Fatalf("Failed to deploy epoch handler contract")
 		}
+		log.Info("Deploy epoch handler contract", "hash", tx1.Hash(), "address", epochHandlerContract)
 
 		<-t.C
-		copy(_statesRoot[:], statesRoot)
-		copy(_transactionsRoot[:], transactionsRoot)
-		copy(_receiptsRoot[:], receiptsRoot)
 
-		rootchainContract, _, _, err := rootchain.DeployRootChain(opt, rootchainBackend, eh, development, NRELength, _statesRoot, _transactionsRoot, _receiptsRoot)
+		rootchainContract, tx2, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
 		if err != nil {
 			Fatalf("Failed to deploy rootchain contract")
 		}
-		log.Info("Deploy rootchain contract", "address", rootchainContract)
+		log.Info("Deploy rootchain contract", "hash", tx2.Hash(), "address", rootchainContract)
 
-		account, err := ks.ImportECDSA(operatorKey, "")
-		if err != nil {
-			Fatalf("Faild to import operator account: %v", err)
-		}
-		log.Info("Unlocking operator account", "address", account.Address)
-
-		if err = ks.Unlock(account, ""); err != nil {
-			Fatalf("Failed to unlock operator account: %v", err)
+		receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+		log.Info("Wait until deploy transactions are mined")
+		for receipt == nil {
+			t := time.NewTimer(1)
+			<-t.C
+			receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
 		}
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, account.Address)
-		cfg.Operator = account
-		cfg.RootChainURL = rootChainURL
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, crypto.PubkeyToAddress(operatorKey.PublicKey))
 		cfg.RootChainContract = rootchainContract
 
 		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
