@@ -153,66 +153,59 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
-	// rootchain block#1
-	startBlockNumber := uint64(1)
-
+	startBlockNumber := rcm.blockchain.GetBlockNumberForRootChainContractEvent()
 	filterOpts := &bind.FilterOpts{
 		Start:   startBlockNumber,
 		End:     nil,
 		Context: context.Background(),
 	}
 
-	// iterate previous events
-	// TODO: the events fired while syncing should be dealt with in different way.
-	iterator, err := filterer.FilterEpochPrepared(filterOpts)
+	// iterate to find previous epoch prepared events
+	iteratorForEpochPreparedEvent, err := filterer.FilterEpochPrepared(filterOpts)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Iterating EpochPrepared event")
-
-	for iterator.Next() {
-		e := iterator.Event
+	log.Info("Iterating epoch prepared event")
+	for iteratorForEpochPreparedEvent.Next() {
+		e := iteratorForEpochPreparedEvent.Event
 		if e != nil {
 			rcm.handleEpochPrepared(e)
 		}
 	}
 
-	iterator2, err := filterer.FilterBlockFinalized(filterOpts)
+	// iterate to find previous block finalized events
+	iteratorForBlockFinalizedEvent, err := filterer.FilterBlockFinalized(filterOpts)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Iterating BlockFinalized event")
-
-	for iterator2.Next() {
-		e := iterator2.Event
+	log.Info("Iterating block finalized event")
+	for iteratorForBlockFinalizedEvent.Next() {
+		e := iteratorForBlockFinalizedEvent.Event
 		if e != nil {
 			rcm.handleBlockFinalzied(e)
 		}
 	}
 
-	// watch events from now
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
-		Start:   &startBlockNumber, // read events from rootchain block#1
+		Start:   &startBlockNumber,
 	}
-
 	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
+	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
+
+	log.Info("Watching epoch prepared event", "start block number", startBlockNumber)
 	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Watching EpochPrepared event", "startBlockNumber", startBlockNumber)
-
-	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
+	log.Info("Watching block finalized event", "start block number", startBlockNumber)
 	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
 	if err != nil {
 		return err
 	}
-
-	log.Info("watching BlockFinalized event", "startBlockNumber", startBlockNumber)
 
 	go func() {
 		for {
@@ -223,7 +216,7 @@ func (rcm *RootChainManager) watchEvents() error {
 				}
 
 			case err := <-epochPrepareSub.Err():
-				log.Error("EpochPrepared event subscription error", "err", err)
+				log.Error("Epoch prepared event subscription error", "err", err)
 				rcm.stopFn()
 				return
 
@@ -233,7 +226,7 @@ func (rcm *RootChainManager) watchEvents() error {
 				}
 
 			case err := <-blockFinalizedSub.Err():
-				log.Error("BlockFinalized event subscription error", "err", err)
+				log.Error("Block finalized event subscription error", "err", err)
 				rcm.stopFn()
 				return
 
@@ -277,7 +270,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
 			networkID, err := rcm.backend.NetworkID(context.Background())
-			log.Info("network Id", "id", networkID)
+			log.Info("network id", "id", networkID)
 			if err != nil {
 				log.Error("NetworkId error", "err", err)
 			}
@@ -338,10 +331,14 @@ func (rcm *RootChainManager) runHandlers() {
 		case e := <-rcm.epochPreparedCh:
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
+			} else {
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
 			}
 		case e := <-rcm.blockFinalizedCh:
 			if err := rcm.handleBlockFinalzied(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
+			} else {
+				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
 			}
 		case <-rcm.quit:
 			return

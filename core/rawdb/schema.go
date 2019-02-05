@@ -57,6 +57,9 @@ var (
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
 
+	// Block number for managing rootchain contract event
+	blockNumberForRootChainContractEventPrefix = []byte("block-number-for-rootchain-contract-event-") // blockNumberForRootChainContractEventPrefix + num (uint64 big endian) -> block number for rootchain contract event
+
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 
@@ -152,4 +155,8 @@ func preimageKey(hash common.Hash) []byte {
 // configKey = configPrefix + hash
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
+}
+
+func blockNumberForRootChainContractEventKey() []byte {
+	return blockNumberForRootChainContractEventPrefix
 }
