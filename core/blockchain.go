@@ -343,7 +343,10 @@ func (bc *BlockChain) SetInvalidExitReceipts(fork uint64, hash common.Hash, num 
 }
 
 func (bc *BlockChain) SetBlockNumberForRootChainContractEvent(num uint64) {
-	rawdb.WriteBlockNumberForRootChainContractEvent(bc.db, num)
+	v := bc.GetBlockNumberForRootChainContractEvent()
+	if v < num {
+		rawdb.WriteBlockNumberForRootChainContractEvent(bc.db, num)
+	}
 }
 
 // FastSyncCommitHead sets the current head block to the one defined by the hash
