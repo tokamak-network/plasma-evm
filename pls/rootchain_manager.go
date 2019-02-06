@@ -20,6 +20,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
@@ -58,7 +59,7 @@ type RootChainManager struct {
 	accountManager *accounts.Manager
 
 	miner    *miner.Miner
-	minerEnv *miner.EpochEnvironment
+	minerEnv *epoch.EpochEnvironment
 	state    *rootchainState
 
 	// fork => block number => invalidExits
@@ -87,7 +88,7 @@ func NewRootChainManager(
 	eventMux *event.TypeMux,
 	accountManager *accounts.Manager,
 	miner *miner.Miner,
-	env *miner.EpochEnvironment,
+	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
 	rcm := &RootChainManager{
 		config:            config,
@@ -263,6 +264,12 @@ func (rcm *RootChainManager) runSubmitter() {
 			if ev == nil {
 				return
 			}
+
+			// if the epoch is completed, stop mining operation and wait next epoch
+			if rcm.minerEnv.Completed {
+				rcm.miner.Stop()
+			}
+			log.Error("check")
 			rcm.lock.Lock()
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
@@ -276,8 +283,10 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 
 			funcName := "submitNRB"
+			submitCost := rcm.state.costNRB
 			if rcm.minerEnv.IsRequest {
 				funcName = "submitORB"
+				submitCost = rcm.state.costORB
 			}
 
 			input, err := rootchainContractABI.Pack(
@@ -291,7 +300,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			if err != nil {
 				log.Error("Failed to pack "+funcName, "err", err)
 			}
-			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(submitCost)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 			if err != nil {
@@ -354,8 +363,17 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	e := *ev
 
-	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty)
-	go rcm.eventMux.Post(miner.EpochPrepared{Payload: &e})
+	if e.EpochIsEmpty {
+		log.Info("epoch is empty, jump to next epoch")
+		return nil
+	}
+
+	length := new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1))
+
+	// start miner
+	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
+	go rcm.miner.Start(params.Operator, &e, false)
+
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
 		events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})

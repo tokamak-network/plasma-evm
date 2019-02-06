@@ -946,6 +946,71 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
+func TestMinerRestart(t *testing.T) {
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+
+	wait(3)
+
+	log.Info("All backends are set up")
+
+	// NRE#1 / Block#1 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	pls.StopMining()
+	blockBeforeStop := pls.blockchain.CurrentBlock()
+
+	wait(5)
+	pls.StartMining(runtime.NumCPU())
+
+	// NRE#1 / Block#2 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	blockAfterStop := pls.blockchain.CurrentBlock()
+	if diff := blockAfterStop.NumberU64() - blockBeforeStop.NumberU64(); diff != 1 {
+		t.Fatalf("failed to resume current epoch", "difference", diff)
+	}
+}
+
 func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value *big.Int) {
 	if value.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 ETH")
@@ -1292,7 +1357,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	}
 
 	epochEnv := miner.NewEpochEnvironment()
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
+	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, db, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
 	gpoParams := config.GPO
@@ -1392,7 +1457,7 @@ func makeManager() (*RootChainManager, func(), error) {
 
 	mux := new(event.TypeMux)
 	epochEnv := miner.NewEpochEnvironment()
-	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
+	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	var rcm *RootChainManager
 

@@ -28,12 +28,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -127,7 +130,8 @@ type worker struct {
 	pls    Backend
 	chain  *core.BlockChain
 
-	env *EpochEnvironment
+	env *epoch.EpochEnvironment
+	db  ethdb.Database
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -182,12 +186,13 @@ type worker struct {
 	epochLength *big.Int // NRB epoch length
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *EpochEnvironment, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, pls Backend, env *epoch.EpochEnvironment, db ethdb.Database, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
 		pls:                pls,
 		env:                env,
+		db:                 db,
 		mux:                mux,
 		chain:              pls.BlockChain(),
 		gasFloor:           gasFloor,
@@ -304,13 +309,15 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
-		if interrupt != nil {
-			atomic.StoreInt32(interrupt, s)
+		if w.isRunning() && !w.env.Completed {
+			if interrupt != nil {
+				atomic.StoreInt32(interrupt, s)
+			}
+			interrupt = new(int32)
+			w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
+			timer.Reset(recommit)
+			atomic.StoreInt32(&w.newTxs, 0)
 		}
-		interrupt = new(int32)
-		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
-		timer.Reset(recommit)
-		atomic.StoreInt32(&w.newTxs, 0)
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
 	recalcRecommit := func(target float64, inc bool) {
@@ -353,12 +360,10 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			// commit new mining work again only when the epoch is not completed.
-			if w.env.Completed == false {
+			if w.isRunning() && !w.env.Completed {
 				clearPending(head.Block.NumberU64())
 				timestamp = time.Now().Unix()
 				commit(true, commitInterruptNewHead)
-			} else {
-				log.Info("epoch is completed. stop committing new mining work")
 			}
 
 		case <-timer.C:
@@ -599,17 +604,13 @@ func (w *worker) resultLoop() {
 				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
 
 			// add 1 to number of block mined
-			if w.env.IsRequest {
-				w.env.setNumORBmined(new(big.Int).Add(w.env.NumORBmined, big.NewInt(1)))
-			} else {
-				w.env.setNumNRBmined(new(big.Int).Add(w.env.NumNRBmined, big.NewInt(1)))
-			}
+			w.env.SetNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
+			rawdb.WriteEpochEnv(w.db, w.env)
 
 			// check if the epoch is completed
-			if w.env.NumNRBmined.Cmp(w.env.NRBepochLength) == 0 {
-				w.env.setCompleted(true)
-			} else if w.env.NumORBmined.Cmp(w.env.ORBepochLength) == 0 && w.env.IsRequest {
-				w.env.setCompleted(true)
+			if w.env.NumBlockMined.Cmp(w.env.EpochLength) == 0 {
+				w.env.SetCompleted(true)
+				rawdb.WriteEpochEnv(w.db, w.env)
 			}
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
