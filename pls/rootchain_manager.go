@@ -153,7 +153,7 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
-	startBlockNumber := rcm.blockchain.GetBlockNumberForRootChainContractEvent()
+	startBlockNumber := rcm.blockchain.GetRootchainBlockNumber()
 	filterOpts := &bind.FilterOpts{
 		Start:   startBlockNumber,
 		End:     nil,
@@ -332,13 +332,13 @@ func (rcm *RootChainManager) runHandlers() {
 			if err := rcm.handleEpochPrepared(e); err != nil {
 				log.Error("Failed to handle epoch prepared", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
+				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
 			}
 		case e := <-rcm.blockFinalizedCh:
 			if err := rcm.handleBlockFinalzied(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
 			} else {
-				rcm.blockchain.SetBlockNumberForRootChainContractEvent(e.Raw.BlockNumber)
+				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
 			}
 		case <-rcm.quit:
 			return

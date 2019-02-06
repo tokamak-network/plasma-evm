@@ -50,9 +50,9 @@ func DeleteCanonicalHash(db DatabaseDeleter, number uint64) {
 	}
 }
 
-// ReadBlockNumberForRootChainContractEvent returns the block number for rootchain contract event.
-func ReadBlockNumberForRootChainContractEvent(db DatabaseReader) *uint64 {
-	data, _ := db.Get(blockNumberForRootChainContractEventKey())
+// ReadRootchainBlockNumber returns the block number for rootchain contract event.
+func ReadRootchainBlockNumber(db DatabaseReader) *uint64 {
+	data, _ := db.Get(rootchainBlockNumberKey)
 	if len(data) != 8 {
 		return nil
 	}
@@ -60,11 +60,10 @@ func ReadBlockNumberForRootChainContractEvent(db DatabaseReader) *uint64 {
 	return &number
 }
 
-// WriteBlockNumberForRootChainContractEvent stores a block number for rootchain contract event.
-func WriteBlockNumberForRootChainContractEvent(db DatabaseWriter, number uint64) {
-	key := blockNumberForRootChainContractEventKey()
+// WriteRootchainBlockNumber stores a block number for rootchain contract event.
+func WriteRootchainBlockNumber(db DatabaseWriter, number uint64) {
 	encoded := encodeBlockNumber(number)
-	if err := db.Put(key, encoded); err != nil {
+	if err := db.Put(rootchainBlockNumberKey, encoded); err != nil {
 		log.Crit("Failed to store block number for rootchain contract event", "err", err)
 	}
 }

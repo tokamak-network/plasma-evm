@@ -342,10 +342,10 @@ func (bc *BlockChain) SetInvalidExitReceipts(fork uint64, hash common.Hash, num 
 	rawdb.WriteInvalidExitReceiptsLookupEntry(bc.db, fork, hash, num, indices)
 }
 
-func (bc *BlockChain) SetBlockNumberForRootChainContractEvent(num uint64) {
-	v := bc.GetBlockNumberForRootChainContractEvent()
+func (bc *BlockChain) SetRootchainBlockNumber(num uint64) {
+	v := bc.GetRootchainBlockNumber()
 	if v < num {
-		rawdb.WriteBlockNumberForRootChainContractEvent(bc.db, num)
+		rawdb.WriteRootchainBlockNumber(bc.db, num)
 	}
 }
 
@@ -660,11 +660,11 @@ func (bc *BlockChain) GetInvalidExitReceipts(fork uint64, num uint64) map[uint64
 	return ierc
 }
 
-// GetBlockNumberForRootChainContractEvent retrieves a block number for rootchain contract event.
-func (bc *BlockChain) GetBlockNumberForRootChainContractEvent() uint64 {
-	num := rawdb.ReadBlockNumberForRootChainContractEvent(bc.db)
+// GetRootchainBlockNumber retrieves a block number for rootchain contract event.
+func (bc *BlockChain) GetRootchainBlockNumber() uint64 {
+	num := rawdb.ReadRootchainBlockNumber(bc.db)
 	if num == nil {
-		return 1
+		return 0
 	}
 	return *num
 }
