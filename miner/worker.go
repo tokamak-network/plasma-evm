@@ -304,8 +304,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   int64      // timestamp for each round of mining.
 	)
 
-	timer := time.NewTimer(0)
-	<-timer.C // discard the initial tick
+	timer := time.NewTimer(recommit)
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
@@ -353,26 +352,22 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	for {
 		select {
+
+		// clear pending task when miner is started
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
-			timestamp = time.Now().Unix()
-			commit(true, commitInterruptNewHead)
 
-		case head := <-w.chainHeadCh:
-			// commit new mining work again only when the epoch is not completed.
-			if w.isRunning() && !w.env.Completed {
-				clearPending(head.Block.NumberU64())
-				timestamp = time.Now().Unix()
-				commit(true, commitInterruptNewHead)
-			}
+		// just consume chain head event
+		case <-w.chainHeadCh:
 
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
+			timer.Reset(recommit)
+
+			if (w.isRunning() && !w.env.Completed) && (w.config.Clique == nil || w.config.Clique.Period > 0) {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
-					timer.Reset(recommit)
 					continue
 				}
 				commit(true, commitInterruptResubmit)
