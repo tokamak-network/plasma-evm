@@ -370,6 +370,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				if atomic.LoadInt32(&w.newTxs) == 0 {
 					continue
 				}
+				timestamp = time.Now().Unix()
 				commit(true, commitInterruptResubmit)
 			}
 
