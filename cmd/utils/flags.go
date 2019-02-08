@@ -1346,7 +1346,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		dummyBlock := core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), common.HexToAddress("0xdead"), crypto.PubkeyToAddress(operatorKey.PublicKey)).ToBlock(dummyDB)
 
 		var (
-			development = true
+			development = false
 			NRELength   = big.NewInt(2)
 		)
 
