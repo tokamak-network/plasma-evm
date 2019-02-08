@@ -30,9 +30,6 @@ var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
 	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
-
-	//TODO: sholud delete this after fixing rcm.backend.NetworkId
-	rootchainNetworkId = big.NewInt(1337)
 )
 
 type invalidExit struct {
@@ -275,13 +272,6 @@ func (rcm *RootChainManager) runSubmitter() {
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 			Nonce := rcm.state.getNonce()
 
-			//TODO: rcm.backend.NetworkID does not work as intended. It should return 1337, not 1. And it should moved to rcm.config.RootchainNetworkId.
-			networkID, err := rcm.backend.NetworkID(context.Background())
-			log.Info("network id", "id", networkID)
-			if err != nil {
-				log.Error("NetworkId error", "err", err)
-			}
-
 			funcName := "submitNRB"
 			submitCost := rcm.state.costNRB
 			if rcm.minerEnv.IsRequest {
@@ -302,7 +292,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			}
 			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(submitCost)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
+			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign "+funcName, "err", err)
 			}
@@ -537,7 +527,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 			Nonce := rcm.state.getNonce()
 			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
+			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}
