@@ -44,16 +44,17 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     16,
-	LightPeers:     100,
-	DatabaseCache:  512,
-	TrieCleanCache: 256,
-	TrieDirtyCache: 256,
-	TrieTimeout:    60 * time.Minute,
-	MinerGasFloor:  8000000,
-	MinerGasCeil:   8000000,
-	MinerGasPrice:  big.NewInt(params.GWei),
-	MinerRecommit:  3 * time.Second,
+	NetworkId:          16,
+	RootChainNetworkID: 1337,
+	LightPeers:         100,
+	DatabaseCache:      512,
+	TrieCleanCache:     256,
+	TrieDirtyCache:     256,
+	TrieTimeout:        60 * time.Minute,
+	MinerGasFloor:      8000000,
+	MinerGasCeil:       8000000,
+	MinerGasPrice:      big.NewInt(params.GWei),
+	MinerRecommit:      3 * time.Second,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -84,9 +85,10 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Plasma options
-	Operator          accounts.Account
-	RootChainURL      string
-	RootChainContract common.Address
+	Operator           accounts.Account
+	RootChainURL       string
+	RootChainContract  common.Address
+	RootChainNetworkID uint64
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

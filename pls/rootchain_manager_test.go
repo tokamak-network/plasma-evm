@@ -1007,7 +1007,7 @@ func TestMinerRestart(t *testing.T) {
 
 	blockAfterStop := pls.blockchain.CurrentBlock()
 	if diff := blockAfterStop.NumberU64() - blockBeforeStop.NumberU64(); diff != 1 {
-		t.Fatalf("failed to resume current epoch", "difference", diff)
+		t.Fatal("failed to resume current epoch", "difference", diff)
 	}
 }
 
