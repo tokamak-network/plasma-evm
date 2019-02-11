@@ -1203,7 +1203,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setEthash(ctx, cfg)
 	setWhitelist(ctx, cfg)
 
-	var operatorKey *ecdsa.PrivateKey
+	var (
+		operatorKey      *ecdsa.PrivateKey
+		rootchainBackend *ethclient.Client
+	)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1331,6 +1334,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
+	rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
+	if err != nil {
+		Fatalf("Failed to connect rootchain: %v", err)
+	}
 
 	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
@@ -1368,15 +1375,13 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		t := time.NewTimer(2 * time.Second)
 		defer t.Stop()
 
-		rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
-		if err != nil {
-			Fatalf("Failed to connect rootchain: %v", err)
-		}
-
 		log.Info("Deploying contracts for development mode")
 
 		opt := bind.NewKeyedTransactor(operatorKey)
 
+		if rootchainBackend == nil {
+			Fatalf("Rootchain is not connected")
+		}
 		epochHandlerContract, tx1, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
 		if err != nil {
 			Fatalf("Failed to deploy epoch handler contract")
