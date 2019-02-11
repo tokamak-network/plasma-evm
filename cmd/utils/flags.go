@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -656,7 +657,7 @@ var (
 		Usage: "Maximum gas price for submitting a block",
 		Value: pls.DefaultConfig.MaxGasPrice,
 	}
-	PlasmaPendingInterval = cli.Int64Flag{
+	PlasmaPendingInterval = cli.DurationFlag{
 		Name:  "rootchain.interval",
 		Usage: "Pending interval time after submitting a block",
 		Value: pls.DefaultConfig.PendingInterval,
@@ -1425,11 +1426,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 	if ctx.GlobalIsSet(PlasmaPendingInterval.Name) {
-		pendingInterval := ctx.GlobalInt64(PlasmaPendingInterval.Name)
-		if pendingInterval < 15 {
+		pendingInterval := ctx.Duration(PlasmaPendingInterval.Name)
+		if pendingInterval.Seconds() < 15 {
 			Fatalf("pending interval time must be at least 15 seconds")
 		}
-		cfg.PendingInterval = ctx.GlobalInt64(PlasmaPendingInterval.Name)
 	}
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 

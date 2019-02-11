@@ -95,7 +95,7 @@ type Config struct {
 	// Gas price options for submitting a block
 	MinGasPrice     *big.Int
 	MaxGasPrice     *big.Int
-	PendingInterval int64
+	PendingInterval time.Duration
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
