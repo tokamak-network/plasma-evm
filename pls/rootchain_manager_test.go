@@ -12,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"io/ioutil"
+	"os"
+
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
@@ -38,8 +41,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
-	"io/ioutil"
-	"os"
 )
 
 var (
@@ -946,6 +947,146 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
+func TestAdjustGasPrice(t *testing.T) {
+	pls, rpcServer, dir, err := makePls()
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	wait(3)
+
+	defer os.RemoveAll(dir)
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	original := big.NewInt(10)
+	pls.rootchainManager.state.gasPrice = big.NewInt(10)
+	pls.config.PendingInterval = 10
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	// assign to global variable
+	rpcClient := rpc.DialInProc(rpcServer)
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+	if err != nil {
+		t.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("All backends are set up")
+
+	makeSampleTx(pls.rootchainManager)
+	if err != nil {
+		t.Fatalf("failed to send tx: %v", err)
+	}
+
+	wait(5)
+
+	newGasPrice := new(big.Int).Mul(new(big.Int).Div(original, big.NewInt(4)), big.NewInt(3))
+	if pls.rootchainManager.state.gasPrice.Cmp(newGasPrice) != 0 {
+		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+	}
+}
+
+func TestAdjustGasPrice2(t *testing.T) {
+	quit := make(chan bool, 1)
+	pls, rpcServer, dir, err := makePls()
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	wait(3)
+
+	defer os.RemoveAll(dir)
+	defer pls.Stop()
+	defer rpcServer.Stop()
+	defer func() {
+		quit <- true
+	}()
+
+	go func() {
+		rootchainBackend, err := ethclient.Dial("ws://localhost:8546")
+		if err != nil {
+			t.Fatalf("Failed to connect rootchain: %v", err)
+		}
+		nonce, _ := rootchainBackend.NonceAt(context.Background(), addr1, nil)
+		opt1.GasPrice = big.NewInt(1000000000)
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				opt1.Nonce = big.NewInt(int64(nonce))
+				_, _, _, err = epochhandler.DeployEpochHandler(opt1, rootchainBackend)
+				if err != nil {
+					nonce++
+				}
+				nonce++
+			}
+		}
+	}()
+
+	original := big.NewInt(10)
+	pls.rootchainManager.state.gasPrice = big.NewInt(10)
+	pls.config.PendingInterval = 1
+
+	// pls.Start()
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	// assign to global variable
+	rpcClient := rpc.DialInProc(rpcServer)
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+	if err != nil {
+		t.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("All backends are set up")
+
+	makeSampleTx(pls.rootchainManager)
+	if err != nil {
+		t.Fatalf("failed to send tx: %v", err)
+	}
+
+	wait(4)
+
+	newGasPrice := new(big.Int).Mul(new(big.Int).Div(original, big.NewInt(2)), big.NewInt(3))
+	if pls.rootchainManager.state.gasPrice.Cmp(newGasPrice) != 0 {
+		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+	}
+}
+
 func TestMinerRestart(t *testing.T) {
 	pls, rpcServer, dir, err := makePls()
 	defer os.RemoveAll(dir)
@@ -981,8 +1122,6 @@ func TestMinerRestart(t *testing.T) {
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
-	wait(3)
-
 	log.Info("All backends are set up")
 
 	// NRE#1 / Block#1 (1/2)
@@ -1007,7 +1146,7 @@ func TestMinerRestart(t *testing.T) {
 
 	blockAfterStop := pls.blockchain.CurrentBlock()
 	if diff := blockAfterStop.NumberU64() - blockBeforeStop.NumberU64(); diff != 1 {
-		t.Fatalf("failed to resume current epoch", "difference", diff)
+		t.Fatal("failed to resume current epoch", "difference", diff)
 	}
 }
 
@@ -1190,7 +1329,6 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 
 func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
 	opt := bind.NewKeyedTransactor(operatorKey)
-
 	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
 
 	if err != nil {
@@ -1218,6 +1356,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		return common.Address{}, nil, err
 	}
 
+	wait(5)
 	log.Info("RootChain is deployed in root chain", "rootchainAddress", rootchainAddress)
 
 	testPlsConfig.RootChainContract = rootchainAddress
