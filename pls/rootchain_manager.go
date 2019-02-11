@@ -268,10 +268,15 @@ func (rcm *RootChainManager) runSubmitter() {
 	adjust := func(sufficient bool) {
 		if sufficient {
 			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+			if gasPrice.Cmp(rcm.config.MinGasPrice) < 0 {
+				gasPrice.Set(rcm.config.MinGasPrice)
+			}
 		} else {
 			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+			if gasPrice.Cmp(rcm.config.MaxGasPrice) > 0 {
+				gasPrice.Set(rcm.config.MaxGasPrice)
+			}
 		}
-		// TODO: compare with MIN / MAX gas price
 	}
 	// submit sends transaction that submits ORB or NRB
 	submit := func(name string, block *types.Block) common.Hash {
@@ -295,6 +300,7 @@ func (rcm *RootChainManager) runSubmitter() {
 		if err != nil {
 			log.Error("Failed to send "+funcName, "err", err)
 		}
+		log.Info("Submit block to rootchain", "hash", signedTx.Hash().String(), "funcName", funcName, "gasprice", gasPrice.Uint64())
 		return signedTx.Hash()
 	}
 
@@ -308,7 +314,6 @@ func (rcm *RootChainManager) runSubmitter() {
 			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
 			}
-			log.Error("check")
 			rcm.lock.Lock()
 
 			if rcm.minerEnv.IsRequest {
@@ -333,8 +338,6 @@ func (rcm *RootChainManager) runSubmitter() {
 						}
 						if block.Number().Cmp(lastBlock) < 0 {
 							pendingInterval.Stop()
-							log.Info("block number not match", "block number", block.Number(), "last block", lastBlock)
-							// rcm.lock.Unlock()
 							break
 						}
 						adjust(false)
