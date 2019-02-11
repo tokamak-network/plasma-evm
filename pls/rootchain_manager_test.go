@@ -960,6 +960,7 @@ func TestAdjustGasPrice(t *testing.T) {
 
 	original := big.NewInt(10)
 	pls.rootchainManager.state.gasPrice = big.NewInt(10)
+	// pls.rootchainManager.config.MinGasPrice = big.NewInt(9)
 	pls.config.PendingInterval = 10
 
 	// pls.Start()
@@ -1043,6 +1044,7 @@ func TestAdjustGasPrice2(t *testing.T) {
 
 	original := big.NewInt(10)
 	pls.rootchainManager.state.gasPrice = big.NewInt(10)
+	// pls.rootchainManager.config.MaxGasPrice = big.NewInt(11)
 	pls.config.PendingInterval = 1
 
 	// pls.Start()
