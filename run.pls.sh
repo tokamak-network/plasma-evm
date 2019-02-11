@@ -19,4 +19,4 @@ build/bin/geth \
   --rpc \
   --rpcport 8547 \
   --dev.key $KEY1,$KEY2,$KEY3,$KEY4,$KEY5 \
-  --rootchain.operatorKey $OPERATOR_KEY
+  --rootchain.operatorkey $OPERATOR_KEY
