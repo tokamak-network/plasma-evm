@@ -1343,7 +1343,28 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
 	}
 	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
-		cfg.Challenger = common.HexToAddress(ctx.GlobalString(PlasmaRootChainChallenger.Name))
+		addr := common.HexToAddress(ctx.GlobalString(PlasmaRootChainChallenger.Name))
+		if !ks.HasAddress(addr) {
+			Fatalf("Failed to get challenger address from keystore")
+		}
+		challenger := accounts.Account{Address: addr}
+
+		log.Info("Unlocking challenger account", "address", challenger.Address)
+		if err := ks.Unlock(challenger, ""); err != nil {
+			Fatalf("Failed to unlock challenger account: %v", err)
+		}
+
+		if rootchainBackend == nil {
+			Fatalf("Rootchain is not connected")
+		}
+		balance, err := rootchainBackend.BalanceAt(context.Background(), addr, nil)
+		if err != nil {
+			Fatalf("Failed to get challenger balance from rootchain: %v", err)
+		}
+		if balance.Cmp(big.NewInt(5e17)) < 0 {
+			Fatalf("Short balance to send challenge tx")
+		}
+		cfg.Challenger = challenger
 	}
 
 	switch {
