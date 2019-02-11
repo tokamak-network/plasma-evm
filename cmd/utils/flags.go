@@ -636,7 +636,7 @@ var (
 
 	// Plasma flags
 	PlasmaOperatorKeyFlag = cli.StringFlag{
-		Name:  "rootchain.operatorKey",
+		Name:  "rootchain.operatorkey",
 		Usage: "Plasma operator key as hex(for dev)",
 	}
 	PlasmaDeveloperKeyFlag = cli.StringFlag{
