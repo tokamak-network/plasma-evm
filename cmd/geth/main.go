@@ -156,6 +156,7 @@ var (
 		utils.PlasmaDeveloperKeyFlag,
 		utils.PlasmaRootChainUrlFlag,
 		utils.PlasmaRootChainContractFlag,
+		utils.PlasmaRootChainChallenger,
 	}
 
 	whisperFlags = []cli.Flag{

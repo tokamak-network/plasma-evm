@@ -89,6 +89,7 @@ type Config struct {
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
+	Challenger         common.Address
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

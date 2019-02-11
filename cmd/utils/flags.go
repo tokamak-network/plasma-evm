@@ -652,6 +652,10 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+	PlasmaRootChainChallenger = cli.StringFlag{
+		Name:  "rootchain.challenger",
+		Usage: "Address of challenger account",
+	}
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
 		Usage: "External ewasm configuration (default = built-in interpreter)",
@@ -1330,6 +1334,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	}
+	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
+		cfg.Challenger = common.HexToAddress(ctx.GlobalString(PlasmaRootChainChallenger.Name))
 	}
 
 	switch {
