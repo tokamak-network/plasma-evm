@@ -30,9 +30,6 @@ var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
 	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
 	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
-
-	//TODO: sholud delete this after fixing rcm.backend.NetworkId
-	rootchainNetworkId = big.NewInt(1337)
 )
 
 type invalidExit struct {
@@ -572,7 +569,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 			Nonce := rcm.state.getNonce()
 			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, rootchainNetworkId)
+			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}

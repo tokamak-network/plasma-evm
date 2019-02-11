@@ -181,6 +181,7 @@ func init() {
 		keystoreFlag,
 		configdirFlag,
 		utils.NetworkIdFlag,
+		utils.RootChainNetworkIdFlag,
 		utils.LightKDFFlag,
 		utils.NoUSBFlag,
 		utils.RPCListenAddrFlag,
