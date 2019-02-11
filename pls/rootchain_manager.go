@@ -524,10 +524,10 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				log.Error("Failed to pack challengeExit", "error", err)
 			}
 
-			Nonce := rcm.state.getNonce()
-			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			nonce := rcm.state.getNonce()
+			challengeTx := types.NewTransaction(nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
-			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
+			signedTx, err := w.SignTx(rcm.config.Challenger, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}
