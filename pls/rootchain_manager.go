@@ -259,7 +259,6 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 
 	var (
-		nonce    = rcm.state.getNonce()
 		gasPrice = rcm.state.gasPrice
 
 		funcName string
@@ -272,6 +271,7 @@ func (rcm *RootChainManager) runSubmitter() {
 		} else {
 			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
 		}
+		// TODO: compare with MIN / MAX gas price
 	}
 	// submit sends transaction that submits ORB or NRB
 	submit := func(name string, block *types.Block) common.Hash {
@@ -285,6 +285,7 @@ func (rcm *RootChainManager) runSubmitter() {
 		if err != nil {
 			log.Error("Failed to pack "+name, "err", err)
 		}
+		nonce := rcm.state.getNonce()
 		submitTx := types.NewTransaction(nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, gasPrice, input)
 		signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainNetworkId)
 		if err != nil {
@@ -298,19 +299,11 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 
 	for {
-		currentFork := big.NewInt(int64(rcm.state.currentFork))
-		lastBlock, err := rcm.lastBlock(currentFork)
-		if err != nil {
-			log.Error("Failed to get last block", "err", err)
-			return
-		}
-
 		select {
 		case ev := <-plasmaBlockMinedEvents.Chan():
 			if ev == nil {
 				return
 			}
-
 			// if the epoch is completed, stop mining operation and wait next epoch
 			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
@@ -332,14 +325,19 @@ func (rcm *RootChainManager) runSubmitter() {
 				select {
 				case _, ok := <-pendingInterval.C:
 					if ok {
-						if block.Number().Cmp(new(big.Int).Sub(lastBlock, big.NewInt(1))) != 0 {
+						currentFork := big.NewInt(int64(rcm.state.currentFork))
+						lastBlock, err := rcm.lastBlock(currentFork)
+						if err != nil {
+							log.Error("Failed to get last block", "err", err)
 							break
 						}
-						if nonce == rcm.state.getNonce() {
-							adjust(false)
-						} else {
-							nonce = rcm.state.getNonce()
+						if block.Number().Cmp(lastBlock) < 0 {
+							pendingInterval.Stop()
+							log.Info("block number not match", "block number", block.Number(), "last block", lastBlock)
+							// rcm.lock.Unlock()
+							break
 						}
+						adjust(false)
 						txHash = submit(funcName, block)
 					}
 				case <-blockSubmitEvents:

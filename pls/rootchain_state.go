@@ -124,5 +124,5 @@ func (rs *rootchainState) incNonce() {
 func (rs *rootchainState) initGasPrice() {
 	minGasPrice := rs.rcm.config.MinGasPrice
 	maxGasPrice := rs.rcm.config.MaxGasPrice
-	rs.gasPrice.Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
+	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }
