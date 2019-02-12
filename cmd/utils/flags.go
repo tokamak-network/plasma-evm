@@ -1362,7 +1362,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to get challenger balance from rootchain: %v", err)
 		}
 		if balance.Cmp(big.NewInt(5e17)) < 0 {
-			Fatalf("Short balance to send challenge tx")
+			Fatalf("Expected challenger's balance to be more than %f wei, but is %v wei", 5e17, balance)
 		}
 		cfg.Challenger = challenger
 	}
