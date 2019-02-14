@@ -212,6 +212,15 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
+	operatorAddr, err := rootchainContract.Operator(baseCallOpt)
+	if err != nil {
+		return nil, err
+	}
+
+	if operatorAddr != pls.config.OperatorAddr {
+		return nil, errors.New("Operator address of rootchain contract and this client must be same. Check your account address")
+	}
+
 	stopFn := func() { pls.Stop() }
 
 	if pls.rootchainManager, err = NewRootChainManager(
