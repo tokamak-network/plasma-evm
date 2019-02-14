@@ -45,6 +45,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/Onther-Tech/plasma-evm/signer/core"
 	"github.com/Onther-Tech/plasma-evm/signer/rules"
+	"github.com/Onther-Tech/plasma-evm/signer/storage"
 	"gopkg.in/urfave/cli.v1"
 )
 

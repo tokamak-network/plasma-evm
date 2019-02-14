@@ -46,9 +46,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
 	"github.com/Onther-Tech/plasma-evm/les"
 	"github.com/Onther-Tech/plasma-evm/log"
@@ -58,6 +55,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/nat"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"golang.org/x/net/websocket"
 )
 
@@ -194,7 +194,7 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
-	client *ethclient.Client   // Client connection to the Ethereum chain
+	client *plsclient.Client   // Client connection to the Ethereum chain
 	index  []byte              // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
@@ -266,7 +266,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 		stack.Stop()
 		return nil, err
 	}
-	client := ethclient.NewClient(api)
+	client := plsclient.NewClient(api)
 
 	return &faucet{
 		config:   genesis.Config,

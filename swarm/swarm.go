@@ -33,12 +33,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/chequebook"
 	"github.com/Onther-Tech/plasma-evm/contracts/ens"
-	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/protocols"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/Onther-Tech/plasma-evm/swarm/api"
 	httpapi "github.com/Onther-Tech/plasma-evm/swarm/api/http"
@@ -114,7 +114,7 @@ func NewSwarm(config *api.Config, mockStore *mock.NodeStore) (self *Swarm, err e
 	var backend chequebook.Backend
 	if config.SwapAPI != "" && config.SwapEnabled {
 		log.Info("connecting to SWAP API", "url", config.SwapAPI)
-		backend, err = ethclient.Dial(config.SwapAPI)
+		backend, err = plsclient.Dial(config.SwapAPI)
 		if err != nil {
 			return nil, fmt.Errorf("error connecting to SWAP API %s: %s", config.SwapAPI, err)
 		}
@@ -277,7 +277,7 @@ func parseEnsAPIAddress(s string) (tld, endpoint string, addr common.Address) {
 // ensClient provides functionality for api.ResolveValidator
 type ensClient struct {
 	*ens.ENS
-	*ethclient.Client
+	*plsclient.Client
 }
 
 // newEnsClient creates a new ENS client for that is a consumer of
@@ -289,7 +289,7 @@ func newEnsClient(endpoint string, addr common.Address, config *api.Config, priv
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to ENS API %s: %s", endpoint, err)
 	}
-	ethClient := ethclient.NewClient(client)
+	plsclient := plsclient.NewClient(client)
 
 	ensRoot := config.EnsRoot
 	if addr != (common.Address{}) {
@@ -303,14 +303,14 @@ func newEnsClient(endpoint string, addr common.Address, config *api.Config, priv
 		}
 	}
 	transactOpts := bind.NewKeyedTransactor(privkey)
-	dns, err := ens.NewENS(transactOpts, ensRoot, ethClient)
+	dns, err := ens.NewENS(transactOpts, ensRoot, plsclient)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug(fmt.Sprintf("-> Swarm Domain Name Registrar %v @ address %v", endpoint, ensRoot.Hex()))
 	return &ensClient{
 		ENS:    dns,
-		Client: ethClient,
+		Client: plsclient,
 	}, err
 }
 
@@ -326,7 +326,7 @@ func detectEnsAddr(client *rpc.Client) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	block, err := ethclient.NewClient(client).BlockByNumber(ctx, big.NewInt(0))
+	block, err := plsclient.NewClient(client).BlockByNumber(ctx, big.NewInt(0))
 	if err != nil {
 		return common.Address{}, err
 	}
