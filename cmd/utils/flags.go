@@ -1358,9 +1358,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			NRELength   = big.NewInt(2)
 		)
 
-		t := time.NewTimer(2 * time.Second)
-		defer t.Stop()
-
 		rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
 		if err != nil {
 			Fatalf("Failed to connect rootchain: %v", err)
@@ -1376,7 +1373,13 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 		log.Info("Deploy epoch handler contract", "hash", tx1.Hash(), "address", epochHandlerContract)
 
-		<-t.C
+		receipt1, _ := rootchainBackend.TransactionReceipt(context.Background(), tx1.Hash())
+		log.Info("Wait until deploy transaction is mined")
+		for receipt1 == nil {
+			t := time.NewTimer(1)
+			<-t.C
+			receipt1, _ = rootchainBackend.TransactionReceipt(context.Background(), tx1.Hash())
+		}
 
 		rootchainContract, tx2, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
 		if err != nil {
@@ -1384,12 +1387,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 		log.Info("Deploy rootchain contract", "hash", tx2.Hash(), "address", rootchainContract)
 
-		receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
-		log.Info("Wait until deploy transactions are mined")
-		for receipt == nil {
+		receipt2, _ := rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+		log.Info("Wait until deploy transaction is mined")
+		for receipt2 == nil {
 			t := time.NewTimer(1)
 			<-t.C
-			receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+			receipt2, _ = rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
 		}
 
 		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, crypto.PubkeyToAddress(operatorKey.PublicKey))
