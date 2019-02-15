@@ -180,9 +180,6 @@ func (self *Miner) Mining() bool {
 }
 
 func (self *Miner) HashRate() uint64 {
-	if pow, ok := self.engine.(consensus.PoW); ok {
-		return uint64(pow.Hashrate())
-	}
 	return 0
 }
 
