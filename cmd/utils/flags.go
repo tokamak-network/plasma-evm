@@ -38,9 +38,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
+	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
@@ -1353,8 +1356,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		dummyBlock := core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), common.HexToAddress("0xdead"), crypto.PubkeyToAddress(operatorKey.PublicKey)).ToBlock(dummyDB)
 
+		// contract parameters
 		var (
 			development = false
+			swapEnabled = false
 			NRELength   = big.NewInt(2)
 		)
 
@@ -1363,37 +1368,70 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to connect rootchain: %v", err)
 		}
 
+		wait := func(hash common.Hash) {
+			<-time.NewTimer(1 * time.Second).C
+
+			for receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), hash); receipt == nil; {
+				//if err != nil {
+				//	Fatalf("Failed to get receipt: %v", err)
+				//}
+
+				<-time.NewTimer(1 * time.Second).C
+
+				receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), hash)
+			}
+		}
+
+		var tx *types.Transaction
 		log.Info("Deploying contracts for development mode")
 
 		opt := bind.NewKeyedTransactor(operatorKey)
 
-		epochHandlerContract, tx1, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+		// 1. deploy MintableToken in root chain
+		mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
 		if err != nil {
-			Fatalf("Failed to deploy epoch handler contract")
+			Fatalf("Failed to deploy MintableToken contract: %v", err)
 		}
-		log.Info("Deploy epoch handler contract", "hash", tx1.Hash(), "address", epochHandlerContract)
+		log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
 
-		receipt1, _ := rootchainBackend.TransactionReceipt(context.Background(), tx1.Hash())
 		log.Info("Wait until deploy transaction is mined")
-		for receipt1 == nil {
-			t := time.NewTimer(1)
-			<-t.C
-			receipt1, _ = rootchainBackend.TransactionReceipt(context.Background(), tx1.Hash())
-		}
+		wait(tx.Hash())
 
-		rootchainContract, tx2, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+		// 2. deploy EtherToken in root chain
+		etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, rootchainBackend, development, mintableTokenContract, swapEnabled)
 		if err != nil {
-			Fatalf("Failed to deploy rootchain contract")
+			Fatalf("Failed to deploy EtherToken contract: %v", err)
 		}
-		log.Info("Deploy rootchain contract", "hash", tx2.Hash(), "address", rootchainContract)
+		log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
 
-		receipt2, _ := rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
 		log.Info("Wait until deploy transaction is mined")
-		for receipt2 == nil {
-			t := time.NewTimer(1)
-			<-t.C
-			receipt2, _ = rootchainBackend.TransactionReceipt(context.Background(), tx2.Hash())
+		wait(tx.Hash())
+
+		// 3. deploy EpochHandler in root chain
+		epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+		if err != nil {
+			Fatalf("Failed to deploy EpochHandler contract: %v", err)
 		}
+		log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+
+		log.Info("Wait until deploy transaction is mined")
+		wait(tx.Hash())
+
+		// 4. deploy RootChain in root chain
+		rootchainContract, tx, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+		if err != nil {
+			Fatalf("Failed to deploy RootChain contract: %v", err)
+		}
+		log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContract)
+		wait(tx.Hash())
+
+		// 5. initialize EtherToken
+		tx, err = etherToken.Init(opt, rootchainContract)
+		if err != nil {
+			Fatalf("Failed to initialize EtherToken: %v", err)
+		}
+		log.Info("Initialize EtherToken", "hash", tx.Hash())
+		wait(tx.Hash())
 
 		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, crypto.PubkeyToAddress(operatorKey.PublicKey))
 		cfg.RootChainContract = rootchainContract
