@@ -1,7 +1,6 @@
 package pls
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"math/big"
@@ -238,6 +237,12 @@ func (rcm *RootChainManager) watchEvents() error {
 }
 
 func (rcm *RootChainManager) runSubmitter() {
+	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	if err != nil {
+		log.Error("Failed to get operator wallet", "err", err)
+		return
+	}
+
 	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer plasmaBlockMinedEvents.Unsubscribe()
 
@@ -248,12 +253,6 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
-
-	w, err := rcm.accountManager.Find(rcm.config.Operator)
-	if err != nil {
-		log.Error("Failed to get operator wallet", "err", err)
-		return
-	}
 
 	for {
 		select {
@@ -406,13 +405,18 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 				log.Debug("Request fetched", "requestId", requestId, "hash", common.Bytes2Hex(request.Hash[:]), "request", request)
 
-				var to common.Address
-				var input []byte
+				var (
+					to    common.Address
+					value *big.Int
+					input []byte
+				)
 
-				if request.IsTransfer {
+				if request.IsTransfer && !request.IsExit {
 					to = request.Requestor
+					value = new(big.Int).SetBytes(request.TrieValue[:])
 				} else {
 					to, _ = rcm.rootchainContract.RequestableContracts(baseCallOpt, request.To)
+					value = request.Value
 					input, err = requestableContractABI.Pack("applyRequestInChildChain",
 						request.IsExit,
 						big.NewInt(int64(requestId)),
@@ -427,19 +431,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 					log.Debug("Request tx.data", "payload", input)
 				}
 
-				requestTx := types.NewTransaction(0, to, request.Value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
+				requestTx := types.NewTransaction(0, to, value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
 
 				log.Debug("Request Transaction", "tx", requestTx)
-
-				eroBytes, err := rcm.rootchainContract.GetEROBytes(baseCallOpt, big.NewInt(int64(requestId)))
-				if err != nil {
-					log.Error("Failed to get ERO bytes", "err", err)
-				}
-
-				// TODO: check only in test
-				if !bytes.Equal(eroBytes, requestTx.GetRlp()) {
-					log.Error("ERO TX and request tx are different", "requestId", requestId, "eroBytes", common.Bytes2Hex(eroBytes), "requestTx.GetRlp()", common.Bytes2Hex(requestTx.GetRlp()))
-				}
 
 				body = append(body, requestTx)
 				requestId += 1
