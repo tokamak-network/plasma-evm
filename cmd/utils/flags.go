@@ -667,6 +667,21 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+	PlasmaMinGasPriceFlag = BigFlag{
+		Name:  "rootchain.mingasprice",
+		Usage: "Minimum gas price for submitting a block",
+		Value: pls.DefaultConfig.MinGasPrice,
+	}
+	PlasmaMaxGasPriceFlag = BigFlag{
+		Name:  "rootchain.maxgasprice",
+		Usage: "Maximum gas price for submitting a block",
+		Value: pls.DefaultConfig.MaxGasPrice,
+	}
+	PlasmaPendingInterval = cli.DurationFlag{
+		Name:  "rootchain.interval",
+		Usage: "Pending interval time after submitting a block",
+		Value: pls.DefaultConfig.PendingInterval,
+	}
 
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
@@ -1489,6 +1504,33 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			cfg.MinerGasPrice = big.NewInt(1)
 		}
 	}
+	if ctx.GlobalIsSet(PlasmaMinGasPriceFlag.Name) {
+		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
+			minGasPrice := GlobalBig(ctx, PlasmaMinGasPriceFlag.Name)
+			maxGasPrice := GlobalBig(ctx, PlasmaMaxGasPriceFlag.Name)
+
+			if minGasPrice.Cmp(maxGasPrice) >= 0 {
+				Fatalf("min gas price is equal to or greater than max gas price: min gas price: %v, max gas price: %v", minGasPrice, maxGasPrice)
+			}
+			cfg.MinGasPrice = minGasPrice
+			cfg.MaxGasPrice = maxGasPrice
+		} else {
+			Fatalf("--%s flag must use with --%s flag", PlasmaMinGasPriceFlag.Name, PlasmaMaxGasPriceFlag.Name)
+		}
+	} else {
+		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
+			Fatalf("--%s flag must use with --%s flag", PlasmaMaxGasPriceFlag.Name, PlasmaMinGasPriceFlag.Name)
+		}
+	}
+	if ctx.GlobalIsSet(PlasmaPendingInterval.Name) {
+		pendingInterval := ctx.Duration(PlasmaPendingInterval.Name)
+		if pendingInterval.Seconds() < 15 {
+			Fatalf("pending interval time must be at least 15 seconds")
+		}
+	}
+	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
+
+	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
 
 	// default operator min ether = 1ether
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))

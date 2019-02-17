@@ -158,6 +158,9 @@ var (
 		utils.DeveloperKeyFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
+		utils.PlasmaMinGasPriceFlag,
+		utils.PlasmaMaxGasPriceFlag,
+		utils.PlasmaPendingInterval,
 	}
 
 	whisperFlags = []cli.Flag{

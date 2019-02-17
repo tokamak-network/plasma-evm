@@ -254,13 +254,59 @@ func (rcm *RootChainManager) runSubmitter() {
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
+	var (
+		gasPrice    = new(big.Int).Set(rcm.state.gasPrice)
+		rootchainID = big.NewInt(int64(rcm.config.RootChainNetworkID))
+
+		funcName string
+		txHash   common.Hash
+	)
+	// adjust coordinates gas prices at reasonable prices.
+	adjust := func(sufficient bool) {
+		if sufficient {
+			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+			if gasPrice.Cmp(rcm.config.MinGasPrice) < 0 {
+				gasPrice.Set(rcm.config.MinGasPrice)
+			}
+		} else {
+			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+			if gasPrice.Cmp(rcm.config.MaxGasPrice) > 0 {
+				gasPrice.Set(rcm.config.MaxGasPrice)
+			}
+		}
+	}
+	// submit sends transaction that submits ORB or NRB
+	submit := func(name string, block *types.Block) common.Hash {
+		input, err := rootchainContractABI.Pack(
+			name,
+			big.NewInt(int64(rcm.state.currentFork)),
+			block.Header().Root,
+			block.Header().TxHash,
+			block.Header().ReceiptHash,
+		)
+		if err != nil {
+			log.Error("Failed to pack "+name, "err", err)
+		}
+		nonce := rcm.state.getNonce()
+		submitTx := types.NewTransaction(nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, gasPrice, input)
+		signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainID)
+		if err != nil {
+			log.Error("Failed to sign "+funcName, "err", err)
+		}
+		err = rcm.backend.SendTransaction(context.Background(), signedTx)
+		if err != nil {
+			log.Error("Failed to send "+funcName, "err", err)
+		}
+		log.Info("Submit block to rootchain", "hash", signedTx.Hash().String(), "funcName", funcName, "gasprice", gasPrice.Uint64())
+		return signedTx.Hash()
+	}
+
 	for {
 		select {
 		case ev := <-plasmaBlockMinedEvents.Chan():
 			if ev == nil {
 				return
 			}
-
 			// if the epoch is completed, stop mining operation and wait next epoch
 			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
@@ -277,55 +323,53 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			rcm.lock.Lock()
 
-			blockInfo := ev.Data.(core.NewMinedBlockEvent)
-			Nonce := rcm.state.getNonce()
-
-			funcName := "submitNRB"
-			submitCost := rcm.state.costNRB
 			if rcm.minerEnv.IsRequest {
 				funcName = "submitORB"
-				submitCost = rcm.state.costORB
-			}
-
-			input, err := rootchainContractABI.Pack(
-				funcName,
-				big.NewInt(int64(rcm.state.currentFork)),
-				blockInfo.Block.Header().Root,
-				blockInfo.Block.Header().TxHash,
-				blockInfo.Block.Header().ReceiptHash,
-			)
-
-			if err != nil {
-				log.Error("Failed to pack "+funcName, "err", err)
-			}
-			submitTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(int64(submitCost)), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
-
-			signedTx, err := w.SignTx(rcm.config.Operator, submitTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
-			if err != nil {
-				log.Error("Failed to sign "+funcName, "err", err)
-			}
-
-			err = rcm.backend.SendTransaction(context.Background(), signedTx)
-			if err != nil {
-				log.Error("Failed to send "+funcName, "err", err)
-			}
-
-			// wait root chain block is mined
-			<-blockSubmitEvents
-
-			receipt, err := rcm.backend.TransactionReceipt(context.Background(), signedTx.Hash())
-			log.Debug("signed tx receipt", "receipt", receipt, "hash", signedTx.Hash().String())
-
-			if err != nil {
-				log.Error("Failed to send "+funcName, "err", err)
-			} else if receipt.Status == 0 {
-				log.Error(funcName+" is reverted", "hash", signedTx.Hash().Hex())
 			} else {
-				log.Info("Block is submitted", "funcName", funcName, "blockNumber", blockInfo.Block.NumberU64(), "hash", signedTx.Hash().String())
+				funcName = "submitNRB"
 			}
+			blockInfo := ev.Data.(core.NewMinedBlockEvent)
+			block := blockInfo.Block
+			txHash = submit(funcName, block)
 
-			rcm.state.incNonce()
-			rcm.lock.Unlock()
+			pendingInterval := time.NewTicker(time.Duration(rcm.config.PendingInterval) * time.Second)
+			for {
+				select {
+				case _, ok := <-pendingInterval.C:
+					if ok {
+						currentFork := big.NewInt(int64(rcm.state.currentFork))
+						lastBlock, err := rcm.lastBlock(currentFork)
+						if err != nil {
+							log.Error("Failed to get last block", "err", err)
+							break
+						}
+						if block.Number().Cmp(lastBlock) < 0 {
+							pendingInterval.Stop()
+							break
+						}
+						adjust(false)
+						txHash = submit(funcName, block)
+					}
+				case <-blockSubmitEvents:
+					pendingInterval.Stop()
+					rcm.state.incNonce()
+					rcm.lock.Unlock()
+
+					receipt, err := rcm.backend.TransactionReceipt(context.Background(), txHash)
+					log.Debug("signed tx receipt", "receipt", receipt, "hash", txHash.String())
+
+					if err != nil {
+						log.Error("Failed to send "+funcName, "err", err)
+						break
+					} else if receipt.Status == 0 {
+						log.Error(funcName+" is reverted", "hash", txHash.Hex())
+					} else {
+						log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String(), "gasprice", gasPrice)
+					}
+					adjust(true)
+					break
+				}
+			}
 		case <-rcm.quit:
 			return
 		}
@@ -625,6 +669,13 @@ func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (*Plasma
 	}
 
 	return newPlasmaBlock(b), nil
+}
+func (rcm *RootChainManager) lastBlock(forkNumber *big.Int) (*big.Int, error) {
+	num, err := rcm.rootchainContract.LastBlock(baseCallOpt, forkNumber)
+	if err != nil {
+		return nil, err
+	}
+	return num, nil
 }
 
 // pingBackend checks rootchain backend is alive.
