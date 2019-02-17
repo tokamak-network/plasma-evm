@@ -164,6 +164,7 @@ var (
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
 		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
+		Value: 0,
 	}
 	IdentityFlag = cli.StringFlag{
 		Name:  "identity",
@@ -637,24 +638,36 @@ var (
 		Value: "localhost",
 	}
 
-	// Plasma flags
-	PlasmaOperatorKeyFlag = cli.StringFlag{
-		Name:  "rootchain.operatorkey",
+	// Operator flags
+	OperatorAddressFlag = cli.StringFlag{
+		Name:  "operator",
+		Usage: "Plasma operator address as hex. The account should be unlock by using --unlock ",
+	}
+	OperatorKeyFlag = cli.StringFlag{
+		Name:  "operator.key",
 		Usage: "Plasma operator key as hex(for dev)",
 	}
-	PlasmaDeveloperKeyFlag = cli.StringFlag{
-		Name:  "dev.key",
-		Usage: "Developer key as hex(for dev)",
+	OperatorMinEtherFlag = cli.StringFlag{
+		Name:  "operator.minether",
+		Usage: "Plasma operator minimum balance (default: 0.5 ether)",
+		Value: "0.5",
 	}
-	PlasmaRootChainUrlFlag = cli.StringFlag{
+	DeveloperKeyFlag = cli.StringFlag{
+		Name:  "dev.key",
+		Usage: "Comma seperated developer account key as hex(for dev)",
+	}
+
+	// Rootchain Flags
+	RootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
 		Usage: "JSONRPC endpoint of rootchain provider",
 		Value: "ws://localhost:8546",
 	}
-	PlasmaRootChainContractFlag = cli.StringFlag{
+	RootChainContractFlag = cli.StringFlag{
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
 		Usage: "External ewasm configuration (default = built-in interpreter)",
@@ -1193,7 +1206,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
-	checkExclusive(ctx, DeveloperFlag, PlasmaRootChainContractFlag)
+	checkExclusive(ctx, DeveloperFlag, RootChainContractFlag)
+	checkExclusive(ctx, OperatorAddressFlag, OperatorKeyFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
@@ -1202,7 +1216,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setEthash(ctx, cfg)
 	setWhitelist(ctx, cfg)
 
-	var operatorKey *ecdsa.PrivateKey
+	var (
+		operatorAddr common.Address
+		err          error
+	)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1281,33 +1298,18 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
-	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
-		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
-		operatorKey, _ = crypto.HexToECDSA(hex)
+	if ctx.GlobalIsSet(OperatorMinEtherFlag.Name) {
+		v := ctx.GlobalFloat64(OperatorMinEtherFlag.Name)
 
-		if addr := crypto.PubkeyToAddress(operatorKey.PublicKey); addr != params.Operator {
-			Fatalf("Faild to convert operator account: %v is not operator %v", addr.Hex(), params.Operator.Hex())
+		if v < 0.5 {
+			Fatalf("Operator Minimum Ether is too low: %g", v)
 		}
 
-		var (
-			account accounts.Account
-			err     error
-		)
-
-		if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
-			Fatalf("Faild to import operator account: %v", err)
-		}
-
-		log.Info("Unlocking operator account", "address", account.Address)
-
-		if err = ks.Unlock(account, ""); err != nil {
-			Fatalf("Failed to unlock operator account: %v", err)
-		}
-		cfg.Operator = account
+		cfg.OperatorMinEther = big.NewInt(int64(v * params.Ether))
 	}
 
-	if ctx.GlobalIsSet(PlasmaDeveloperKeyFlag.Name) {
-		devKeys := strings.Split(ctx.GlobalString(PlasmaDeveloperKeyFlag.Name), ",")
+	if ctx.GlobalIsSet(DeveloperKeyFlag.Name) {
+		devKeys := strings.Split(ctx.GlobalString(DeveloperKeyFlag.Name), ",")
 
 		for _, hex := range devKeys {
 			key, _ := crypto.HexToECDSA(hex)
@@ -1329,17 +1331,61 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 
-	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
+	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
+		hex := ctx.GlobalString(OperatorAddressFlag.Name)
+		operatorAddr = common.HexToAddress(hex)
+		account, err := ks.Find(accounts.Account{Address: operatorAddr})
 
-	if ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
-		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+		if err != nil {
+			Fatalf("Failed to find operator account: %v", err)
+		}
+
+		if err = ks.Unlock(account, ""); err != nil {
+			Fatalf("Failed to unlock operator account: %v", err)
+		}
+
+		log.Info("Using operator", "address", operatorAddr)
+		cfg.Operator = account
+	}
+
+	if ctx.GlobalIsSet(OperatorKeyFlag.Name) {
+		hex := ctx.GlobalString(OperatorKeyFlag.Name)
+		key, _ := crypto.HexToECDSA(hex)
+		operatorAddr = crypto.PubkeyToAddress(key.PublicKey)
+
+		// TODO: deactivate in dev mode
+		if operatorAddr != params.Operator {
+			Fatalf("Faild to convert operator account: %v is not operator %v", operatorAddr.Hex(), params.Operator.Hex())
+		}
+
+		if ks.HasAddress(operatorAddr) {
+			cfg.Operator, err = ks.Find(accounts.Account{Address: operatorAddr})
+			if err != nil {
+				Fatalf("Faild to find operator account: %v", err)
+			}
+
+			log.Info("Using already existing operator account")
+		} else {
+			if cfg.Operator, err = ks.ImportECDSA(key, ""); err != nil {
+				Fatalf("Faild to import operator account: %v", err)
+			}
+		}
+
+		log.Info("Unlocking operator account", "address", cfg.Operator.Address)
+
+		if err = ks.Unlock(cfg.Operator, ""); err != nil {
+			Fatalf("Failed to unlock operator account: %v", err)
+		}
+	}
+
+	cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
+	if ctx.GlobalIsSet(RootChainContractFlag.Name) {
+		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
 
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 3
-		}
+		cfg.NetworkId = 3
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(RinkebyFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
@@ -1353,8 +1399,11 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		dummyDB := ethdb.NewMemDatabase()
 		defer dummyDB.Close()
-
-		dummyBlock := core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), common.HexToAddress("0xdead"), crypto.PubkeyToAddress(operatorKey.PublicKey)).ToBlock(dummyDB)
+		dummyBlock := core.DeveloperGenesisBlock(
+			uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)),
+			common.HexToAddress("0xdead"),
+			operatorAddr,
+		).ToBlock(dummyDB)
 
 		// contract parameters
 		var (
@@ -1385,7 +1434,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		var tx *types.Transaction
 		log.Info("Deploying contracts for development mode")
 
-		opt := bind.NewKeyedTransactor(operatorKey)
+		opt := bind.NewAccountTransactor(ks, cfg.Operator)
 
 		// 1. deploy MintableToken in root chain
 		mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
@@ -1433,13 +1482,16 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		log.Info("Initialize EtherToken", "hash", tx.Hash())
 		wait(tx.Hash())
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, crypto.PubkeyToAddress(operatorKey.PublicKey))
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr)
 		cfg.RootChainContract = rootchainContract
 
 		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
 			cfg.MinerGasPrice = big.NewInt(1)
 		}
 	}
+
+	// default operator min ether = 1ether
+	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
 
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1564,7 +1616,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-	rootChainContract := common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract)
 	if err != nil {
 		Fatalf("%v", err)

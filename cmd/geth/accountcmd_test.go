@@ -294,3 +294,27 @@ Fatal: None of the listed files could be unlocked.
 `)
 	geth.ExpectExit()
 }
+
+func TestAccountImportKey(t *testing.T) {
+	geth := runGeth(t, "account", "importKey", "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	defer geth.ExpectExit()
+	geth.Expect(`
+Your new account is locked with a password. Please give a password. Do not forget this password.
+!! Unsupported terminal, password will be echoed.
+Passphrase: {{.InputLine "foobar"}}
+Repeat passphrase: {{.InputLine "foobar"}}
+`)
+	geth.ExpectRegexp(`Address: \{[0-9a-f]{40}\}\n`)
+}
+
+func TestAccountImportHDwallet(t *testing.T) {
+	geth := runGeth(t, "account", "importHDwallet", "tag volcano eight thank tide danger coast health above argue embrace heavy", "m/44'/60'/0'/0/0")
+	defer geth.ExpectExit()
+	geth.Expect(`
+Your new account is locked with a password. Please give a password. Do not forget this password.
+!! Unsupported terminal, password will be echoed.
+Passphrase: {{.InputLine "foobar"}}
+Repeat passphrase: {{.InputLine "foobar"}}
+`)
+	geth.ExpectRegexp(`Address: \{[0-9a-f]{40}\}\n`)
+}

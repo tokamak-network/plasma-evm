@@ -56,6 +56,8 @@ var DefaultConfig = Config{
 	MinerGasPrice:      big.NewInt(params.GWei),
 	MinerRecommit:      3 * time.Second,
 
+	OperatorMinEther: big.NewInt(0.5 * params.Ether),
+
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -86,6 +88,7 @@ type Config struct {
 
 	// Plasma options
 	Operator           accounts.Account
+	OperatorMinEther   *big.Int
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
