@@ -7,13 +7,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"runtime"
 	"testing"
 	"time"
-
-	"io/ioutil"
-	"os"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
@@ -22,6 +21,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -101,8 +102,10 @@ var (
 	testTxPoolConfig = &core.DefaultTxPoolConfig
 
 	// rootchain contract
-	NRELength   = big.NewInt(2)
-	development = false
+	NRELength               = big.NewInt(2)
+	development             = false
+	swapEnabledInRootChain  = false
+	swapEnabledInChildChain = true
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1) // 1 Gwei
@@ -1193,7 +1196,6 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 
 	opt := makeTxOpt(key, 0, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	isTransfer := false
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1329,42 +1331,82 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 }
 
 func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
+
+	dummyDB := ethdb.NewMemDatabase()
+	defer dummyDB.Close()
+	dummyBlock := core.DeveloperGenesisBlock(
+		0,
+		common.HexToAddress("0xdead"),
+		operator,
+	).ToBlock(dummyDB)
+
 	opt := bind.NewKeyedTransactor(operatorKey)
-	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	wait := func(hash common.Hash) {
+		<-time.NewTimer(1 * time.Second).C
 
-	if err != nil {
-		log.Error("Failed to deploy epoch handler")
-		return common.Address{}, nil, err
+		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
+			//if err != nil {
+			//	Fatalf("Failed to get receipt: %v", err)
+			//}
+
+			<-time.NewTimer(1 * time.Second).C
+
+			receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
+		}
 	}
 
-	log.Info("EpochHandler is deployed in root chain", "rootchainAddress", epochhandlerAddress)
+	var tx *types.Transaction
+	log.Info("Deploying contracts for development mode")
 
-	wait(2)
-
-	rootchainAddress, _, rootchainContract, err = rootchain.DeployRootChain(
-		opt,
-		ethClient,
-		epochhandlerAddress,
-		development,
-		NRELength,
-		genesis.Header().Root,
-		genesis.Header().TxHash,
-		genesis.Header().ReceiptHash,
-	)
-
+	// 1. deploy MintableToken in root chain
+	mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, ethClient)
 	if err != nil {
-		log.Error("Failed to deploy rootchain")
-		return common.Address{}, nil, err
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 	}
+	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
 
-	wait(5)
-	log.Info("RootChain is deployed in root chain", "rootchainAddress", rootchainAddress)
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
 
-	testPlsConfig.RootChainContract = rootchainAddress
+	// 2. deploy EtherToken in root chain
+	etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenContract, swapEnabledInRootChain)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
+	}
+	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
 
-	wait(2)
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
 
-	return rootchainAddress, rootchainContract, err
+	// 3. deploy EpochHandler in root chain
+	epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
+	}
+	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
+
+	// 4. deploy RootChain in root chain
+	rootchainContractAddress, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
+	}
+	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContractAddress)
+	wait(tx.Hash())
+
+	// 5. initialize EtherToken
+	tx, err = etherToken.Init(opt, rootchainContractAddress)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
+	}
+	log.Info("Initialize EtherToken", "hash", tx.Hash())
+	wait(tx.Hash())
+
+	testPlsConfig.RootChainContract = rootchainContractAddress
+
+	return rootchainContractAddress, rootchainContract, err
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
