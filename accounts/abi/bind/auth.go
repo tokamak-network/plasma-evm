@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
@@ -53,6 +54,25 @@ func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
 				return nil, errors.New("not authorized to sign this account")
 			}
 			signature, err := crypto.Sign(signer.Hash(tx).Bytes(), key)
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}
+}
+
+// NewAccountTransactor is a utility method to easily create a transaction signer
+// from an unlocked keystore account
+func NewAccountTransactor(ks *keystore.KeyStore, account accounts.Account) *TransactOpts {
+	keyAddr := account.Address
+	return &TransactOpts{
+		From: keyAddr,
+		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != keyAddr {
+				return nil, errors.New("not authorized to sign this account")
+			}
+			signature, err := ks.SignHash(account, signer.Hash(tx).Bytes())
 			if err != nil {
 				return nil, err
 			}
