@@ -151,12 +151,12 @@ var (
 	}
 
 	plasmaFlags = []cli.Flag{
-		utils.PlasmaOperatorMinEther,
-		utils.PlasmaOperatorAddressFlag,
-		utils.PlasmaOperatorKeyFlag,
-		utils.PlasmaDeveloperKeyFlag,
-		utils.PlasmaRootChainUrlFlag,
-		utils.PlasmaRootChainContractFlag,
+		utils.OperatorMinEtherFlag,
+		utils.OperatorAddressFlag,
+		utils.OperatorKeyFlag,
+		utils.DeveloperKeyFlag,
+		utils.RootChainUrlFlag,
+		utils.RootChainContractFlag,
 	}
 
 	whisperFlags = []cli.Flag{

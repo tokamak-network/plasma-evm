@@ -625,32 +625,36 @@ var (
 		Value: "localhost",
 	}
 
-	// Plasma flags
-	PlasmaOperatorMinEther = cli.StringFlag{
-		Name:  "rootchain.operatorMinEther",
-		Usage: "Plasma operator minimum balance",
+	// Operator flags
+	OperatorAddressFlag = cli.StringFlag{
+		Name:  "operator",
+		Usage: "Plasma operator address as hex. The account should be unlock by using --unlock ",
 	}
-	PlasmaOperatorAddressFlag = cli.StringFlag{
-		Name:  "rootchain.operatorAddress",
-		Usage: "Plasma operator address as hex",
-	}
-	PlasmaOperatorKeyFlag = cli.StringFlag{
-		Name:  "rootchain.operatorKey",
+	OperatorKeyFlag = cli.StringFlag{
+		Name:  "operator.key",
 		Usage: "Plasma operator key as hex(for dev)",
 	}
-	PlasmaDeveloperKeyFlag = cli.StringFlag{
-		Name:  "dev.key",
-		Usage: "Developer key as hex(for dev)",
+	OperatorMinEtherFlag = cli.StringFlag{
+		Name:  "operator.minether",
+		Usage: "Plasma operator minimum balance (default: 0.5 ether)",
+		Value: "0.5",
 	}
-	PlasmaRootChainUrlFlag = cli.StringFlag{
+	DeveloperKeyFlag = cli.StringFlag{
+		Name:  "dev.key",
+		Usage: "Comma seperated developer account key as hex(for dev)",
+	}
+
+	// Rootchain Flags
+	RootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
 		Usage: "JSONRPC endpoint of rootchain provider",
 		Value: "ws://localhost:8546",
 	}
-	PlasmaRootChainContractFlag = cli.StringFlag{
+	RootChainContractFlag = cli.StringFlag{
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
 		Usage: "External ewasm configuration (default = built-in interpreter)",
@@ -1189,6 +1193,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
+	checkExclusive(ctx, OperatorAddressFlag, OperatorKeyFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
@@ -1271,18 +1276,41 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
-	if ctx.GlobalIsSet(PlasmaOperatorMinEther.Name) {
-		v := ctx.GlobalFloat64(PlasmaOperatorMinEther.Name)
+	if ctx.GlobalIsSet(OperatorMinEtherFlag.Name) {
+		v := ctx.GlobalFloat64(OperatorMinEtherFlag.Name)
 
-		if v <= 0.5 {
+		if v < 0.5 {
 			Fatalf("Operator Minimum Ether is too low: %g", v)
 		}
 
 		cfg.OperatorMinEther = big.NewInt(int64(v * params.Ether))
 	}
 
-	if ctx.GlobalIsSet(PlasmaOperatorAddressFlag.Name) {
-		hex := ctx.GlobalString(PlasmaOperatorAddressFlag.Name)
+	if ctx.GlobalIsSet(DeveloperKeyFlag.Name) {
+		devKeys := strings.Split(ctx.GlobalString(DeveloperKeyFlag.Name), ",")
+
+		for _, hex := range devKeys {
+			key, _ := crypto.HexToECDSA(hex)
+
+			var (
+				account accounts.Account
+				err     error
+			)
+
+			if account, err = ks.ImportECDSA(key, ""); err != nil {
+				Fatalf("Faild to import developer account: %v", err)
+			}
+
+			log.Info("Unlocking developer account", "address", account.Address)
+
+			if err = ks.Unlock(account, ""); err != nil {
+				Fatalf("Failed to unlock developer account: %v", err)
+			}
+		}
+	}
+
+	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
+		hex := ctx.GlobalString(OperatorAddressFlag.Name)
 		addr := common.HexToAddress(hex)
 		account, err := ks.Find(accounts.Account{Address: addr})
 		if err != nil {
@@ -1292,8 +1320,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Operator = account
 	}
 
-	if ctx.GlobalIsSet(PlasmaOperatorKeyFlag.Name) {
-		hex := ctx.GlobalString(PlasmaOperatorKeyFlag.Name)
+	if ctx.GlobalIsSet(OperatorKeyFlag.Name) {
+		hex := ctx.GlobalString(OperatorKeyFlag.Name)
 		key, _ := crypto.HexToECDSA(hex)
 		if addr := crypto.PubkeyToAddress(key.PublicKey); addr != params.Operator {
 			Fatalf("Faild to convert operator account: %v is not operator %v", addr.Hex(), params.Operator.Hex())
@@ -1316,35 +1344,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Operator = account
 	}
 
-	if ctx.GlobalIsSet(PlasmaDeveloperKeyFlag.Name) {
-		devKeys := strings.Split(ctx.GlobalString(PlasmaDeveloperKeyFlag.Name), ",")
+	cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
 
-		for _, hex := range devKeys {
-			key, _ := crypto.HexToECDSA(hex)
-
-			var (
-				account accounts.Account
-				err     error
-			)
-
-			if account, err = ks.ImportECDSA(key, ""); err != nil {
-				Fatalf("Faild to import developer account: %v", err)
-			}
-
-			log.Info("Unlocking developer account", "address", account.Address)
-
-			if err = ks.Unlock(account, ""); err != nil {
-				Fatalf("Failed to unlock developer account: %v", err)
-			}
-		}
-	}
-
-	cfg.RootChainURL = ctx.GlobalString(PlasmaRootChainUrlFlag.Name)
-
-	if !ctx.GlobalIsSet(PlasmaRootChainContractFlag.Name) {
+	if !ctx.GlobalIsSet(RootChainContractFlag.Name) {
 		Fatalf("RootChain contract address must be set, using --rootchain.contract")
 	}
-	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(PlasmaRootChainContractFlag.Name))
+	cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 
 	cfg.Genesis = core.DefaultGenesisBlock()
 
