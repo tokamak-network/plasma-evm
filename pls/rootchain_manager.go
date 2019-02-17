@@ -320,6 +320,10 @@ func (rcm *RootChainManager) runSubmitter() {
 
 		errMessage := strings.ToLower(err.Error())
 
+		if strings.Contains(errMessage, "transaction underpriced") {
+			return signedTx.Hash(), core.ErrUnderpriced
+		}
+
 		if strings.Contains(errMessage, "replacement transaction underpriced") {
 			return signedTx.Hash(), core.ErrReplaceUnderpriced
 		}
@@ -370,7 +374,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 			block := blockInfo.Block
 			txHash, err = submit(funcName, block)
-			if err != nil && (err != ErrKnownTransaction || numErrKnown > MAX_NUM_NOT_FOUND) {
+			if err != nil {
 				log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
 			}
 
@@ -382,6 +386,16 @@ func (rcm *RootChainManager) runSubmitter() {
 					if ok {
 						numTicker++
 						log.Debug("NumTicker", "n", numTicker)
+
+						// short circuit if transaction is underpricded.
+						if err == core.ErrUnderpriced || err == core.ErrReplaceUnderpriced {
+							adjust(false)
+							txHash, err = submit(funcName, block)
+							if err != nil {
+								log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
+							}
+							continue
+						}
 
 						lastBlock, err2 := rcm.lastBlock(currentFork, false)
 						if err2 != nil {
@@ -414,11 +428,6 @@ func (rcm *RootChainManager) runSubmitter() {
 						lastPendingBlock, _ := rcm.lastBlock(currentFork, true)
 
 						// handle previous submit errors
-						if err == core.ErrReplaceUnderpriced {
-							adjust(false)
-							adjusted = true
-						}
-
 						if err == ErrKnownTransaction {
 							numErrKnown = 0
 							adjust(false)
