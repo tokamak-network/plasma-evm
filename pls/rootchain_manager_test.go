@@ -951,64 +951,6 @@ func TestScenario4(t *testing.T) {
 }
 
 func TestAdjustGasPrice(t *testing.T) {
-	pls, rpcServer, dir, err := makePls()
-	if err != nil {
-		t.Fatalf("Failed to make pls service: %v", err)
-	}
-	wait(3)
-
-	defer os.RemoveAll(dir)
-	defer pls.Stop()
-	defer rpcServer.Stop()
-
-	original := big.NewInt(10)
-	pls.rootchainManager.state.gasPrice = big.NewInt(10)
-	// pls.rootchainManager.config.MinGasPrice = big.NewInt(9)
-	pls.config.PendingInterval = 10
-
-	// pls.Start()
-	pls.protocolManager.Start(1)
-
-	if err := pls.rootchainManager.Start(); err != nil {
-		t.Fatalf("Failed to start RootChainManager: %v", err)
-	}
-
-	pls.StartMining(runtime.NumCPU())
-
-	// assign to global variable
-	rpcClient := rpc.DialInProc(rpcServer)
-	plsClient = plsclient.NewClient(rpcClient)
-
-	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer plasmaBlockMinedEvents.Unsubscribe()
-
-	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
-	blockSubmitWatchOpts := &bind.WatchOpts{
-		Start:   nil,
-		Context: context.Background(),
-	}
-	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
-	defer blockFilterer.Unsubscribe()
-	if err != nil {
-		t.Fatalf("Failed to connect rootchain: %v", err)
-	}
-
-	log.Info("All backends are set up")
-
-	makeSampleTx(pls.rootchainManager)
-	if err != nil {
-		t.Fatalf("failed to send tx: %v", err)
-	}
-
-	wait(5)
-
-	newGasPrice := new(big.Int).Mul(new(big.Int).Div(original, big.NewInt(4)), big.NewInt(3))
-	if pls.rootchainManager.state.gasPrice.Cmp(newGasPrice) != 0 {
-		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
-	}
-}
-
-func TestAdjustGasPrice2(t *testing.T) {
 	quit := make(chan bool, 1)
 	pls, rpcServer, dir, err := makePls()
 	if err != nil {
@@ -1023,20 +965,21 @@ func TestAdjustGasPrice2(t *testing.T) {
 		quit <- true
 	}()
 
+	original := big.NewInt(1 * params.GWei)
+	pls.rootchainManager.state.gasPrice = new(big.Int).Set(original)
+	pls.rootchainManager.config.MaxGasPrice = big.NewInt(100 * params.GWei)
+	pls.config.PendingInterval = 3 * time.Second
+
 	go func() {
-		rootchainBackend, err := ethclient.Dial("ws://localhost:8546")
-		if err != nil {
-			t.Fatalf("Failed to connect rootchain: %v", err)
-		}
-		nonce, _ := rootchainBackend.NonceAt(context.Background(), addr1, nil)
-		opt1.GasPrice = big.NewInt(1000000000)
+		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
+		opt1.GasPrice = big.NewInt(2 * params.GWei)
 		for {
 			select {
 			case <-quit:
 				return
 			default:
 				opt1.Nonce = big.NewInt(int64(nonce))
-				_, _, _, err = epochhandler.DeployEpochHandler(opt1, rootchainBackend)
+				_, _, _, err := epochhandler.DeployEpochHandler(opt1, ethClient)
 				if err != nil {
 					nonce++
 				}
@@ -1045,12 +988,6 @@ func TestAdjustGasPrice2(t *testing.T) {
 		}
 	}()
 
-	original := big.NewInt(10)
-	pls.rootchainManager.state.gasPrice = big.NewInt(10)
-	// pls.rootchainManager.config.MaxGasPrice = big.NewInt(11)
-	pls.config.PendingInterval = 1
-
-	// pls.Start()
 	pls.protocolManager.Start(1)
 
 	if err := pls.rootchainManager.Start(); err != nil {
@@ -1073,21 +1010,15 @@ func TestAdjustGasPrice2(t *testing.T) {
 	}
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
-	if err != nil {
-		t.Fatalf("Failed to connect rootchain: %v", err)
-	}
 
 	log.Info("All backends are set up")
 
 	makeSampleTx(pls.rootchainManager)
-	if err != nil {
-		t.Fatalf("failed to send tx: %v", err)
-	}
 
-	wait(4)
+	<-blockSubmitEvents
 
-	newGasPrice := new(big.Int).Mul(new(big.Int).Div(original, big.NewInt(2)), big.NewInt(3))
-	if pls.rootchainManager.state.gasPrice.Cmp(newGasPrice) != 0 {
+	newGasPrice := pls.rootchainManager.state.gasPrice
+	if original.Cmp(newGasPrice) == 0 {
 		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
 	}
 }
