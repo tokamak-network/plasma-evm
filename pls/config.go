@@ -57,9 +57,9 @@ var DefaultConfig = Config{
 	MinerRecommit:      3 * time.Second,
 
 	OperatorMinEther: big.NewInt(0.5 * params.Ether),
-	MinGasPrice:      big.NewInt(1),
-	MaxGasPrice:      big.NewInt(1e9),
-	PendingInterval:  100,
+	MinGasPrice:      big.NewInt(1 * params.GWei),
+	MaxGasPrice:      big.NewInt(300 * params.GWei),
+	PendingInterval:  10 * time.Second,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{

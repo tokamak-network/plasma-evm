@@ -649,7 +649,7 @@ var (
 	}
 	OperatorMinEtherFlag = cli.StringFlag{
 		Name:  "operator.minether",
-		Usage: "Plasma operator minimum balance (default: 0.5 ether)",
+		Usage: "Plasma operator minimum balance (default = 0.5 ether)",
 		Value: "0.5",
 	}
 	DeveloperKeyFlag = cli.StringFlag{
@@ -669,17 +669,17 @@ var (
 	}
 	PlasmaMinGasPriceFlag = BigFlag{
 		Name:  "rootchain.mingasprice",
-		Usage: "Minimum gas price for submitting a block",
+		Usage: "Minimum gas price for submitting a block (default = 1 Gwei)",
 		Value: pls.DefaultConfig.MinGasPrice,
 	}
 	PlasmaMaxGasPriceFlag = BigFlag{
 		Name:  "rootchain.maxgasprice",
-		Usage: "Maximum gas price for submitting a block",
+		Usage: "Maximum gas price for submitting a block (default = 300 Gwei)",
 		Value: pls.DefaultConfig.MaxGasPrice,
 	}
 	PlasmaPendingInterval = cli.DurationFlag{
 		Name:  "rootchain.interval",
-		Usage: "Pending interval time after submitting a block",
+		Usage: "Pending interval time after submitting a block (default = 10s). If block submit transaction is not mined in 2 intervals, gas price will be adjusted. See https://golang.org/pkg/time/#ParseDuration",
 		Value: pls.DefaultConfig.PendingInterval,
 	}
 
