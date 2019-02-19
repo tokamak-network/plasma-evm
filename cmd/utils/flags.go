@@ -1425,7 +1425,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 		balance, err := rootchainBackend.BalanceAt(context.Background(), addr, nil)
 		if err != nil {
-			Fatalf("Failed to get challenger balance from rootchain: %v", err)
+			log.Error("Failed to get challenger balance from rootchain", "err", err)
 		}
 		if balance.Cmp(cfg.OperatorMinEther) < 0 {
 			Fatalf("Expected challenger's balance to be more than %s wei, but is %v wei", cfg.OperatorMinEther.String(), balance)
