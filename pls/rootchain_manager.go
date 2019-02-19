@@ -312,14 +312,17 @@ func (rcm *RootChainManager) runSubmitter() {
 
 	for {
 		select {
-		case ev := <-plasmaBlockMinedEvents.Chan():
-			if ev == nil {
-				return
+		case ev, ok := <-plasmaBlockMinedEvents.Chan():
+			if !ok {
+				continue
 			}
+
 			// if the epoch is completed, stop mining operation and wait next epoch
+			rcm.minerEnv.Lock()
 			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
 			}
+			rcm.minerEnv.Unlock()
 
 			bal, err := rcm.backend.BalanceAt(context.Background(), rcm.config.Operator.Address, nil)
 			if err != nil {
@@ -346,6 +349,8 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			pendingInterval := time.NewTicker(rcm.config.PendingInterval)
 			numTicker := 0
+
+		PendingLoop:
 			for {
 				select {
 				case _, ok := <-pendingInterval.C:
@@ -431,7 +436,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				case b := <-blockSubmitEvents:
 					pendingInterval.Stop()
 					rcm.state.incNonce()
-					rcm.lock.Unlock()
+
 					numTicker = 0
 
 					if b.BlockNumber.Cmp(block.Number()) != 0 {
@@ -448,8 +453,15 @@ func (rcm *RootChainManager) runSubmitter() {
 
 					log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String())
 					adjust(true)
-					break
+
+					rcm.lock.Unlock()
+
+					break PendingLoop
+
+				case <-rcm.quit:
+					return
 				}
+
 			}
 		case <-rcm.quit:
 			return
@@ -495,7 +507,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	go rcm.miner.Start(params.Operator, &e, false)
+	if !rcm.miner.Mining() {
+		go rcm.miner.Start(params.Operator, &e, false)
+	}
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {

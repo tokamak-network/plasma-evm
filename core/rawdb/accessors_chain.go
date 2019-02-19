@@ -415,7 +415,7 @@ func WriteEpochEnv(db DatabaseWriter, e *epoch.EpochEnvironment) {
 func ReadEpochEnv(db DatabaseReader) *epoch.EpochEnvironment {
 	data, _ := db.Get(epochEnvKey())
 	if len(data) == 0 {
-		return nil
+		return epoch.New()
 	}
 	e := new(epoch.EpochEnvironment)
 	if err := rlp.DecodeBytes(data, e); err != nil {
