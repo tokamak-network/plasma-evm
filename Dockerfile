@@ -11,5 +11,5 @@ FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
-COPY run.pls.sh /usr/local/bin
+COPY docker.run.pls.sh /usr/local/bin
 WORKDIR /usr/local/bin

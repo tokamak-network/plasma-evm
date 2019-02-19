@@ -27,7 +27,7 @@ services:
     ports:
     - "0.0.0.0:8547:8547"
     - "0.0.0.0:8548:8548"
-    command: sh run.pls.sh
+    command: sh docker.run.pls.sh
 
 networks:
   plasma:

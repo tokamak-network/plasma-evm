@@ -19,6 +19,7 @@ geth \
   --miner.gastarget 7500000 \
   --miner.gasprice "10" \
   --rpc \
+  --rpcaddr 0.0.0.0 \
   --rpcport 8545 \
   --rpcapi eth,debug,net\
   --ws \
