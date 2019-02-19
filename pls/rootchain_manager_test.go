@@ -7,7 +7,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -19,6 +21,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -38,8 +42,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
-	"io/ioutil"
-	"os"
 )
 
 var (
@@ -100,8 +102,10 @@ var (
 	testTxPoolConfig = &core.DefaultTxPoolConfig
 
 	// rootchain contract
-	NRELength   = big.NewInt(2)
-	development = false
+	NRELength               = big.NewInt(2)
+	development             = false
+	swapEnabledInRootChain  = false
+	swapEnabledInChildChain = true
 
 	// transaction
 	defaultGasPrice        = big.NewInt(1) // 1 Gwei
@@ -946,6 +950,79 @@ func TestScenario4(t *testing.T) {
 	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
+func TestAdjustGasPrice(t *testing.T) {
+	quit := make(chan bool, 1)
+	pls, rpcServer, dir, err := makePls()
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	wait(3)
+
+	defer os.RemoveAll(dir)
+	defer pls.Stop()
+	defer rpcServer.Stop()
+	defer func() {
+		quit <- true
+	}()
+
+	original := big.NewInt(1 * params.GWei)
+	pls.rootchainManager.state.gasPrice = new(big.Int).Set(original)
+	pls.rootchainManager.config.MaxGasPrice = big.NewInt(100 * params.GWei)
+	pls.config.PendingInterval = 3 * time.Second
+
+	go func() {
+		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
+		opt1.GasPrice = big.NewInt(2 * params.GWei)
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				opt1.Nonce = big.NewInt(int64(nonce))
+				_, _, _, err := epochhandler.DeployEpochHandler(opt1, ethClient)
+				if err != nil {
+					nonce++
+				}
+				nonce++
+			}
+		}
+	}()
+
+	pls.protocolManager.Start(1)
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+
+	pls.StartMining(runtime.NumCPU())
+
+	// assign to global variable
+	rpcClient := rpc.DialInProc(rpcServer)
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+
+	log.Info("All backends are set up")
+
+	makeSampleTx(pls.rootchainManager)
+
+	<-blockSubmitEvents
+
+	newGasPrice := pls.rootchainManager.state.gasPrice
+	if original.Cmp(newGasPrice) == 0 {
+		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+	}
+}
+
 func TestMinerRestart(t *testing.T) {
 	pls, rpcServer, dir, err := makePls()
 	defer os.RemoveAll(dir)
@@ -980,8 +1057,6 @@ func TestMinerRestart(t *testing.T) {
 	}
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
-
-	wait(3)
 
 	log.Info("All backends are set up")
 
@@ -1023,9 +1098,8 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 
 	opt := makeTxOpt(key, 0, nil, value)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	isTransfer := true
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, isTransfer, addr, empty32Bytes, empty32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
@@ -1053,7 +1127,6 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 
 	opt := makeTxOpt(key, 0, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	isTransfer := false
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1063,7 +1136,7 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, isTransfer, tokenAddress, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, tokenAddress, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		log.Error("Failed to make an token deposit request", "err", err, "hash", tx.Hash())
@@ -1189,42 +1262,82 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 }
 
 func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
+
+	dummyDB := ethdb.NewMemDatabase()
+	defer dummyDB.Close()
+	dummyBlock := core.DeveloperGenesisBlock(
+		0,
+		common.HexToAddress("0xdead"),
+		operator,
+	).ToBlock(dummyDB)
+
 	opt := bind.NewKeyedTransactor(operatorKey)
+	wait := func(hash common.Hash) {
+		<-time.NewTimer(1 * time.Second).C
 
-	epochhandlerAddress, _, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
+			//if err != nil {
+			//	Fatalf("Failed to get receipt: %v", err)
+			//}
 
-	if err != nil {
-		log.Error("Failed to deploy epoch handler")
-		return common.Address{}, nil, err
+			<-time.NewTimer(1 * time.Second).C
+
+			receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
+		}
 	}
 
-	log.Info("EpochHandler is deployed in root chain", "rootchainAddress", epochhandlerAddress)
+	var tx *types.Transaction
+	log.Info("Deploying contracts for development mode")
 
-	wait(2)
-
-	rootchainAddress, _, rootchainContract, err = rootchain.DeployRootChain(
-		opt,
-		ethClient,
-		epochhandlerAddress,
-		development,
-		NRELength,
-		genesis.Header().Root,
-		genesis.Header().TxHash,
-		genesis.Header().ReceiptHash,
-	)
-
+	// 1. deploy MintableToken in root chain
+	mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, ethClient)
 	if err != nil {
-		log.Error("Failed to deploy rootchain")
-		return common.Address{}, nil, err
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 	}
+	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
 
-	log.Info("RootChain is deployed in root chain", "rootchainAddress", rootchainAddress)
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
 
-	testPlsConfig.RootChainContract = rootchainAddress
+	// 2. deploy EtherToken in root chain
+	etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenContract, swapEnabledInRootChain)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
+	}
+	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
 
-	wait(2)
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
 
-	return rootchainAddress, rootchainContract, err
+	// 3. deploy EpochHandler in root chain
+	epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
+	}
+	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+
+	log.Info("Wait until deploy transaction is mined")
+	wait(tx.Hash())
+
+	// 4. deploy RootChain in root chain
+	rootchainContractAddress, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
+	}
+	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContractAddress)
+	wait(tx.Hash())
+
+	// 5. initialize EtherToken
+	tx, err = etherToken.Init(opt, rootchainContractAddress)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
+	}
+	log.Info("Initialize EtherToken", "hash", tx.Hash())
+	wait(tx.Hash())
+
+	testPlsConfig.RootChainContract = rootchainContractAddress
+
+	return rootchainContractAddress, rootchainContract, err
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {

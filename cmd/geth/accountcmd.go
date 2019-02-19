@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/hdwallet"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/console"
@@ -181,6 +182,70 @@ You must remember this passphrase to unlock your account in the future.
 For non-interactive use the passphrase can be specified with the -password flag:
 
     geth account import [options] <keyfile>
+
+Note:
+As you can directly copy your encrypted accounts to another ethereum instance,
+this import mechanism is not needed when you transfer an account between
+nodes.
+`,
+			},
+			{
+				Name:   "importKey",
+				Usage:  "Import a private key from hex key into a new account",
+				Action: utils.MigrateFlags(accountImportKey),
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.KeyStoreDirFlag,
+					utils.PasswordFileFlag,
+					utils.LightKDFFlag,
+				},
+				ArgsUsage: "<privateKey>",
+				Description: `
+    geth account importKey <privateKey>
+
+Imports <privateKey> and creates a new account.
+Prints the address.
+
+The privateKey is assumed to be private key in hexadecimal format.
+
+The account is saved in encrypted format, you are prompted for a passphrase.
+
+You must remember this passphrase to unlock your account in the future.
+
+For non-interactive use the passphrase can be specified with the -password flag:
+
+    geth account import [options] <privateKey>
+
+Note:
+As you can directly copy your encrypted accounts to another ethereum instance,
+this import mechanism is not needed when you transfer an account between
+nodes.
+`,
+			},
+			{
+				Name:   "importHDwallet",
+				Usage:  "Import a mnemonic into a new account",
+				Action: utils.MigrateFlags(accountImportHDwallet),
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.KeyStoreDirFlag,
+					utils.PasswordFileFlag,
+					utils.LightKDFFlag,
+				},
+				ArgsUsage: "<mnemonic>, <path>",
+				Description: `
+    geth account importHDwallet <mnemonic> <path>
+
+Imports an private key from <mnemonic> and creates a new account.
+Prints the address.
+
+The account is saved in encrypted format, you are prompted for a passphrase.
+
+You must remember this passphrase to unlock your account in the future.
+
+For non-interactive use the passphrase can be specified with the -password flag:
+
+    geth account importHDwallet [options] <mnemonic> <path>
 
 Note:
 As you can directly copy your encrypted accounts to another ethereum instance,
@@ -371,6 +436,68 @@ func accountImport(ctx *cli.Context) error {
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	acct, err := ks.ImportECDSA(key, passphrase)
+	if err != nil {
+		utils.Fatalf("Could not create the account: %v", err)
+	}
+	fmt.Printf("Address: {%x}\n", acct.Address)
+	return nil
+}
+
+func accountImportKey(ctx *cli.Context) error {
+	hex := ctx.Args().First()
+	if len(hex) == 0 {
+		utils.Fatalf("private key must be given as argument")
+	}
+
+	key, err := crypto.HexToECDSA(hex)
+	if err != nil {
+		utils.Fatalf("failed to convert hexkey to ECDSA: %v", err)
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	acct, err := ks.ImportECDSA(key, passphrase)
+	if err != nil {
+		utils.Fatalf("Could not create the account: %v", err)
+	}
+	fmt.Printf("Address: {%x}\n", acct.Address)
+	return nil
+}
+
+func accountImportHDwallet(ctx *cli.Context) error {
+	mnemonic := ctx.Args().Get(0)
+	path := ctx.Args().Get(1)
+
+	if len(mnemonic) == 0 {
+		utils.Fatalf("mnemonic must be given as argument")
+	}
+	if len(path) == 0 {
+		utils.Fatalf("path must be given as argument")
+	}
+
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		utils.Fatalf("failed to import wallet from mnemonic", err)
+	}
+
+	dpath := hdwallet.MustParseDerivationPath(path)
+	account, err := wallet.Derive(dpath, false)
+	if err != nil {
+		utils.Fatalf("failed to derive account from wallet", err)
+	}
+
+	privKey, err := wallet.PrivateKey(account)
+	if err != nil {
+		utils.Fatalf("failed to derive account from wallet", err)
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	acct, err := ks.ImportECDSA(privKey, passphrase)
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)
 	}

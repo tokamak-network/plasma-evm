@@ -56,6 +56,11 @@ var DefaultConfig = Config{
 	MinerGasPrice:      big.NewInt(params.GWei),
 	MinerRecommit:      3 * time.Second,
 
+	OperatorMinEther: big.NewInt(0.5 * params.Ether),
+	MinGasPrice:      big.NewInt(1 * params.GWei),
+	MaxGasPrice:      big.NewInt(300 * params.GWei),
+	PendingInterval:  10 * time.Second,
+
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -86,9 +91,15 @@ type Config struct {
 
 	// Plasma options
 	Operator           accounts.Account
+	OperatorMinEther   *big.Int
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
+
+	// Gas price options for submitting a block
+	MinGasPrice     *big.Int
+	MaxGasPrice     *big.Int
+	PendingInterval time.Duration
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

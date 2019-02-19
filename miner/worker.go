@@ -355,6 +355,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		// clear pending task when miner is started
 		case <-w.startCh:
+			timer.Reset(recommit)
+
 			clearPending(w.chain.CurrentBlock().NumberU64())
 
 		// just consume chain head event
@@ -366,8 +368,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timer.Reset(recommit)
 
 			if (w.isRunning() && !w.env.Completed) && (w.config.Clique == nil || w.config.Clique.Period > 0) {
-				// Short circuit if no new transaction arrives.
-				if atomic.LoadInt32(&w.newTxs) == 0 {
+				pending, _ := w.pls.TxPool().Pending()
+				// Short circuit if there is no pending transaction.
+				if len(pending) == 0 {
 					continue
 				}
 				timestamp = time.Now().Unix()

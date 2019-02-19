@@ -8,6 +8,7 @@ KEY4="ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66"
 KEY5="eda4515e1bc6c08e8606b51ffb6ffe70b3fe76781ed49872285e484064e3b634"
 
 DATADIR=$HOME/.pls.dev
+OPERATOR="0x71562b71999873DB5b286dF957af199Ec94617F7"
 
 rm -rf $DATADIR
 
@@ -17,6 +18,5 @@ geth \
   --dev \
   --rpc \
   --rpcport 8547 \
-  --dev.key $KEY1,$KEY2,$KEY3,$KEY4,$KEY5 \
-  --rootchain.operatorkey $OPERATOR_KEY \
-  --rootchain.url "ws://172.30.0.3:8546"
+  --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5 \
+  --operator $OPERATOR

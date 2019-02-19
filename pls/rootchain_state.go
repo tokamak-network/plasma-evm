@@ -25,7 +25,8 @@ type rootchainState struct {
 	currentFork    uint64
 
 	// operator tx parameters
-	nonce uint64
+	nonce    uint64
+	gasPrice *big.Int
 
 	lastUpdateTime time.Time
 
@@ -48,6 +49,7 @@ func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs.currentFork = rs.getCurrentFork()
 
 	rs.getNonce()
+	rs.initGasPrice()
 
 	return rs
 }
@@ -118,4 +120,9 @@ func (rs *rootchainState) incNonce() {
 	defer rs.lock.Unlock()
 
 	rs.nonce += 1
+}
+func (rs *rootchainState) initGasPrice() {
+	minGasPrice := rs.rcm.config.MinGasPrice
+	maxGasPrice := rs.rcm.config.MaxGasPrice
+	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }

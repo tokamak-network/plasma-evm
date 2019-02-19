@@ -32,12 +32,29 @@ Here is some additional command-line options for Plasma-EVM.
 
 ```bash
 ROOTCHAIN OPTIONS:
-  --rootchain.operatorKey   Specify operator key as hex
-  --rootchain.contract      The address of RootChain contract
-  --rootchain.url           JSONRPC endpoint of rootchain provider. Use WebSocket to subscribe events. (default: ws://localhost:8546)
+  --rootchain.opeartorAddress   Specify operator address as hex
+  --rootchain.operatorKey       Specify operator key as hex
+  --rootchain.contract          The address of RootChain contract
+  --rootchain.url               JSONRPC endpoint of rootchain provider. Use WebSocket to subscribe events. (default: ws://localhost:8546)
 
 DEVELOPER CHAIN OPTIONS:
   --dev.key                 Comma seperated keys as hex for developer accounts
+```
+
+## Account Import
+
+You can import your private key and HDwallet into new account with keystore
+
+#### Using Private Key
+Inside `build/bin` directory, run the following command
+```bash
+geth account importKey <privateKey>
+```
+
+#### Using HDwallet
+Inside `build/bin` directory, run the following command
+```bash
+geth account importHDwallet <mnemonic> <path>
 ```
 
 ## Test
