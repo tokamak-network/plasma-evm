@@ -9,6 +9,7 @@ KEY5="eda4515e1bc6c08e8606b51ffb6ffe70b3fe76781ed49872285e484064e3b634"
 
 DATADIR=$HOME/.pls.dev
 OPERATOR="0x71562b71999873DB5b286dF957af199Ec94617F7"
+CHALLENGER="0x5DF7107C960320b90a3D7ed9A83203D1f98A811D" # KEY1
 
 rm -rf $DATADIR
 
@@ -20,4 +21,5 @@ build/bin/geth \
   --rpc \
   --rpcport 8547 \
   --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5 \
-  --operator $OPERATOR
+  --operator $OPERATOR \
+  --rootchain.challenger $CHALLENGER

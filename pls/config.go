@@ -90,7 +90,9 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Plasma options
-	Operator           accounts.Account
+	Operator   accounts.Account
+	Challenger accounts.Account
+
 	OperatorMinEther   *big.Int
 	RootChainURL       string
 	RootChainContract  common.Address

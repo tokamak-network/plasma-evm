@@ -682,6 +682,10 @@ var (
 		Usage: "Pending interval time after submitting a block (default = 10s). If block submit transaction is not mined in 2 intervals, gas price will be adjusted. See https://golang.org/pkg/time/#ParseDuration",
 		Value: pls.DefaultConfig.PendingInterval,
 	}
+	PlasmaRootChainChallenger = cli.StringFlag{
+		Name:  "rootchain.challenger",
+		Usage: "Address of challenger account",
+	}
 
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
@@ -1232,8 +1236,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	setWhitelist(ctx, cfg)
 
 	var (
-		operatorAddr common.Address
-		err          error
+		operatorAddr     common.Address
+		rootchainBackend *ethclient.Client
+		err              error
 	)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
@@ -1346,6 +1351,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 
+	cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
+	rootchainBackend, err = ethclient.Dial(cfg.RootChainURL)
+	if err != nil {
+		Fatalf("Failed to connect rootchain: %v", err)
+	}
+
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)
 		operatorAddr = common.HexToAddress(hex)
@@ -1359,7 +1370,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
 
-		log.Info("Using operator", "address", operatorAddr)
+		log.Info("Operator account is unlocked", "address", operatorAddr)
 		cfg.Operator = account
 	}
 
@@ -1393,11 +1404,42 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 
-	cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
+	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
+		addr := common.HexToAddress(ctx.GlobalString(PlasmaRootChainChallenger.Name))
+		if !ks.HasAddress(addr) {
+			Fatalf("Failed to get challenger address from keystore")
+		}
+		challenger := accounts.Account{Address: addr}
+
+		if cfg.Operator == challenger {
+			Fatalf("Cannot use same challenger account as operator")
+		}
+
+		log.Info("Unlocking challenger account", "address", challenger.Address)
+		if err := ks.Unlock(challenger, ""); err != nil {
+			Fatalf("Failed to unlock challenger account: %v", err)
+		}
+
+		if rootchainBackend == nil {
+			Fatalf("Rootchain is not connected")
+		}
+		balance, err := rootchainBackend.BalanceAt(context.Background(), addr, nil)
+		if err != nil {
+			Fatalf("Failed to get challenger balance from rootchain: %v", err)
+		}
+		if balance.Cmp(cfg.OperatorMinEther) < 0 {
+			Fatalf("Expected challenger's balance to be more than %s wei, but is %v wei", cfg.OperatorMinEther.String(), balance)
+		}
+
+		log.Info("Challenger account is unlocked", "address", challenger.Address)
+		cfg.Challenger = challenger
+	}
+
 	if ctx.GlobalIsSet(RootChainContractFlag.Name) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
 
+	// TODO: set network id from params/config.go for each network
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.NetworkId = 3
@@ -1426,11 +1468,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			swapEnabled = false
 			NRELength   = big.NewInt(2)
 		)
-
-		rootchainBackend, err := ethclient.Dial(cfg.RootChainURL)
-		if err != nil {
-			Fatalf("Failed to connect rootchain: %v", err)
-		}
 
 		wait := func(hash common.Hash) {
 			<-time.NewTimer(1 * time.Second).C

@@ -649,13 +649,17 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 			// TODO: ChallengeExit receipt check
 			input, err := rootchainContractABI.Pack("challengeExit", e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
 			if err != nil {
-				log.Error("Failed to pack challengeExit", "error", err)
+				log.Error("Failed to pack challengeExit", "err", err)
 			}
 
-			Nonce := rcm.state.getNonce()
-			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			nonce, err := rcm.backend.TransactionCount(context.Background(), common.Hash{})
+			if err != nil {
+				log.Error("Failed to get challenger nonce", "err", err)
+			}
 
-			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
+			challengeTx := types.NewTransaction(uint64(nonce), rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+			signedTx, err := w.SignTx(rcm.config.Challenger, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}
@@ -678,7 +682,7 @@ func (rcm *RootChainManager) runDetector() {
 
 	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
 	if err != nil {
-		log.Warn("failed to make new root chain caller", "error", err)
+		log.Warn("Failed to make new root chain caller", "err", err)
 		return
 	}
 
@@ -697,7 +701,7 @@ func (rcm *RootChainManager) runDetector() {
 
 				forkNumber, err := caller.CurrentFork(callerOpts)
 				if err != nil {
-					log.Warn("failed to get current fork number", "error", err)
+					log.Warn("failed to get current fork number", "err", err)
 				}
 
 				if rcm.invalidExits[forkNumber.Uint64()] == nil {
