@@ -1559,12 +1559,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("--%s flag must use with --%s flag", PlasmaMaxGasPriceFlag.Name, PlasmaMinGasPriceFlag.Name)
 		}
 	}
-	if ctx.GlobalIsSet(PlasmaPendingInterval.Name) {
-		pendingInterval := ctx.Duration(PlasmaPendingInterval.Name)
-		if pendingInterval.Seconds() < 15 {
-			Fatalf("pending interval time must be at least 15 seconds")
-		}
-	}
+
+	cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
+
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 
 	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
