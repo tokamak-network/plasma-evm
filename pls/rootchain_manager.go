@@ -680,12 +680,6 @@ func (rcm *RootChainManager) runDetector() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
-	if err != nil {
-		log.Warn("Failed to make new root chain caller", "err", err)
-		return
-	}
-
 	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
@@ -699,7 +693,7 @@ func (rcm *RootChainManager) runDetector() {
 			if rcm.minerEnv.IsRequest {
 				var invalidExitsList invalidExits
 
-				forkNumber, err := caller.CurrentFork(callerOpts)
+				forkNumber, err := rcm.rootchainContract.CurrentFork(callerOpts)
 				if err != nil {
 					log.Warn("failed to get current fork number", "err", err)
 				}
