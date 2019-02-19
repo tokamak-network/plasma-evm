@@ -128,7 +128,9 @@ func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPre
 	}
 
 	if empty {
-		self.env = rawdb.ReadEpochEnv(self.db)
+		previousEnv := rawdb.ReadEpochEnv(self.db)
+		epoch.Copy(self.env, previousEnv)
+
 		self.worker.start()
 		log.Info("current epoch is resumed")
 		return

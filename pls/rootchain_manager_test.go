@@ -35,6 +35,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -1486,7 +1487,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 		return nil, nil, d, err
 	}
 
-	epochEnv := miner.NewEpochEnvironment()
+	epochEnv := epoch.New()
 	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, db, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
@@ -1586,7 +1587,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 
 	mux := new(event.TypeMux)
-	epochEnv := miner.NewEpochEnvironment()
+	epochEnv := epoch.New()
 	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	var rcm *RootChainManager
