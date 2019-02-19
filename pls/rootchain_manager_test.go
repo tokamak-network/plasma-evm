@@ -968,7 +968,7 @@ func TestAdjustGasPrice(t *testing.T) {
 	original := big.NewInt(1 * params.GWei)
 	pls.rootchainManager.state.gasPrice = new(big.Int).Set(original)
 	pls.rootchainManager.config.MaxGasPrice = big.NewInt(100 * params.GWei)
-	pls.config.PendingInterval = 3 * time.Second
+	pls.config.PendingInterval = 300 * time.Millisecond
 
 	go func() {
 		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
@@ -1014,12 +1014,41 @@ func TestAdjustGasPrice(t *testing.T) {
 	log.Info("All backends are set up")
 
 	makeSampleTx(pls.rootchainManager)
+	<-plasmaBlockMinedEvents.Chan()
 
-	<-blockSubmitEvents
+	timerInterval := 150 * pls.config.PendingInterval
+	timer := time.NewTimer(timerInterval)
 
-	newGasPrice := pls.rootchainManager.state.gasPrice
+	select {
+	case <-blockSubmitEvents:
+		timer.Reset(timerInterval)
+	case _, ok := <-timer.C:
+		if ok {
+			t.Fatal("out of time")
+		}
+	}
+
+	newGasPrice := new(big.Int).Set(pls.rootchainManager.state.gasPrice)
 	if original.Cmp(newGasPrice) == 0 {
-		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+		t.Fatalf("original: %v, new: %v", original, newGasPrice)
+	}
+
+	makeSampleTx(pls.rootchainManager)
+	<-plasmaBlockMinedEvents.Chan()
+
+	select {
+	case <-blockSubmitEvents:
+		timer.Reset(timerInterval)
+	case _, ok := <-timer.C:
+		if ok {
+			t.Fatal("out of time")
+		}
+	}
+
+	original = new(big.Int).Set(newGasPrice)
+	newGasPrice = new(big.Int).Set(pls.rootchainManager.state.gasPrice)
+	if original.Cmp(newGasPrice) == 0 {
+		t.Fatalf("original: %v, new: %v", original, newGasPrice)
 	}
 }
 
@@ -1658,6 +1687,8 @@ func makeSampleTx(rcm *RootChainManager) error {
 
 		return err
 	}
+
+	log.Debug("Sample transaction is submitted in child chian")
 
 	return nil
 }
