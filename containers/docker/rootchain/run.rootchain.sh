@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 OPERATOR_PRIV_KEY="b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
+CHALLENGER_KEY="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
 
 ADDR0="0x5df7107c960320b90a3d7ed9a83203d1f98a811d";
 ADDR1="0x3cd9f729c8d882b851f8c70fb36d22b391a288cd";
@@ -15,7 +16,7 @@ KEY3="ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66";
 geth \
   --dev \
   --dev.period 1 \
-  --dev.faucetkey "$OPERATOR_PRIV_KEY,$KEY0,$KEY1,$KEY2,$KEY3" \
+  --dev.faucetkey "$OPERATOR_PRIV_KEY,$KEY0,$KEY1,$KEY2,$KEY3,$CHALLENGER_KEY" \
   --miner.gastarget 7500000 \
   --miner.gasprice "10" \
   --rpc \
