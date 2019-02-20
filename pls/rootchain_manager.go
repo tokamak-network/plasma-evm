@@ -312,14 +312,17 @@ func (rcm *RootChainManager) runSubmitter() {
 
 	for {
 		select {
-		case ev := <-plasmaBlockMinedEvents.Chan():
-			if ev == nil {
-				return
+		case ev, ok := <-plasmaBlockMinedEvents.Chan():
+			if !ok {
+				continue
 			}
+
 			// if the epoch is completed, stop mining operation and wait next epoch
+			rcm.minerEnv.Lock()
 			if rcm.minerEnv.Completed {
 				rcm.miner.Stop()
 			}
+			rcm.minerEnv.Unlock()
 
 			bal, err := rcm.backend.BalanceAt(context.Background(), rcm.config.Operator.Address, nil)
 			if err != nil {
@@ -346,6 +349,8 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			pendingInterval := time.NewTicker(rcm.config.PendingInterval)
 			numTicker := 0
+
+		PendingLoop:
 			for {
 				select {
 				case _, ok := <-pendingInterval.C:
@@ -431,7 +436,7 @@ func (rcm *RootChainManager) runSubmitter() {
 				case b := <-blockSubmitEvents:
 					pendingInterval.Stop()
 					rcm.state.incNonce()
-					rcm.lock.Unlock()
+
 					numTicker = 0
 
 					if b.BlockNumber.Cmp(block.Number()) != 0 {
@@ -448,8 +453,15 @@ func (rcm *RootChainManager) runSubmitter() {
 
 					log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String())
 					adjust(true)
-					break
+
+					rcm.lock.Unlock()
+
+					break PendingLoop
+
+				case <-rcm.quit:
+					return
 				}
+
 			}
 		case <-rcm.quit:
 			return
@@ -495,7 +507,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	go rcm.miner.Start(params.Operator, &e, false)
+	if !rcm.miner.Mining() {
+		go rcm.miner.Start(params.Operator, &e, false)
+	}
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
@@ -649,13 +663,17 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 			// TODO: ChallengeExit receipt check
 			input, err := rootchainContractABI.Pack("challengeExit", e.ForkNumber, e.BlockNumber, big.NewInt(invalidExits[i].index), invalidExits[i].receipt.GetRlp(), proofs)
 			if err != nil {
-				log.Error("Failed to pack challengeExit", "error", err)
+				log.Error("Failed to pack challengeExit", "err", err)
 			}
 
-			Nonce := rcm.state.getNonce()
-			challengeTx := types.NewTransaction(Nonce, rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+			nonce, err := rcm.backend.TransactionCount(context.Background(), common.Hash{})
+			if err != nil {
+				log.Error("Failed to get challenger nonce", "err", err)
+			}
 
-			signedTx, err := w.SignTx(rcm.config.Operator, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
+			challengeTx := types.NewTransaction(uint64(nonce), rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
+
+			signedTx, err := w.SignTx(rcm.config.Challenger, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
 			if err != nil {
 				log.Error("Failed to sign challengeTx", "err", err)
 			}
@@ -676,12 +694,6 @@ func (rcm *RootChainManager) runDetector() {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	caller, err := rootchain.NewRootChainCaller(rcm.config.RootChainContract, rcm.backend)
-	if err != nil {
-		log.Warn("failed to make new root chain caller", "error", err)
-		return
-	}
-
 	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
@@ -695,9 +707,9 @@ func (rcm *RootChainManager) runDetector() {
 			if rcm.minerEnv.IsRequest {
 				var invalidExitsList invalidExits
 
-				forkNumber, err := caller.CurrentFork(callerOpts)
+				forkNumber, err := rcm.rootchainContract.CurrentFork(callerOpts)
 				if err != nil {
-					log.Warn("failed to get current fork number", "error", err)
+					log.Warn("failed to get current fork number", "err", err)
 				}
 
 				if rcm.invalidExits[forkNumber.Uint64()] == nil {

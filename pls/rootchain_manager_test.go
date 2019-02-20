@@ -35,6 +35,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -965,10 +966,12 @@ func TestAdjustGasPrice(t *testing.T) {
 		quit <- true
 	}()
 
-	original := big.NewInt(1 * params.GWei)
-	pls.rootchainManager.state.gasPrice = new(big.Int).Set(original)
+	originalGasPrice := big.NewInt(1 * params.GWei)
+	newGasPrice := big.NewInt(1 * params.GWei)
+
+	pls.rootchainManager.state.gasPrice = new(big.Int).Set(originalGasPrice)
 	pls.rootchainManager.config.MaxGasPrice = big.NewInt(100 * params.GWei)
-	pls.config.PendingInterval = 3 * time.Second
+	pls.config.PendingInterval = 300 * time.Millisecond
 
 	go func() {
 		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
@@ -1000,8 +1003,8 @@ func TestAdjustGasPrice(t *testing.T) {
 	rpcClient := rpc.DialInProc(rpcServer)
 	plsClient = plsclient.NewClient(rpcClient)
 
-	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer plasmaBlockMinedEvents.Unsubscribe()
+	//plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	//defer plasmaBlockMinedEvents.Unsubscribe()
 
 	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
 	blockSubmitWatchOpts := &bind.WatchOpts{
@@ -1013,13 +1016,28 @@ func TestAdjustGasPrice(t *testing.T) {
 
 	log.Info("All backends are set up")
 
-	makeSampleTx(pls.rootchainManager)
+	timerInterval := 20 * time.Second
+	timer := time.NewTimer(timerInterval)
 
-	<-blockSubmitEvents
+	for i := 0; i < 10; i++ {
+		makeSampleTx(pls.rootchainManager)
+		//<-plasmaBlockMinedEvents.Chan()
 
-	newGasPrice := pls.rootchainManager.state.gasPrice
-	if original.Cmp(newGasPrice) == 0 {
-		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+		select {
+		case <-blockSubmitEvents:
+			timer.Reset(timerInterval)
+		case _, ok := <-timer.C:
+			if ok {
+				t.Fatal("out of time")
+			}
+		}
+
+		originalGasPrice = new(big.Int).Set(newGasPrice)
+		newGasPrice = new(big.Int).Set(pls.rootchainManager.state.gasPrice)
+
+		if originalGasPrice.Cmp(newGasPrice) == 0 {
+			t.Fatalf("originalGasPrice: %v, new: %v", originalGasPrice, newGasPrice)
+		}
 	}
 }
 
@@ -1469,7 +1487,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 		return nil, nil, d, err
 	}
 
-	epochEnv := miner.NewEpochEnvironment()
+	epochEnv := epoch.New()
 	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, db, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 	pls.APIBackend = &PlsAPIBackend{pls, nil}
@@ -1569,7 +1587,7 @@ func makeManager() (*RootChainManager, func(), error) {
 	}
 
 	mux := new(event.TypeMux)
-	epochEnv := miner.NewEpochEnvironment()
+	epochEnv := epoch.New()
 	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	var rcm *RootChainManager
@@ -1658,6 +1676,8 @@ func makeSampleTx(rcm *RootChainManager) error {
 
 		return err
 	}
+
+	log.Debug("Sample transaction is submitted in child chian")
 
 	return nil
 }

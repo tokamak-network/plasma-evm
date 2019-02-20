@@ -18,6 +18,35 @@ type EpochEnvironment struct {
 	lock sync.Mutex
 }
 
+func New() *EpochEnvironment {
+	return &EpochEnvironment{
+		IsRequest:          false,
+		UserActivated:      false,
+		Rebase:             false,
+		Completed:          false,
+		NumBlockMined:      big.NewInt(0),
+		EpochLength:        big.NewInt(0),
+		CurrentFork:        big.NewInt(0),
+		LastFinalizedBlock: big.NewInt(0),
+	}
+}
+
+func Copy(dst, src *EpochEnvironment) {
+	src.Lock()
+	defer src.Unlock()
+
+	src.IsRequest = dst.IsRequest
+	src.UserActivated = dst.UserActivated
+	src.Rebase = dst.Rebase
+	src.Completed = dst.Completed
+
+	src.NumBlockMined = new(big.Int).Set(dst.NumBlockMined)
+	src.EpochLength = new(big.Int).Set(dst.EpochLength)
+	src.CurrentFork = new(big.Int).Set(dst.CurrentFork)
+	src.LastFinalizedBlock = new(big.Int).Set(dst.LastFinalizedBlock)
+
+}
+
 func (self *EpochEnvironment) SetIsRequest(b bool) {
 	self.lock.Lock()
 	defer self.lock.Unlock()

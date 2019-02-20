@@ -161,6 +161,7 @@ var (
 		utils.PlasmaMinGasPriceFlag,
 		utils.PlasmaMaxGasPriceFlag,
 		utils.PlasmaPendingInterval,
+		utils.PlasmaRootChainChallenger,
 	}
 
 	whisperFlags = []cli.Flag{

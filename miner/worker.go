@@ -340,15 +340,15 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		recommit = time.Duration(int64(next))
 	}
 	// clearPending cleans the stale pending tasks.
-	clearPending := func(number uint64) {
-		w.pendingMu.Lock()
-		for h, t := range w.pendingTasks {
-			if t.block.NumberU64()+staleThreshold <= number {
-				delete(w.pendingTasks, h)
-			}
-		}
-		w.pendingMu.Unlock()
-	}
+	//clearPending := func(number uint64) {
+	//	w.pendingMu.Lock()
+	//	for h, t := range w.pendingTasks {
+	//		if t.block.NumberU64()+staleThreshold <= number {
+	//			delete(w.pendingTasks, h)
+	//		}
+	//	}
+	//	w.pendingMu.Unlock()
+	//}
 
 	for {
 		select {
@@ -357,7 +357,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			timer.Reset(recommit)
 
-			clearPending(w.chain.CurrentBlock().NumberU64())
+			//clearPending(w.chain.CurrentBlock().NumberU64())
 
 		// just consume chain head event
 		case <-w.chainHeadCh:
@@ -367,7 +367,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// higher priced transactions. Disable this overhead for pending blocks.
 			timer.Reset(recommit)
 
-			if (w.isRunning() && !w.env.Completed) && (w.config.Clique == nil || w.config.Clique.Period > 0) {
+			if w.isRunning() && !w.env.Completed {
 				pending, _ := w.pls.TxPool().Pending()
 				// Short circuit if there is no pending transaction.
 				if len(pending) == 0 {
@@ -604,13 +604,15 @@ func (w *worker) resultLoop() {
 
 			// add 1 to number of block mined
 			w.env.SetNumBlockMined(new(big.Int).Add(w.env.NumBlockMined, big.NewInt(1)))
-			rawdb.WriteEpochEnv(w.db, w.env)
 
 			// check if the epoch is completed
 			if w.env.NumBlockMined.Cmp(w.env.EpochLength) == 0 {
 				w.env.SetCompleted(true)
-				rawdb.WriteEpochEnv(w.db, w.env)
 			}
+
+			w.env.Lock()
+			rawdb.WriteEpochEnv(w.db, w.env)
+			w.env.Unlock()
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
@@ -953,12 +955,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
-		if w.coinbase == (common.Address{}) {
-			log.Error("Refusing to mine without etherbase")
-			return
-		}
 		header.Coinbase = w.coinbase
 	}
+
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
