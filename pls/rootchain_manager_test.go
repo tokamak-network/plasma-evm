@@ -1693,6 +1693,20 @@ func makeManager() (*RootChainManager, func(), error) {
 	epochEnv := epoch.New()
 	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
+	_, ks := tmpKeyStore()
+	account, err := ks.ImportECDSA(operatorKey, "")
+	if err != nil {
+		log.Error("Failed to import operator account", "err", err)
+	}
+	if err = ks.Unlock(account, ""); err != nil {
+		log.Error("Failed to unlock operator account", "err", err)
+	}
+	// configure account manager with temporary keystore backend
+	backends := []accounts.Backend{
+		ks,
+	}
+	accManager := accounts.NewManager(backends...)
+
 	var rcm *RootChainManager
 
 	stopFn := func() {
@@ -1710,7 +1724,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		ethClient,
 		rootchainContract,
 		mux,
-		nil,
+		accManager,
 		miner,
 		epochEnv,
 	)
