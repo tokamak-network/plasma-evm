@@ -224,17 +224,23 @@ func TestScenario1(t *testing.T) {
 
 // TestScenario2 tests enter and exit between root chain & plasma chain
 func TestScenario2(t *testing.T) {
-	rcm, stopFn, err := makeManager()
-	defer stopFn()
+	pls, rpcServer, dir, err := makePls()
+	rcm := pls.rootchainManager
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer func() {
+		os.RemoveAll(dir)
+		pls.Stop()
+		rpcServer.Stop()
+	}()
 
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
 	ctx := context.Background()
 
-	if err != nil {
-		t.Fatalf("Failed to make rootchian manager: %v", err)
-	}
-
 	NRELength, err := rcm.NRELength()
-
 	if err != nil {
 		t.Fatalf("Failed to get NRELength: %v", err)
 	}
@@ -257,6 +263,7 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr3 in plasma chain before enter", "balance", db.GetBalance(addr3))
 	log.Info("balance of addr4 in plasma chain before enter", "balance", db.GetBalance(addr4))
 
+	// make enter request
 	startETHDeposit(t, rcm, key1, ether(1))
 	startETHDeposit(t, rcm, key2, ether(1))
 	startETHDeposit(t, rcm, key3, ether(1))
@@ -285,7 +292,7 @@ func TestScenario2(t *testing.T) {
 
 	var i uint64
 
-	// #1 NRB epoch check
+	// #1 NRE
 	for i = 0; i < NRELength.Uint64(); {
 		makeSampleTx(rcm)
 		i++
@@ -298,7 +305,22 @@ func TestScenario2(t *testing.T) {
 		}
 	}
 
-	// #2 ORB epoch check
+	// #2 empty ORE
+
+	// #3 NRE
+	for i = 0; i < NRELength.Uint64(); {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
+
+		if rcm.minerEnv.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
+
+	// #4 ORE
 	for i = 0; i < 1; {
 		i++
 		ev := <-events.Chan()
@@ -325,8 +347,16 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr3 in root chain after enter", "balance", bal3ae)
 	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
 
-	// #3 NRB epoch check
-	for i = 0; i < NRELength.Uint64(); {
+	// make exit request
+	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
+
+	wait(3)
+
+	// #5 NRE
+	for i = 0; i < NRELength.Uint64()*6; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
@@ -338,14 +368,22 @@ func TestScenario2(t *testing.T) {
 		}
 	}
 
-	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	// #6 empty ORE
 
-	wait(3)
+	// #7 NRE
+	for i = 0; i < NRELength.Uint64()*6; {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
 
-	// #4 ORB epoch check
+		if rcm.minerEnv.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
+
+	// #8 ORE
 	for i = 0; i < 1; {
 		i++
 		ev := <-events.Chan()
@@ -359,19 +397,6 @@ func TestScenario2(t *testing.T) {
 		log.Info("balance of addr2 in plasma chain after exit", "balance", db.GetBalance(addr2))
 		log.Info("balance of addr3 in plasma chain after exit", "balance", db.GetBalance(addr3))
 		log.Info("balance of addr4 in plasma chain after exit", "balance", db.GetBalance(addr4))
-	}
-
-	// #5+ NRB epoch progress
-	for i = 0; i < NRELength.Uint64()*6; {
-		makeSampleTx(rcm)
-		i++
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
 	}
 
 	applyRequests(t, rcm.rootchainContract, operatorKey)
