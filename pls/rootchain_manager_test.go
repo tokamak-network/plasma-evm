@@ -53,31 +53,58 @@ var (
 
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	opt0           = bind.NewKeyedTransactor(operatorKey)
+	operatorOpt    = bind.NewKeyedTransactor(operatorKey)
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
 	addr3 = common.HexToAddress("0x57ab89f4eabdffce316809d790d5c93a49908510")
 	addr4 = common.HexToAddress("0x6c278df36922fea54cf6f65f725267e271f60dd9")
+	addrs = []common.Address{addr1, addr2, addr3, addr4}
 
 	key1, _ = crypto.HexToECDSA("78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a115")
 	key2, _ = crypto.HexToECDSA("bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5")
 	key3, _ = crypto.HexToECDSA("067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc")
 	key4, _ = crypto.HexToECDSA("ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66")
+	keys    = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 
-	keys  []*ecdsa.PrivateKey
-	addrs []common.Address
+	operatorNonceRootChain uint64 = 0
+	addr1NonceRootChain    uint64 = 0
+	addr2NonceRootChain    uint64 = 0
+	addr3NonceRootChain    uint64 = 0
+	addr4NonceRootChain    uint64 = 0
+	noncesRootChain               = map[common.Address]*uint64{
+		operator: &operatorNonceRootChain,
+		addr1:    &addr1NonceRootChain,
+		addr2:    &addr2NonceRootChain,
+		addr3:    &addr3NonceRootChain,
+		addr4:    &addr4NonceRootChain,
+	}
 
-	operatorNonce uint64 = 0
-	addr1Nonce    uint64 = 0
-	addr2Nonce    uint64 = 0
-	addr3Nonce    uint64 = 0
-	addr4Nonce    uint64 = 0
+	operatorNonceChildChain uint64 = 0
+	addr1NonceChildChain    uint64 = 0
+	addr2NonceChildChain    uint64 = 0
+	addr3NonceChildChain    uint64 = 0
+	addr4NonceChildChain    uint64 = 0
+	noncesChildChain               = map[common.Address]*uint64{
+		operator: &operatorNonceChildChain,
+		addr1:    &addr1NonceChildChain,
+		addr2:    &addr2NonceChildChain,
+		addr3:    &addr3NonceChildChain,
+		addr4:    &addr4NonceChildChain,
+	}
 
 	opt1 = bind.NewKeyedTransactor(key1)
 	opt2 = bind.NewKeyedTransactor(key2)
 	opt3 = bind.NewKeyedTransactor(key3)
 	opt4 = bind.NewKeyedTransactor(key4)
+
+	opts = map[common.Address]*bind.TransactOpts{
+		operator: operatorOpt,
+		addr1:    opt1,
+		addr2:    opt2,
+		addr3:    opt3,
+		addr4:    opt4,
+	}
 
 	empty32Bytes = common.Hash{}
 
@@ -118,7 +145,7 @@ var (
 	// transaction
 	defaultGasPrice        = big.NewInt(1) // 1 Gwei
 	defaultValue           = big.NewInt(0)
-	defaultGasLimit uint64 = 4000000
+	defaultGasLimit uint64 = 7000000
 	maxTxFee        *big.Int
 
 	err error
@@ -134,6 +161,7 @@ func init() {
 	//testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	testPlsConfig.RootChainURL = rootchainUrl
+	testPlsConfig.PendingInterval = 500 * time.Millisecond
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
@@ -142,6 +170,16 @@ func init() {
 
 	keys = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 	addrs = []common.Address{addr1, addr2, addr3, addr4}
+
+	operatorNonceRootChain, err = ethClient.NonceAt(context.Background(), operator, nil)
+	addr1NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr1, nil)
+	addr2NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr2, nil)
+	addr3NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr3, nil)
+	addr4NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr4, nil)
+
+	for _, opt := range opts {
+		opt.GasLimit = defaultGasLimit
+	}
 
 	maxTxFee = new(big.Int).Mul(defaultGasPrice, big.NewInt(int64(defaultGasLimit)))
 }
@@ -225,20 +263,25 @@ func TestScenario1(t *testing.T) {
 // TestScenario2 tests enter and exit between root chain & plasma chain
 func TestScenario2(t *testing.T) {
 	pls, rpcServer, dir, err := makePls()
-	rcm := pls.rootchainManager
+	defer os.RemoveAll(dir)
+
 	if err != nil {
 		t.Fatalf("Failed to make pls service: %v", err)
 	}
-	defer func() {
-		os.RemoveAll(dir)
-		pls.Stop()
-		rpcServer.Stop()
-	}()
+	defer pls.Stop()
+	defer rpcServer.Stop()
 
 	if err := pls.rootchainManager.Start(); err != nil {
 		t.Fatalf("Failed to start RootChainManager: %v", err)
 	}
-	ctx := context.Background()
+	pls.protocolManager.Start(1)
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	rcm := pls.rootchainManager
 
 	NRELength, err := rcm.NRELength()
 	if err != nil {
@@ -246,10 +289,10 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// balance check in root chain before enter
-	bal1be, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2be, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3be, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4be, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1be, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2be, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3be, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4be, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain before enter", "balance", bal1be)
 	log.Info("balance of addr2 in root chain before enter", "balance", bal2be)
@@ -279,10 +322,6 @@ func TestScenario2(t *testing.T) {
 
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
-
-	if err = rcm.Start(); err != nil {
-		t.Fatalf("Failed to start rootchain manager: %v", err)
-	}
 
 	timer := time.NewTimer(1 * time.Minute)
 	go func() {
@@ -337,10 +376,10 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// balance check in root chain after enter
-	bal1ae, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2ae, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3ae, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4ae, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1ae, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2ae, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3ae, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4ae, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain after enter", "balance", bal1ae)
 	log.Info("balance of addr2 in root chain after enter", "balance", bal2ae)
@@ -402,10 +441,10 @@ func TestScenario2(t *testing.T) {
 	applyRequests(t, rcm.rootchainContract, operatorKey)
 
 	// balance check in root chain after enter
-	bal1aex, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2aex, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3aex, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4aex, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1aex, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2aex, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3aex, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4aex, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain after exit", "balance", bal1aex)
 	log.Info("balance of addr2 in root chain after exit", "balance", bal2aex)
@@ -455,18 +494,16 @@ func TestScenario3(t *testing.T) {
 	// NRE#1 / Block#1 (1/2)
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
-	wait(4)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
 		t.Fatal(err)
 	}
 
-	opt := makeTxOpt(operatorKey, 0, nil, nil)
-
-	_, err = tokenInRootChain.Mint(opt, addr1, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	_, err = tokenInRootChain.Mint(operatorOpt, addr1, ether(100))
 	if err != nil {
 		t.Fatalf("Failed to mint token: %v", err)
 	}
-	wait(2)
+	wait(3)
 
 	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
 	if err != nil {
@@ -480,12 +517,12 @@ func TestScenario3(t *testing.T) {
 
 	log.Info("Token total supply", "rootchain", ts1, "childchain", ts2)
 
-	wait(3)
-
-	_, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(opt, tokenAddrInRootChain, tokenAddrInChildChain)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	_, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(operatorOpt, tokenAddrInRootChain, tokenAddrInChildChain)
 	if err != nil {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
+
 	wait(3)
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
@@ -584,7 +621,7 @@ func TestScenario3(t *testing.T) {
 	tokenAmountToTransferNeg := new(big.Int).Neg(tokenAmountToTransfer)
 
 	// NRE#5 / Block#7 (1/2)
-	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
+	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer, false)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
 		t.Fatal(err)
 	}
@@ -598,7 +635,7 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// NRE#5 / Block#8 (2/2)
-	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
+	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer, false)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 8); err != nil {
 		t.Fatal(err)
@@ -1146,8 +1183,10 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
 	defer filterer.Unsubscribe()
 
-	opt := makeTxOpt(key, 0, nil, amount)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := opts[addr]
+	setNonce(opt, noncesRootChain[addr])
+	opt.Nonce = nil
 
 	trieKey, err := etherToken.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1156,13 +1195,13 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	trieValue := amount.Bytes()
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, mintableTokenAddr, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, etherTokenAddr, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
 	}
 
-	<-event
+	waitTx(tx.Hash())
 
 	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -1170,6 +1209,8 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	} else if receipt.Status == 0 {
 		t.Fatal("ETH deposit tx is reverted")
 	}
+
+	<-event
 }
 
 func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount *big.Int) {
@@ -1182,8 +1223,9 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
 	defer filterer.Unsubscribe()
 
-	opt := makeTxOpt(key, 0, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := opts[addr]
+	setNonce(opt, noncesRootChain[addr])
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1230,6 +1272,7 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	if _, err := rootchainContract.StartExit(opt, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
@@ -1239,6 +1282,7 @@ func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key 
 func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1284,8 +1328,16 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 	}
 }
 
-func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, key *ecdsa.PrivateKey, to common.Address, amount *big.Int) {
+func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, key *ecdsa.PrivateKey, to common.Address, amount *big.Int, isRootChain bool) {
 	opt := makeTxOpt(key, 0, nil, nil)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	if isRootChain {
+		setNonce(opt, noncesRootChain[addr])
+	} else {
+		setNonce(opt, noncesChildChain[addr])
+	}
+
 	_, err := tokenContract.Transfer(opt, to, amount)
 	if err != nil {
 		t.Fatalf("Failed to transfer toekn: %v", err)
@@ -1294,6 +1346,8 @@ func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, ke
 
 func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
 	opt := makeTxOpt(key, 0, nil, nil)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	wait(2)
 
@@ -1328,32 +1382,12 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		operator,
 	).ToBlock(dummyDB)
 
-	opt := bind.NewKeyedTransactor(operatorKey)
-	operatorNonce, err := ethClient.NonceAt(context.Background(), operator, nil)
-	addr1Nonce, _ = ethClient.NonceAt(context.Background(), addr1, nil)
-	addr2Nonce, _ = ethClient.NonceAt(context.Background(), addr2, nil)
-	addr3Nonce, _ = ethClient.NonceAt(context.Background(), addr3, nil)
-	addr4Nonce, _ = ethClient.NonceAt(context.Background(), addr4, nil)
-
-	log.Info("Using operator operatorNonce", "operatorNonce", operatorNonce, "err", err)
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
-
-	wait := func(hash common.Hash) {
-		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
-			<-time.NewTimer(1 * time.Second).C
-
-			receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
-		}
-	}
-
 	var tx *types.Transaction
 	log.Info("Deploying contracts for development mode")
 
 	// 1. deploy MintableToken in root chain
-	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(opt, ethClient)
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(operatorOpt, ethClient)
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
@@ -1361,12 +1395,11 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 2. deploy EtherToken in root chain
-	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(operatorOpt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
@@ -1374,12 +1407,11 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 3. deploy EpochHandler in root chain
-	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(operatorOpt, ethClient)
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
@@ -1387,99 +1419,96 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 4. deploy RootChain in root chain
-	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(operatorOpt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
 	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainAddr)
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 5. initialize EtherToken
-	tx, err = etherToken.Init(opt, rootchainAddr)
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = etherToken.Init(operatorOpt, rootchainAddr)
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
 	log.Info("Initialize EtherToken", "hash", tx.Hash())
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 6. mint tokens
-	tx1, err := mintableToken.Mint(opt, addr1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
-	tx2, err := mintableToken.Mint(opt, addr2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
-	tx3, err := mintableToken.Mint(opt, addr3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
-	tx4, err := mintableToken.Mint(opt, addr4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(operatorNonce))
-	operatorNonce++
+	mintEvents := make(chan *mintabletoken.MintableTokenMint)
+	mintWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	mintFilterrer, _ := mintableToken.WatchMint(mintWatchOpts, mintEvents, addrs)
 
-	wait(tx1.Hash())
-	wait(tx2.Hash())
-	wait(tx3.Hash())
-	wait(tx4.Hash())
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx1, err := mintableToken.Mint(operatorOpt, addr1, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx2, err := mintableToken.Mint(operatorOpt, addr2, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx3, err := mintableToken.Mint(operatorOpt, addr3, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx4, err := mintableToken.Mint(operatorOpt, addr4, ether(100))
+
+	<-mintEvents
+	<-mintEvents
+	<-mintEvents
+	<-mintEvents
+	mintFilterrer.Unsubscribe()
+
 	log.Info("Mint MintableToken to users")
 
 	// 7. swap MintableToken to EtherToken
-	opt1.Nonce = big.NewInt(int64(addr1Nonce))
-	opt2.Nonce = big.NewInt(int64(addr2Nonce))
-	opt3.Nonce = big.NewInt(int64(addr3Nonce))
-	opt4.Nonce = big.NewInt(int64(addr4Nonce))
+	setNonce(opt1, &addr1NonceRootChain)
+	setNonce(opt2, &addr2NonceRootChain)
+	setNonce(opt3, &addr3NonceRootChain)
+	setNonce(opt4, &addr4NonceRootChain)
 
-	addr1Nonce++
-	addr2Nonce++
-	addr3Nonce++
-	addr4Nonce++
+	tx1, _ = mintableToken.Approve(opt1, etherTokenAddr, ether(100))
+	tx2, _ = mintableToken.Approve(opt2, etherTokenAddr, ether(100))
+	tx3, _ = mintableToken.Approve(opt3, etherTokenAddr, ether(100))
+	tx4, _ = mintableToken.Approve(opt4, etherTokenAddr, ether(100))
 
-	tx1, _ = etherToken.Approve(opt1, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx2, _ = etherToken.Approve(opt2, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx3, _ = etherToken.Approve(opt3, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx4, _ = etherToken.Approve(opt4, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	log.Info("EtherToken is approved to EtherToken")
 
-	wait(tx1.Hash())
-	wait(tx2.Hash())
-	wait(tx3.Hash())
-	wait(tx4.Hash())
+	waitTx(tx1.Hash())
+	waitTx(tx2.Hash())
+	waitTx(tx3.Hash())
+	waitTx(tx4.Hash())
 
-	opt1.Nonce = big.NewInt(int64(addr1Nonce))
-	opt2.Nonce = big.NewInt(int64(addr2Nonce))
-	opt3.Nonce = big.NewInt(int64(addr3Nonce))
-	opt4.Nonce = big.NewInt(int64(addr4Nonce))
+	setNonce(opt1, &addr1NonceRootChain)
+	setNonce(opt2, &addr2NonceRootChain)
+	setNonce(opt3, &addr3NonceRootChain)
+	setNonce(opt4, &addr4NonceRootChain)
 
-	addr1Nonce++
-	addr2Nonce++
-	addr3Nonce++
-	addr4Nonce++
+	tx1, _ = etherToken.Deposit(opt1, ether(100))
+	tx2, _ = etherToken.Deposit(opt2, ether(100))
+	tx3, _ = etherToken.Deposit(opt3, ether(100))
+	tx4, _ = etherToken.Deposit(opt4, ether(100))
 
-	opt1.GasLimit = 1000000
-	opt2.GasLimit = 1000000
-	opt3.GasLimit = 1000000
-	opt4.GasLimit = 1000000
-
-	tx1, err = etherToken.Deposit(opt1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx2, _ = etherToken.Deposit(opt2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx3, _ = etherToken.Deposit(opt3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	tx4, _ = etherToken.Deposit(opt4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-
-	if err != nil {
-		log.Error("Err", "err", err)
-	}
-
-	wait(tx1.Hash())
-	wait(tx2.Hash())
-	wait(tx3.Hash())
-	wait(tx4.Hash())
+	waitTx(tx1.Hash())
+	waitTx(tx2.Hash())
+	waitTx(tx3.Hash())
+	waitTx(tx4.Hash())
 
 	log.Info("Swap MintableToken to EtherToken")
+
+	for i, addr := range addrs {
+		bal, err := etherToken.BalanceOf(baseCallOpt, addr)
+		if err != nil {
+			log.Error("Failed to get EtherToken balance", "err", err)
+		}
+
+		bal.Div(bal, ether(1))
+
+		log.Info("EtherToken balance", "i", i, "balance", bal)
+	}
 
 	testPlsConfig.RootChainContract = rootchainAddr
 
@@ -1670,9 +1699,15 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	return pls, handler, d, nil
 }
 
+func setNonce(opt *bind.TransactOpts, nonce *uint64) {
+	opt.Nonce = big.NewInt(int64(*nonce))
+	*nonce++
+}
+
 func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
 	opt := makeTxOpt(operatorKey, 0, nil, nil)
 
+	setNonce(opt, &operatorNonceRootChain)
 	tokenAddrInRootChain, _, tokenInRootChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		ethClient,
@@ -1682,6 +1717,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 	}
 	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
 
+	setNonce(opt, &operatorNonceChildChain)
 	tokenAddrInChildChain, _, tokenInChildChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		plsClient,
@@ -1690,7 +1726,6 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		t.Fatal("Failed to deploy token contract in child chain", "err", err)
 	}
 	log.Info("Token deployed in child chain", "address", tokenAddrInChildChain)
-	operatorNonce += 1
 
 	return tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain
 }
@@ -1794,16 +1829,28 @@ func wait(t time.Duration) {
 	<-timer.C
 }
 
+func waitTx(hash common.Hash) {
+	var receipt *types.Receipt
+	for receipt, _ = ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
+		<-time.NewTimer(1 * time.Second).C
+
+		receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
+	}
+
+	if receipt.Status == 0 {
+		log.Error("transaction reverted", "hash", hash)
+	}
+}
+
 // TODO: any user sends tx
 func makeSampleTx(rcm *RootChainManager) error {
 	pool := rcm.txPool
-	nonce := operatorNonce
-	operatorNonce += 1
 
 	// self transfer
 	var err error
 
-	tx := types.NewTransaction(nonce, operator, nil, 21000, nil, []byte{})
+	tx := types.NewTransaction(operatorNonceChildChain, operator, nil, 21000, nil, []byte{})
+	operatorNonceChildChain++
 
 	signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
 
@@ -1827,6 +1874,8 @@ func makeSampleTx(rcm *RootChainManager) error {
 func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool, expectedFork, expectedBlockNumber int64) error {
 	// TODO: delete below line after genesis.Difficulty is set 0
 	expectedFork += 1
+
+	setNonce(operatorOpt, &operatorNonceRootChain) // due to block submit
 
 	outC := make(chan struct{})
 	errC := make(chan error)
