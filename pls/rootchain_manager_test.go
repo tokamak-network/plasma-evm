@@ -1304,11 +1304,15 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	).ToBlock(dummyDB)
 
 	opt := bind.NewKeyedTransactor(operatorKey)
-	nonce, err := ethClient.NonceAt(context.Background(), operator, nil)
+	operatorNonce, err := ethClient.NonceAt(context.Background(), operator, nil)
+	addr1Nonce, _ = ethClient.NonceAt(context.Background(), addr1, nil)
+	addr2Nonce, _ = ethClient.NonceAt(context.Background(), addr2, nil)
+	addr3Nonce, _ = ethClient.NonceAt(context.Background(), addr3, nil)
+	addr4Nonce, _ = ethClient.NonceAt(context.Background(), addr4, nil)
 
-	log.Info("Using operator nonce", "nonce", nonce, "err", err)
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	log.Info("Using operator operatorNonce", "operatorNonce", operatorNonce, "err", err)
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 
 	wait := func(hash common.Hash) {
 		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
@@ -1323,8 +1327,8 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 1. deploy MintableToken in root chain
 	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(opt, ethClient)
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
@@ -1336,8 +1340,8 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 2. deploy EtherToken in root chain
 	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
@@ -1349,8 +1353,8 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 3. deploy EpochHandler in root chain
 	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
@@ -1362,8 +1366,8 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 4. deploy RootChain in root chain
 	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
@@ -1372,8 +1376,8 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 5. initialize EtherToken
 	tx, err = etherToken.Init(opt, rootchainAddr)
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
@@ -1382,17 +1386,17 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 6. mint tokens
 	tx1, err := mintableToken.Mint(opt, addr1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 	tx2, err := mintableToken.Mint(opt, addr2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 	tx3, err := mintableToken.Mint(opt, addr3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 	tx4, err := mintableToken.Mint(opt, addr4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
-	opt.Nonce = big.NewInt(int64(nonce))
-	nonce++
+	opt.Nonce = big.NewInt(int64(operatorNonce))
+	operatorNonce++
 
 	wait(tx1.Hash())
 	wait(tx2.Hash())
@@ -1401,6 +1405,16 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Mint MintableToken to users")
 
 	// 7. swap MintableToken to EtherToken
+	opt1.Nonce = big.NewInt(int64(addr1Nonce))
+	opt2.Nonce = big.NewInt(int64(addr2Nonce))
+	opt3.Nonce = big.NewInt(int64(addr3Nonce))
+	opt4.Nonce = big.NewInt(int64(addr4Nonce))
+
+	addr1Nonce++
+	addr2Nonce++
+	addr3Nonce++
+	addr4Nonce++
+
 	tx1, _ = etherToken.Approve(opt1, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
 	tx2, _ = etherToken.Approve(opt2, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
 	tx3, _ = etherToken.Approve(opt3, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
@@ -1411,10 +1425,29 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	wait(tx3.Hash())
 	wait(tx4.Hash())
 
-	tx1, _ = etherToken.Deposit(opt1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	opt1.Nonce = big.NewInt(int64(addr1Nonce))
+	opt2.Nonce = big.NewInt(int64(addr2Nonce))
+	opt3.Nonce = big.NewInt(int64(addr3Nonce))
+	opt4.Nonce = big.NewInt(int64(addr4Nonce))
+
+	addr1Nonce++
+	addr2Nonce++
+	addr3Nonce++
+	addr4Nonce++
+
+	opt1.GasLimit = 1000000
+	opt2.GasLimit = 1000000
+	opt3.GasLimit = 1000000
+	opt4.GasLimit = 1000000
+
+	tx1, err = etherToken.Deposit(opt1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
 	tx2, _ = etherToken.Deposit(opt2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
 	tx3, _ = etherToken.Deposit(opt3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
 	tx4, _ = etherToken.Deposit(opt4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+
+	if err != nil {
+		log.Error("Err", "err", err)
+	}
 
 	wait(tx1.Hash())
 	wait(tx2.Hash())
