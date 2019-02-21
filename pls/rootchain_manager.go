@@ -666,7 +666,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 				log.Error("Failed to pack challengeExit", "err", err)
 			}
 
-			nonce, err := rcm.backend.TransactionCount(context.Background(), common.Hash{})
+			nonce, err := rcm.backend.NonceAt(context.Background(), rcm.config.Challenger.Address, nil)
 			if err != nil {
 				log.Error("Failed to get challenger nonce", "err", err)
 			}

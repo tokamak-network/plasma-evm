@@ -81,6 +81,13 @@ var (
 
 	empty32Bytes = common.Hash{}
 
+	// contracts
+	mintableToken     *mintabletoken.MintableToken
+	mintableTokenAddr common.Address
+
+	etherToken     *ethertoken.EtherToken
+	etherTokenAddr common.Address
+
 	// blockchain
 	canonicalSeed = 1
 	engine        = ethash.NewFaker()
@@ -1104,8 +1111,8 @@ func TestMinerRestart(t *testing.T) {
 	}
 }
 
-func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value *big.Int) {
-	if value.Cmp(big.NewInt(0)) == 0 {
+func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, amount *big.Int) {
+	if amount.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 ETH")
 	}
 
@@ -1114,10 +1121,17 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
 	defer filterer.Unsubscribe()
 
-	opt := makeTxOpt(key, 0, nil, value)
+	opt := makeTxOpt(key, 0, nil, amount)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes)
+	trieKey, err := etherToken.GetBalanceTrieKey(baseCallOpt, addr)
+	if err != nil {
+		t.Fatalf("Failed to get trie key: %v", err)
+	}
+	trieValue := amount.Bytes()
+	trieValue32Bytes := common.BytesToHash(trieValue)
+
+	tx, err := rcm.rootchainContract.StartEnter(opt, mintableTokenAddr, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
@@ -1290,14 +1304,14 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	).ToBlock(dummyDB)
 
 	opt := bind.NewKeyedTransactor(operatorKey)
+	nonce, err := ethClient.NonceAt(context.Background(), operator, nil)
+
+	log.Info("Using operator nonce", "nonce", nonce, "err", err)
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+
 	wait := func(hash common.Hash) {
-		<-time.NewTimer(1 * time.Second).C
-
 		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
-			//if err != nil {
-			//	Fatalf("Failed to get receipt: %v", err)
-			//}
-
 			<-time.NewTimer(1 * time.Second).C
 
 			receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
@@ -1308,54 +1322,110 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploying contracts for development mode")
 
 	// 1. deploy MintableToken in root chain
-	mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, ethClient)
+	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(opt, ethClient)
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 	}
-	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
+	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
 	wait(tx.Hash())
 
 	// 2. deploy EtherToken in root chain
-	etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenContract, swapEnabledInRootChain)
+	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
 	}
-	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
+	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
 	wait(tx.Hash())
 
 	// 3. deploy EpochHandler in root chain
-	epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
 	}
-	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerAddr)
 
 	log.Info("Wait until deploy transaction is mined")
 	wait(tx.Hash())
 
 	// 4. deploy RootChain in root chain
-	rootchainContractAddress, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
-	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContractAddress)
+	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainAddr)
 	wait(tx.Hash())
 
 	// 5. initialize EtherToken
-	tx, err = etherToken.Init(opt, rootchainContractAddress)
+	tx, err = etherToken.Init(opt, rootchainAddr)
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
 	log.Info("Initialize EtherToken", "hash", tx.Hash())
 	wait(tx.Hash())
 
-	testPlsConfig.RootChainContract = rootchainContractAddress
+	// 6. mint tokens
+	tx1, err := mintableToken.Mint(opt, addr1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+	tx2, err := mintableToken.Mint(opt, addr2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+	tx3, err := mintableToken.Mint(opt, addr3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
+	tx4, err := mintableToken.Mint(opt, addr4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	opt.Nonce = big.NewInt(int64(nonce))
+	nonce++
 
-	return rootchainContractAddress, rootchainContract, err
+	wait(tx1.Hash())
+	wait(tx2.Hash())
+	wait(tx3.Hash())
+	wait(tx4.Hash())
+	log.Info("Mint MintableToken to users")
+
+	// 7. swap MintableToken to EtherToken
+	tx1, _ = etherToken.Approve(opt1, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx2, _ = etherToken.Approve(opt2, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx3, _ = etherToken.Approve(opt3, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx4, _ = etherToken.Approve(opt4, mintableTokenAddr, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+
+	wait(tx1.Hash())
+	wait(tx2.Hash())
+	wait(tx3.Hash())
+	wait(tx4.Hash())
+
+	tx1, _ = etherToken.Deposit(opt1, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx2, _ = etherToken.Deposit(opt2, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx3, _ = etherToken.Deposit(opt3, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+	tx4, _ = etherToken.Deposit(opt4, big.NewInt(0).Mul(big.NewInt(100), new(big.Int).SetInt64(params.Ether)))
+
+	wait(tx1.Hash())
+	wait(tx2.Hash())
+	wait(tx3.Hash())
+	wait(tx4.Hash())
+
+	log.Info("Swap MintableToken to EtherToken")
+
+	testPlsConfig.RootChainContract = rootchainAddr
+
+	return rootchainAddr, rootchainContract, err
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
