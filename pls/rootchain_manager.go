@@ -156,6 +156,41 @@ func (rcm *RootChainManager) watchEvents() error {
 	}
 
 	startBlockNumber := rcm.blockchain.GetRootchainBlockNumber()
+	filterOpts := &bind.FilterOpts{
+		Start:   startBlockNumber,
+		End:     nil,
+		Context: context.Background(),
+	}
+
+	// TODO: have to read only NRE1
+	// iterate to find previous epoch prepared events
+	iteratorForEpochPreparedEvent, err := filterer.FilterEpochPrepared(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Iterating epoch prepared event")
+	for iteratorForEpochPreparedEvent.Next() {
+		e := iteratorForEpochPreparedEvent.Event
+		if e != nil {
+			rcm.handleEpochPrepared(e)
+		}
+	}
+
+	// iterate to find previous block finalized events
+	iteratorForBlockFinalizedEvent, err := filterer.FilterBlockFinalized(filterOpts)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Iterating block finalized event")
+	for iteratorForBlockFinalizedEvent.Next() {
+		e := iteratorForBlockFinalizedEvent.Event
+		if e != nil {
+			rcm.handleBlockFinalzied(e)
+		}
+	}
+
 	watchOpts := &bind.WatchOpts{
 		Context: context.Background(),
 		Start:   &startBlockNumber,
