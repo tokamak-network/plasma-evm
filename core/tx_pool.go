@@ -549,6 +549,18 @@ func (pool *TxPool) PendingRequests() (types.Transactions, error) {
 	return pool.pendingRtx, nil
 }
 
+// PendingRequests retrieves all currently processable transactions, grouped by origin
+// account and sorted by nonce. The returned transaction set is a copy and can be
+// freely modified by calling code.
+func (pool *TxPool) RemovePendingRequests() error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pool.pendingRtx = types.Transactions{}
+
+	return nil
+}
+
 // Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
