@@ -61,6 +61,8 @@ var DefaultConfig = Config{
 	MaxGasPrice:      big.NewInt(300 * params.GWei),
 	PendingInterval:  10 * time.Second,
 
+	StaminaConfig: core.DefaultStaminaConfig,
+
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -97,6 +99,9 @@ type Config struct {
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
+
+	// Stamina config
+	StaminaConfig core.StaminaConfig
 
 	// Gas price options for submitting a block
 	MinGasPrice     *big.Int
