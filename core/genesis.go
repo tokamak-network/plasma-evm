@@ -313,7 +313,6 @@ func DefaultGenesisBlock(rootChainContract common.Address, staminaConfig Stamina
 		panic(err)
 	}
 	initialized := boolToBytes(staminaConfig.Initialized)
-	log.Info("stamina init value", "initial", initialized, "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "delay", staminaConfig.WithdrawalDelay)
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
