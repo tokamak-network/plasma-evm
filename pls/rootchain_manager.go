@@ -676,7 +676,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		Context: context.Background(),
 	}
 
-	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	w, err := rcm.accountManager.Find(rcm.config.Challenger)
 	if err != nil {
 		log.Error("Failed to get operator wallet", "err", err)
 	}
