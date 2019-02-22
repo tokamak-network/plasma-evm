@@ -51,9 +51,10 @@ var (
 	rootchainUrl   = "ws://localhost:8546"
 	plasmachainUrl = "http://localhost:8547"
 
-	operator       = params.Operator
-	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	operatorOpt    = bind.NewKeyedTransactor(operatorKey)
+	operator         = params.Operator
+	operatorKey, _   = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	challengerKey, _ = crypto.HexToECDSA("78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114")
+	operatorOpt      = bind.NewKeyedTransactor(operatorKey)
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
@@ -904,7 +905,7 @@ func TestScenario4(t *testing.T) {
 		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain, tokenAddr)
 	}
 
-	// deposit 1 ether for each account
+	// NRE#1 -> ORE#4 -- deposit 1 ether for each account
 	ETHBalances1 := getETHBalances(addrs)
 	PETHBalances1 := getPETHBalances(addrs)
 
@@ -922,14 +923,38 @@ func TestScenario4(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// ORE#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 3); err != nil {
+	// ORB#2 is empty
+
+	// NRE#3 -> ORE#6 -- deposit 1 token from addr1
+	tokenAmount := ether(1)
+	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
+
+	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
+	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
+
+	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+
+	// NRE#3 / Block#3 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#3 / Block#4 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#4 / Block#5 (1/1) -- deposit 1 ether for each account
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 5); err != nil {
 		t.Fatal(err)
 	}
 
 	ETHBalances2 := getETHBalances(addrs)
 	PETHBalances2 := getPETHBalances(addrs)
-
 	// check eth balance in root chain
 	for i := range keys {
 		if err := checkBalance(ETHBalances1[i], ETHBalances2[i], depositAmountNeg, maxTxFee, "Failed to check ETH balance(1)"); err != nil {
@@ -944,32 +969,24 @@ func TestScenario4(t *testing.T) {
 		}
 	}
 
-	// deposit 1 token from addr1
-	tokenAmount := ether(1)
-	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
-
-	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
-	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
-
-	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
-	wait(2)
-
-	// NRE#3 / Block#4 (1/2)
+	// NRE#5 / Block#6 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 6); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#3 / Block#5 (2/2)
+	// NRE#5 / Block#7 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 5); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 6); err != nil {
+	// ORE#6 / Block#8 (1/1) -- deposit 1 token from addr1
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 8); err != nil {
 		t.Fatal(err)
 	}
 
@@ -986,56 +1003,86 @@ func TestScenario4(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// invalid withdrawal
+	// NRE#7 -> ORB#9 -- invalid withdrawal
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, ether(100), big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	wait(2)
-
-	// NRE#5 / Block#7 (1/2)
+	// NRE#7 / Block#9 (1/2)
 	makeSampleTx(pls.rootchainManager)
-
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#5 / Block#8 (2/2)
-	makeSampleTx(pls.rootchainManager)
-
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 8); err != nil {
-		t.Fatal(err)
-	}
-
-	// ORE#6 / Block#9 (1/1): invalid withdrawal
-
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 9); err != nil {
-		t.Fatal(err)
-	}
-
-	// NRE#7 / Block#10 (1/2)
+	// NRE#7 / Block#10 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#7 / Block#11 (2/2)
+	// ORB#8 is empty
+
+	// NRE#9 / Block#11 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 11); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#8 / Block#12 (1/2)
+	// NRE#9 / Block#12 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#8 / Block#13 (2/2)
+	// ORE#10 / Block#13 (1/1) -- invalid withdrawal
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 13); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#11 / Block#14 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 13); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 14); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#11 / Block#15 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 15); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#12 is empty
+
+	// NRE#13 / Block#16 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 16); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#13 / Block#17 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 17); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#14 is empty
+
+	// NRE#15 / Block#18 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 18); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#15 / Block#19 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 19); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1049,8 +1096,6 @@ func TestScenario4(t *testing.T) {
 	if !ERO.Challenged {
 		t.Fatal("ERO is not challenged successfully")
 	}
-
-	applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
 }
 
 func TestAdjustGasPrice(t *testing.T) {
@@ -1397,7 +1442,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 	tx, err := rootchainContract.ApplyRequest(opt)
 
 	if err != nil {
-		t.Fatalf("Failed to apply request: %v", err)
+		t.Fatalf("Failed to appl y request: %v", err)
 	}
 
 	wait(4)
@@ -1627,9 +1672,6 @@ func (b *testPlsBackend) TxPool() *core.TxPool              { return b.txPool }
 func (b *testPlsBackend) ChainDb() ethdb.Database           { return b.db }
 
 func makePls() (*Plasma, *rpc.Server, string, error) {
-	var err error
-	var account accounts.Account
-
 	db, blockchain, err := newCanonical(0, true)
 
 	if err != nil {
@@ -1650,14 +1692,27 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	config.RootChainContract = rootchainAddress
 
 	d, ks := tmpKeyStore()
-	if account, err = ks.ImportECDSA(operatorKey, ""); err != nil {
+
+	var oac accounts.Account
+	var cac accounts.Account
+	if oac, err = ks.ImportECDSA(operatorKey, ""); err != nil {
 		log.Error("Failed to import operator account", "err", err)
 	}
 
-	if err = ks.Unlock(account, ""); err != nil {
+	if cac, err = ks.ImportECDSA(challengerKey, ""); err != nil {
+		log.Error("Failed to import challenger account", "err", err)
+	}
+
+	if err = ks.Unlock(oac, ""); err != nil {
 		log.Error("Failed to unlock operator account", "err", err)
 	}
-	config.Operator = account
+
+	if err = ks.Unlock(cac, ""); err != nil {
+		log.Error("Failed to unlock challenger account", "err", err)
+	}
+
+	config.Operator = oac
+	config.Challenger = cac
 
 	// configure account manager with temporary keystore backend
 	backends := []accounts.Backend{
