@@ -186,6 +186,49 @@ func TestStamina(t *testing.T) {
 	}
 }
 
+func TestDefaultStamina(t *testing.T) {
+	defaultStaminaConfig := core.DefaultStaminaConfig
+	g := core.DefaultGenesisBlock(common.Address{}, defaultStaminaConfig)
+	contractBackend := backends.NewSimulatedBackend(g.Alloc, 10000000000)
+
+	staminaContract, err := NewStamina(opt1, core.StaminaContractAddress, contractBackend)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	initialized, err := staminaContract.Initialized()
+	if !initialized {
+		t.Errorf("unexpected value: want %t, got %t", true, initialized)
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	minDeposit, err := staminaContract.MINDEPOSIT()
+	if minDeposit.Cmp(defaultStaminaConfig.MinDeposit) != 0 {
+		t.Errorf("unexpected value: want %x, got %x", defaultStaminaConfig.MinDeposit, minDeposit)
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	recoverEpochLength, err := staminaContract.RECOVEREPOCHLENGTH()
+	if recoverEpochLength.Cmp(defaultStaminaConfig.RecoverEpochLength) != 0 {
+		t.Errorf("unexpected value: want %x, got %x", defaultStaminaConfig.RecoverEpochLength, recoverEpochLength)
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	withdrawalDelay, err := staminaContract.WITHDRAWALDELAY()
+	if withdrawalDelay.Cmp(defaultStaminaConfig.WithdrawalDelay) != 0 {
+		t.Errorf("unexpected value: want %x, got %x", defaultStaminaConfig.WithdrawalDelay, withdrawalDelay)
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
 func sendSignedTransferTransaction(contractBackend *backends.SimulatedBackend, addr common.Address, key *ecdsa.PrivateKey) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
