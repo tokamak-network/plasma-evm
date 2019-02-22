@@ -687,6 +687,27 @@ var (
 		Usage: "Address of challenger account",
 	}
 
+	// Stamina Flags
+	StaminaInitializeFlag = cli.BoolFlag{
+		Name:  "stamina.initialize",
+		Usage: "Initialized variable state of stamina contract",
+	}
+	StaminaMinDepositFlag = BigFlag{
+		Name:  "stamina.mindeposit",
+		Usage: "MinDeposit variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.MinDeposit,
+	}
+	StaminaRecoverEpochLengthFlag = BigFlag{
+		Name:  "stamina.recoverepochlength",
+		Usage: "RecoverEpochLength variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.RecoverEpochLength,
+	}
+	StaminaWithdrawalDelayFlag = BigFlag{
+		Name:  "stamina.withdrawaldelay",
+		Usage: "WithdrawalDelay variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.WithdrawalDelay,
+	}
+
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
 		Usage: "External ewasm configuration (default = built-in interpreter)",
@@ -1438,6 +1459,17 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(RootChainContractFlag.Name) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
+
+	if ctx.GlobalIsSet(StaminaMinDepositFlag.Name) {
+		cfg.StaminaConfig.MinDeposit = GlobalBig(ctx, StaminaMinDepositFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaRecoverEpochLengthFlag.Name) {
+		cfg.StaminaConfig.RecoverEpochLength = GlobalBig(ctx, StaminaRecoverEpochLengthFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaWithdrawalDelayFlag.Name) {
+		cfg.StaminaConfig.WithdrawalDelay = GlobalBig(ctx, StaminaWithdrawalDelayFlag.Name)
+	}
+	cfg.StaminaConfig.Initialized = true
 
 	// TODO: set network id from params/config.go for each network
 	switch {

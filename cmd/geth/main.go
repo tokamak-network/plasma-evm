@@ -164,6 +164,13 @@ var (
 		utils.PlasmaRootChainChallenger,
 	}
 
+	staminaFlags = []cli.Flag{
+		utils.StaminaInitializeFlag,
+		utils.StaminaMinDepositFlag,
+		utils.StaminaRecoverEpochLengthFlag,
+		utils.StaminaWithdrawalDelayFlag,
+	}
+
 	whisperFlags = []cli.Flag{
 		utils.WhisperEnabledFlag,
 		utils.WhisperMaxMessageSizeFlag,
@@ -221,6 +228,7 @@ func init() {
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, plasmaFlags...)
+	app.Flags = append(app.Flags, staminaFlags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
