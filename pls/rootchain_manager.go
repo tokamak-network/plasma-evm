@@ -187,7 +187,7 @@ func (rcm *RootChainManager) watchEvents() error {
 	for iteratorForBlockFinalizedEvent.Next() {
 		e := iteratorForBlockFinalizedEvent.Event
 		if e != nil {
-			rcm.handleBlockFinalzied(e)
+			rcm.handleBlockFinalized(e)
 		}
 	}
 
@@ -514,7 +514,7 @@ func (rcm *RootChainManager) runHandlers() {
 				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
 			}
 		case e := <-rcm.blockFinalizedCh:
-			if err := rcm.handleBlockFinalzied(e); err != nil {
+			if err := rcm.handleBlockFinalized(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
 			} else {
 				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
@@ -632,6 +632,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		var numMinedORBs uint64 = 0
 
+		// Unlock mutext and make submit loop to process
+		rcm.lock.Unlock()
+
 		for numMinedORBs < numORBs.Uint64() {
 			if err := rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs]); err != nil {
 				return err
@@ -642,7 +645,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 			e := <-events.Chan()
 			block := e.Data.(core.NewMinedBlockEvent).Block
 
-			log.Info("New request block is mined", "block", block)
+			log.Info("New request block is mined", "blockNumber", block.Number(), "txs", block.Transactions().Len())
 
 			if !block.IsRequest() {
 				return errors.New("Invalid request block type.")
@@ -658,12 +661,15 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 			numMinedORBs += 1
 		}
+
+		// Re-lock
+		rcm.lock.Lock()
 	}
 
 	return nil
 }
 
-func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFinalized) error {
+func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFinalized) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
@@ -676,9 +682,9 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 		Context: context.Background(),
 	}
 
-	w, err := rcm.accountManager.Find(rcm.config.Operator)
+	w, err := rcm.accountManager.Find(rcm.config.Challenger)
 	if err != nil {
-		log.Error("Failed to get operator wallet", "err", err)
+		log.Error("Failed to get challenger wallet", "err", err)
 	}
 
 	block, err := rcm.rootchainContract.GetBlock(callerOpts, e.ForkNumber, e.BlockNumber)
