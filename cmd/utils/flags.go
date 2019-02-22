@@ -1596,7 +1596,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 
-	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
+	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
 
 	// default operator min ether = 1ether
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
@@ -1725,7 +1725,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract)
+	staminaConfig := core.DefaultStaminaConfig
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, staminaConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
