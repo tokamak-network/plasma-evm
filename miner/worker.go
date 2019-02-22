@@ -368,11 +368,19 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timer.Reset(recommit)
 
 			if w.isRunning() && !w.env.Completed {
-				pending, _ := w.pls.TxPool().Pending()
-				// Short circuit if there is no pending transaction.
-				if len(pending) == 0 {
-					continue
+				if w.env.IsRequest {
+					pending, _ := w.pls.TxPool().PendingRequests()
+					if len(pending) == 0 {
+						continue
+					}
+				} else {
+					// Short circuit if there is no pending transaction.
+					pending, _ := w.pls.TxPool().Pending()
+					if len(pending) == 0 {
+						continue
+					}
 				}
+
 				timestamp = time.Now().Unix()
 				commit(true, commitInterruptResubmit)
 			}
@@ -616,6 +624,9 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
+
+			// clear pending request transactions
+			w.pls.TxPool().RemovePendingRequests()
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
@@ -1150,7 +1161,7 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 		w.commit(uncles, nil, false, tstart)
 	}
 
-	requestTxs := w.pls.TxPool().Requests()
+	requestTxs, _ := w.pls.TxPool().PendingRequests()
 	if len(requestTxs) == 0 {
 		w.updateSnapshot()
 		return
