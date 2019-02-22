@@ -187,7 +187,7 @@ func (rcm *RootChainManager) watchEvents() error {
 	for iteratorForBlockFinalizedEvent.Next() {
 		e := iteratorForBlockFinalizedEvent.Event
 		if e != nil {
-			rcm.handleBlockFinalzied(e)
+			rcm.handleBlockFinalized(e)
 		}
 	}
 
@@ -514,7 +514,7 @@ func (rcm *RootChainManager) runHandlers() {
 				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
 			}
 		case e := <-rcm.blockFinalizedCh:
-			if err := rcm.handleBlockFinalzied(e); err != nil {
+			if err := rcm.handleBlockFinalized(e); err != nil {
 				log.Error("Failed to handle block finazlied", "err", err)
 			} else {
 				rcm.blockchain.SetRootchainBlockNumber(e.Raw.BlockNumber)
@@ -663,7 +663,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	return nil
 }
 
-func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFinalized) error {
+func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFinalized) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
@@ -678,7 +678,7 @@ func (rcm *RootChainManager) handleBlockFinalzied(ev *rootchain.RootChainBlockFi
 
 	w, err := rcm.accountManager.Find(rcm.config.Challenger)
 	if err != nil {
-		log.Error("Failed to get operator wallet", "err", err)
+		log.Error("Failed to get challenger wallet", "err", err)
 	}
 
 	block, err := rcm.rootchainContract.GetBlock(callerOpts, e.ForkNumber, e.BlockNumber)
