@@ -632,6 +632,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		var numMinedORBs uint64 = 0
 
+		// Unlock mutext and make submit loop to process
+		rcm.lock.Unlock()
+
 		for numMinedORBs < numORBs.Uint64() {
 			if err := rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs]); err != nil {
 				return err
@@ -642,7 +645,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 			e := <-events.Chan()
 			block := e.Data.(core.NewMinedBlockEvent).Block
 
-			log.Info("New request block is mined", "block", block)
+			log.Info("New request block is mined", "blockNumber", block.Number(), "txs", block.Transactions().Len())
 
 			if !block.IsRequest() {
 				return errors.New("Invalid request block type.")
@@ -658,6 +661,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 			numMinedORBs += 1
 		}
+
+		// Re-lock
+		rcm.lock.Lock()
 	}
 
 	return nil
