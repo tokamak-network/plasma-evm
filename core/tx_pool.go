@@ -214,12 +214,12 @@ type TxPool struct {
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
 	journal *txJournal  // Journal of local transaction to back up to disk
 
-	pending     map[common.Address]*txList   // All currently processable transactions
-	queue       map[common.Address]*txList   // Queued but non-processable transactions
-	requestTxCh chan types.Transactions      // Queued request transactions
-	beats       map[common.Address]time.Time // Last heartbeat from each known account
-	all         *txLookup                    // All transactions to allow lookups
-	priced      *txPricedList                // All transactions sorted by price
+	pending    map[common.Address]*txList   // All currently processable transactions
+	pendingRtx types.Transactions           // All currently processable request transactions
+	queue      map[common.Address]*txList   // Queued but non-processable transactions
+	beats      map[common.Address]time.Time // Last heartbeat from each known account
+	all        *txLookup                    // All transactions to allow lookups
+	priced     *txPricedList                // All transactions sorted by price
 
 	wg sync.WaitGroup // for shutdown sync
 
@@ -240,7 +240,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
-		requestTxCh: make(chan types.Transactions),
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
@@ -540,6 +539,28 @@ func (pool *TxPool) Content() (map[common.Address]types.Transactions, map[common
 	return pending, queued
 }
 
+// PendingRequests retrieves all currently processable transactions, grouped by origin
+// account and sorted by nonce. The returned transaction set is a copy and can be
+// freely modified by calling code.
+func (pool *TxPool) PendingRequests() (types.Transactions, error) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	return pool.pendingRtx, nil
+}
+
+// PendingRequests retrieves all currently processable transactions, grouped by origin
+// account and sorted by nonce. The returned transaction set is a copy and can be
+// freely modified by calling code.
+func (pool *TxPool) RemovePendingRequests() error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pool.pendingRtx = types.Transactions{}
+
+	return nil
+}
+
 // Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
@@ -560,11 +581,6 @@ func (pool *TxPool) Locals() []common.Address {
 	defer pool.mu.Unlock()
 
 	return pool.locals.flatten()
-}
-
-// Requests retrieves all request transactions
-func (pool *TxPool) Requests() types.Transactions {
-	return <-pool.requestTxCh
 }
 
 // local retrieves all currently known local transactions, grouped by origin
@@ -763,13 +779,17 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 }
 
 func (pool *TxPool) EnqueueReqeustTxs(rtxs types.Transactions) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	for _, rtx := range rtxs {
 		from, _ := types.Sender(pool.signer, rtx)
 		if from != params.NullAddress {
 			return errors.New("invalid request transaction")
 		}
 	}
-	pool.requestTxCh <- rtxs
+
+	pool.pendingRtx = append(pool.pendingRtx, rtxs...)
 
 	return nil
 }

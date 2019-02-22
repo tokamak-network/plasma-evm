@@ -53,33 +53,67 @@ var (
 
 	operator       = params.Operator
 	operatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	opt0           = bind.NewKeyedTransactor(operatorKey)
+	operatorOpt    = bind.NewKeyedTransactor(operatorKey)
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
 	addr2 = common.HexToAddress("0x3cd9f729c8d882b851f8c70fb36d22b391a288cd")
 	addr3 = common.HexToAddress("0x57ab89f4eabdffce316809d790d5c93a49908510")
 	addr4 = common.HexToAddress("0x6c278df36922fea54cf6f65f725267e271f60dd9")
+	addrs = []common.Address{addr1, addr2, addr3, addr4}
 
 	key1, _ = crypto.HexToECDSA("78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a115")
 	key2, _ = crypto.HexToECDSA("bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5")
 	key3, _ = crypto.HexToECDSA("067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc")
 	key4, _ = crypto.HexToECDSA("ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66")
+	keys    = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 
-	keys  []*ecdsa.PrivateKey
-	addrs []common.Address
+	operatorNonceRootChain uint64 = 0
+	addr1NonceRootChain    uint64 = 0
+	addr2NonceRootChain    uint64 = 0
+	addr3NonceRootChain    uint64 = 0
+	addr4NonceRootChain    uint64 = 0
+	noncesRootChain               = map[common.Address]*uint64{
+		operator: &operatorNonceRootChain,
+		addr1:    &addr1NonceRootChain,
+		addr2:    &addr2NonceRootChain,
+		addr3:    &addr3NonceRootChain,
+		addr4:    &addr4NonceRootChain,
+	}
 
-	operatorNonce uint64 = 0
-	addr1Nonce    uint64 = 0
-	addr2Nonce    uint64 = 0
-	addr3Nonce    uint64 = 0
-	addr4Nonce    uint64 = 0
+	operatorNonceChildChain uint64 = 0
+	addr1NonceChildChain    uint64 = 0
+	addr2NonceChildChain    uint64 = 0
+	addr3NonceChildChain    uint64 = 0
+	addr4NonceChildChain    uint64 = 0
+	noncesChildChain               = map[common.Address]*uint64{
+		operator: &operatorNonceChildChain,
+		addr1:    &addr1NonceChildChain,
+		addr2:    &addr2NonceChildChain,
+		addr3:    &addr3NonceChildChain,
+		addr4:    &addr4NonceChildChain,
+	}
 
 	opt1 = bind.NewKeyedTransactor(key1)
 	opt2 = bind.NewKeyedTransactor(key2)
 	opt3 = bind.NewKeyedTransactor(key3)
 	opt4 = bind.NewKeyedTransactor(key4)
 
+	opts = map[common.Address]*bind.TransactOpts{
+		operator: operatorOpt,
+		addr1:    opt1,
+		addr2:    opt2,
+		addr3:    opt3,
+		addr4:    opt4,
+	}
+
 	empty32Bytes = common.Hash{}
+
+	// contracts
+	mintableToken     *mintabletoken.MintableToken
+	mintableTokenAddr common.Address
+
+	etherToken     *ethertoken.EtherToken
+	etherTokenAddr common.Address
 
 	// blockchain
 	canonicalSeed = 1
@@ -111,7 +145,7 @@ var (
 	// transaction
 	defaultGasPrice        = big.NewInt(1) // 1 Gwei
 	defaultValue           = big.NewInt(0)
-	defaultGasLimit uint64 = 4000000
+	defaultGasLimit uint64 = 7000000
 	maxTxFee        *big.Int
 
 	err error
@@ -127,6 +161,7 @@ func init() {
 	//testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	testPlsConfig.RootChainURL = rootchainUrl
+	testPlsConfig.PendingInterval = 500 * time.Millisecond
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
@@ -135,6 +170,16 @@ func init() {
 
 	keys = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 	addrs = []common.Address{addr1, addr2, addr3, addr4}
+
+	operatorNonceRootChain, err = ethClient.NonceAt(context.Background(), operator, nil)
+	addr1NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr1, nil)
+	addr2NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr2, nil)
+	addr3NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr3, nil)
+	addr4NonceRootChain, _ = ethClient.NonceAt(context.Background(), addr4, nil)
+
+	for _, opt := range opts {
+		opt.GasLimit = defaultGasLimit
+	}
 
 	maxTxFee = new(big.Int).Mul(defaultGasPrice, big.NewInt(int64(defaultGasLimit)))
 }
@@ -217,26 +262,37 @@ func TestScenario1(t *testing.T) {
 
 // TestScenario2 tests enter and exit between root chain & plasma chain
 func TestScenario2(t *testing.T) {
-	rcm, stopFn, err := makeManager()
-	defer stopFn()
-
-	ctx := context.Background()
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
 
 	if err != nil {
-		t.Fatalf("Failed to make rootchian manager: %v", err)
+		t.Fatalf("Failed to make pls service: %v", err)
 	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+	pls.protocolManager.Start(1)
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	rcm := pls.rootchainManager
 
 	NRELength, err := rcm.NRELength()
-
 	if err != nil {
 		t.Fatalf("Failed to get NRELength: %v", err)
 	}
 
 	// balance check in root chain before enter
-	bal1be, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2be, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3be, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4be, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1be, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2be, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3be, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4be, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain before enter", "balance", bal1be)
 	log.Info("balance of addr2 in root chain before enter", "balance", bal2be)
@@ -250,6 +306,7 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr3 in plasma chain before enter", "balance", db.GetBalance(addr3))
 	log.Info("balance of addr4 in plasma chain before enter", "balance", db.GetBalance(addr4))
 
+	// make enter request
 	startETHDeposit(t, rcm, key1, ether(1))
 	startETHDeposit(t, rcm, key2, ether(1))
 	startETHDeposit(t, rcm, key3, ether(1))
@@ -266,10 +323,6 @@ func TestScenario2(t *testing.T) {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	if err = rcm.Start(); err != nil {
-		t.Fatalf("Failed to start rootchain manager: %v", err)
-	}
-
 	timer := time.NewTimer(1 * time.Minute)
 	go func() {
 		<-timer.C
@@ -278,7 +331,7 @@ func TestScenario2(t *testing.T) {
 
 	var i uint64
 
-	// #1 NRB epoch check
+	// #1 NRE
 	for i = 0; i < NRELength.Uint64(); {
 		makeSampleTx(rcm)
 		i++
@@ -291,7 +344,22 @@ func TestScenario2(t *testing.T) {
 		}
 	}
 
-	// #2 ORB epoch check
+	// #2 empty ORE
+
+	// #3 NRE
+	for i = 0; i < NRELength.Uint64(); {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
+
+		if rcm.minerEnv.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
+
+	// #4 ORE
 	for i = 0; i < 1; {
 		i++
 		ev := <-events.Chan()
@@ -308,18 +376,26 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// balance check in root chain after enter
-	bal1ae, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2ae, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3ae, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4ae, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1ae, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2ae, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3ae, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4ae, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain after enter", "balance", bal1ae)
 	log.Info("balance of addr2 in root chain after enter", "balance", bal2ae)
 	log.Info("balance of addr3 in root chain after enter", "balance", bal3ae)
 	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
 
-	// #3 NRB epoch check
-	for i = 0; i < NRELength.Uint64(); {
+	// make exit request
+	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
+
+	wait(3)
+
+	// #5 NRE
+	for i = 0; i < NRELength.Uint64()*6; {
 		makeSampleTx(rcm)
 		i++
 		ev := <-events.Chan()
@@ -331,14 +407,22 @@ func TestScenario2(t *testing.T) {
 		}
 	}
 
-	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	// #6 empty ORE
 
-	wait(3)
+	// #7 NRE
+	for i = 0; i < NRELength.Uint64()*6; {
+		makeSampleTx(rcm)
+		i++
+		ev := <-events.Chan()
+		blockInfo := ev.Data.(core.NewMinedBlockEvent)
+		makeSampleTx(rcm)
 
-	// #4 ORB epoch check
+		if rcm.minerEnv.IsRequest {
+			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
+		}
+	}
+
+	// #8 ORE
 	for i = 0; i < 1; {
 		i++
 		ev := <-events.Chan()
@@ -354,26 +438,13 @@ func TestScenario2(t *testing.T) {
 		log.Info("balance of addr4 in plasma chain after exit", "balance", db.GetBalance(addr4))
 	}
 
-	// #5+ NRB epoch progress
-	for i = 0; i < NRELength.Uint64()*6; {
-		makeSampleTx(rcm)
-		i++
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
 	applyRequests(t, rcm.rootchainContract, operatorKey)
 
 	// balance check in root chain after enter
-	bal1aex, _ := rcm.backend.BalanceAt(ctx, addr1, nil)
-	bal2aex, _ := rcm.backend.BalanceAt(ctx, addr2, nil)
-	bal3aex, _ := rcm.backend.BalanceAt(ctx, addr3, nil)
-	bal4aex, _ := rcm.backend.BalanceAt(ctx, addr4, nil)
+	bal1aex, _ := rcm.backend.BalanceAt(context.Background(), addr1, nil)
+	bal2aex, _ := rcm.backend.BalanceAt(context.Background(), addr2, nil)
+	bal3aex, _ := rcm.backend.BalanceAt(context.Background(), addr3, nil)
+	bal4aex, _ := rcm.backend.BalanceAt(context.Background(), addr4, nil)
 
 	log.Info("balance of addr1 in root chain after exit", "balance", bal1aex)
 	log.Info("balance of addr2 in root chain after exit", "balance", bal2aex)
@@ -416,6 +487,8 @@ func TestScenario3(t *testing.T) {
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
+	var tx *types.Transaction
+
 	wait(3)
 
 	log.Info("All backends are set up")
@@ -423,18 +496,17 @@ func TestScenario3(t *testing.T) {
 	// NRE#1 / Block#1 (1/2)
 	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
 
-	wait(4)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
 		t.Fatal(err)
 	}
 
-	opt := makeTxOpt(operatorKey, 0, nil, nil)
-
-	_, err = tokenInRootChain.Mint(opt, addr1, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = tokenInRootChain.Mint(operatorOpt, addr1, ether(100))
 	if err != nil {
 		t.Fatalf("Failed to mint token: %v", err)
 	}
-	wait(2)
+
+	waitTx(tx.Hash())
 
 	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
 	if err != nil {
@@ -448,13 +520,13 @@ func TestScenario3(t *testing.T) {
 
 	log.Info("Token total supply", "rootchain", ts1, "childchain", ts2)
 
-	wait(3)
-
-	_, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(opt, tokenAddrInRootChain, tokenAddrInChildChain)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(operatorOpt, tokenAddrInRootChain, tokenAddrInChildChain)
 	if err != nil {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
-	wait(3)
+
+	waitTx(tx.Hash())
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
 	if err != nil {
@@ -463,11 +535,11 @@ func TestScenario3(t *testing.T) {
 		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain.Hex(), tokenAddr.Hex())
 	}
 
-	// deposit 1 ether for each account
+	// NRE#1 -> ORE#4 -- deposit 1 ether for each account
 	ETHBalances1 := getETHBalances(addrs)
 	PETHBalances1 := getPETHBalances(addrs)
 
-	depositAmount := ether(10)
+	depositAmount := ether(1)
 	depositAmountNeg := new(big.Int).Neg(depositAmount)
 
 	for _, key := range keys {
@@ -481,8 +553,33 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// ORE#2 / Block#3 (1/1): 4 ETH deposits
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 3); err != nil {
+	// ORE#2 is empty
+
+	// NRE#3 -> ORE#6 -- deposit 1 token from addr1
+	tokenAmount := ether(1)
+	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
+
+	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
+	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
+
+	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+
+	// NRE#3 / Block#3 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#3 / Block#4 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#4 / Block#5 (1/1): deposit 1 ether for each account
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 5); err != nil {
 		t.Fatal(err)
 	}
 
@@ -498,41 +595,29 @@ func TestScenario3(t *testing.T) {
 
 	// check peth balance in child chain
 	for i := range keys {
-		if err := checkBalance(PETHBalances1[i], PETHBalances2[i], depositAmount, nil, "Failed to check ETH balance(1)"); err != nil {
+		if err := checkBalance(PETHBalances1[i], PETHBalances2[i], depositAmount, nil, "Failed to check PETH balance(1)"); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// deposit 1 token from addr1
-	tokenAmount := ether(1)
-	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
-
-	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
-	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
-
-	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
-	//wait(2)
-
-	// NRE#3 / Block#4 (1/2)
+	// NRE#5 / Block#6 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 6); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#3 / Block#5 (2/2)
+	// NRE#5 / Block#7 (2/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 5); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#4 / Block#6 (1/1): 1 Token deposit
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 6); err != nil {
+	// ORE#6/ Block#8 (1/1) -- deposit 1 token from addr1
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 8); err != nil {
 		t.Fatal(err)
 	}
-
-	wait(2)
 
 	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
 	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
@@ -551,9 +636,9 @@ func TestScenario3(t *testing.T) {
 	tokenAmountToTransfer := new(big.Int).Div(ether(1), big.NewInt(2))
 	tokenAmountToTransferNeg := new(big.Int).Neg(tokenAmountToTransfer)
 
-	// NRE#5 / Block#7 (1/2)
-	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
+	// NRE#7 / Block#9 (1/2)
+	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer, false)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
 		t.Fatal(err)
 	}
 
@@ -565,10 +650,10 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// NRE#5 / Block#8 (2/2)
-	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer)
+	// NRE#7 / Block#10 (2/2)
+	transferToken(t, tokenInChildChain, key1, addr2, tokenAmountToTransfer, false)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 8); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
 		t.Fatal(err)
 	}
 
@@ -580,126 +665,143 @@ func TestScenario3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// ORE#6 is empty
+	// ORE#8 is empty
 
-	// NRE#7 / Block#9 (1/2)
+	// NRE#9 / Block#11 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 11); err != nil {
 		t.Fatal(err)
 	}
 
+	// NRE#9 -> ORE#12 -- (1/4) withdraw addr2's token to root chain
 	tokenAmountToWithdraw := new(big.Int).Div(tokenAmount, big.NewInt(4)) // 4 witndrawal requests
 	tokenAmountToWithdrawNeg := new(big.Int).Neg(tokenAmountToWithdraw)
 
 	PTokenBalances5 := getTokenBalances(addrs, tokenInChildChain)
-
-	// (1/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#7 / Block#10 (2/2)
-	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
-		t.Fatal(err)
-	}
-
-	// ORE#8 / Block#11 (1/1)
-	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 11); err != nil {
-		t.Fatal(err)
-	}
-
-	PTokenBalances6 := getTokenBalances(addrs, tokenInChildChain)
-	if err := checkBalance(PTokenBalances5[1], PTokenBalances6[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance (4)"); err != nil {
-		t.Fatal(err)
-	}
-
-	// NRE#9 / Block#12 (1/2)
+	// NRE#9 / Block#12 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
 		t.Fatal(err)
 	}
 
-	// (2/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
+	// ORE#10 is empty
 
-	// NRE#9 / Block#13 (2/2)
+	// NRE#11 / Block#13 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 13); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#10 / Block#14 (1/1)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 14); err != nil {
-		t.Fatal(err)
-	}
-
-	PTokenBalances7 := getTokenBalances(addrs, tokenInChildChain)
-	if err := checkBalance(PTokenBalances6[1], PTokenBalances7[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (5)"); err != nil {
-		t.Fatal(err)
-	}
-
-	// NRE#11 / Block#15 (1/2)
+	// NRE#11 / Block#14 (2/2)
 	makeSampleTx(pls.rootchainManager)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 15); err != nil {
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 14); err != nil {
 		t.Fatal(err)
 	}
 
-	// (3/4) withdraw addr2's token to root chain
-	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
+	// ORE#12 / Block#15 (1/1) -- (1/4) withdraw addr2's token to root chain
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 15); err != nil {
+		t.Fatal(err)
+	}
 
-	// NRE#11 / Block#16 (2/2)
+	PTokenBalances6 := getTokenBalances(addrs, tokenInChildChain)
+	if err := checkBalance(PTokenBalances5[1], PTokenBalances6[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance - token exit (1/4)"); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#13/ Block#16 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 16); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#12 / Block#17 (1/1)
-	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 17); err != nil {
+	// NRE#13 -> ORE#16 -- (2/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
+
+	// NRE#13/ Block#17 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 17); err != nil {
 		t.Fatal(err)
 	}
 
-	PTokenBalances8 := getTokenBalances(addrs, tokenInChildChain)
-	if err := checkBalance(PTokenBalances7[1], PTokenBalances8[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (6)"); err != nil {
-		t.Fatal(err)
-	}
+	// ORE#14 is empty
 
-	// NRE#13 / Block#18 (1/2)
+	// NRE#15/ Block#18 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 18); err != nil {
 		t.Fatal(err)
 	}
 
-	// (4/4) withdraw addr2's token to root chain
+	// NRE#15 -> ORE#18 -- (3/4) withdraw addr2's token to root chain
 	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
 
-	// NRE#13 / Block#19 (2/2)
+	// NRE#15/ Block#19 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 19); err != nil {
 		t.Fatal(err)
 	}
 
-	// ORE#14 / Block#20 (1/1)
+	// ORE#16 / Block#20 -- (2/4) withdraw addr2's token to root chain
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 20); err != nil {
 		t.Fatal(err)
 	}
 
-	PTokenBalances9 := getTokenBalances(addrs, tokenInChildChain)
-	if err := checkBalance(PTokenBalances8[1], PTokenBalances9[1], tokenAmountToWithdrawNeg, nil, "Failed to check Token Balance (7)"); err != nil {
+	PTokenBalances7 := getTokenBalances(addrs, tokenInChildChain)
+	if err := checkBalance(PTokenBalances6[1], PTokenBalances7[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance - token exit (2/4)"); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#15 / Block#21 (1/2)
+	// NRE#17/ Block#21 (1/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 21); err != nil {
 		t.Fatal(err)
 	}
 
-	// NRE#15 / Block#22 (2/2)
+	// NRE#17 -> ORE#20 -- (4/4) withdraw addr2's token to root chain
+	startTokenWithdraw(t, pls.rootchainManager.rootchainContract, tokenInRootChain, tokenAddrInRootChain, key2, tokenAmountToWithdraw, big.NewInt(int64(pls.rootchainManager.state.costERO)))
+
+	// NRE#17/ Block#22 (2/2)
 	makeSampleTx(pls.rootchainManager)
 	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 22); err != nil {
 		t.Fatal(err)
 	}
+
+	// ORE#18 / Block#23 -- (3/4) withdraw addr2's token to root chain
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 23); err != nil {
+		t.Fatal(err)
+	}
+
+	PTokenBalances8 := getTokenBalances(addrs, tokenInChildChain)
+	if err := checkBalance(PTokenBalances7[1], PTokenBalances8[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance - token exit (3/4)"); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#19/ Block#24 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 24); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#19/ Block#25 (2/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 25); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#20 / Block#26 -- (4/4) withdraw addr2's token to root chain
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 26); err != nil {
+		t.Fatal(err)
+	}
+
+	PTokenBalances9 := getTokenBalances(addrs, tokenInChildChain)
+	if err := checkBalance(PTokenBalances8[1], PTokenBalances9[1], tokenAmountToWithdrawNeg, nil, "Failed to check PToken Balance - token exit (4/4)"); err != nil {
+		t.Fatal(err)
+	}
+
+	// finalize until block#26
+	finalizeBlocks(t, pls.rootchainManager.rootchainContract, 26)
 
 	// apply requests (4 ETH deposits, 1 Token deposits, 4 Token withdrawals)
 	for i := 0; i < 4+1; i++ {
@@ -1104,8 +1206,8 @@ func TestMinerRestart(t *testing.T) {
 	}
 }
 
-func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value *big.Int) {
-	if value.Cmp(big.NewInt(0)) == 0 {
+func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, amount *big.Int) {
+	if amount.Cmp(big.NewInt(0)) == 0 {
 		t.Fatal("Cannot deposit 0 ETH")
 	}
 
@@ -1114,16 +1216,25 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
 	defer filterer.Unsubscribe()
 
-	opt := makeTxOpt(key, 0, nil, value)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := opts[addr]
+	setNonce(opt, noncesRootChain[addr])
+	opt.Nonce = nil
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, addr, empty32Bytes, empty32Bytes)
+	trieKey, err := etherToken.GetBalanceTrieKey(baseCallOpt, addr)
+	if err != nil {
+		t.Fatalf("Failed to get trie key: %v", err)
+	}
+	trieValue := amount.Bytes()
+	trieValue32Bytes := common.BytesToHash(trieValue)
+
+	tx, err := rcm.rootchainContract.StartEnter(opt, etherTokenAddr, trieKey, trieValue32Bytes)
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
 	}
 
-	<-event
+	waitTx(tx.Hash())
 
 	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -1131,6 +1242,8 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	} else if receipt.Status == 0 {
 		t.Fatal("ETH deposit tx is reverted")
 	}
+
+	<-event
 }
 
 func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount *big.Int) {
@@ -1143,8 +1256,9 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
 	defer filterer.Unsubscribe()
 
-	opt := makeTxOpt(key, 0, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := opts[addr]
+	setNonce(opt, noncesRootChain[addr])
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1161,6 +1275,8 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 		t.Fatalf("Failed to make an token deposit request: %v", err)
 	}
 
+	waitTx(tx.Hash())
+
 	request := <-event
 	log.Debug("Token deposit request", "request", request)
 
@@ -1173,24 +1289,12 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	} else if receipt.Status == 0 {
 		t.Fatal("Token deposit tx is reverted")
 	}
-
-	//wait(2)
-	//
-	//receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
-	//if err != nil {
-	//	t.Fatalf("Failed to get receipt: %v", err)
-	//}
-	//if receipt == nil {
-	//	t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
-	//}
-	//if receipt.Status == 0 {
-	//	t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
-	//}
 }
 
 func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	if _, err := rootchainContract.StartExit(opt, addr, empty32Bytes, empty32Bytes); err != nil {
 		t.Fatalf("Failed to make an exit request: %v", err)
@@ -1200,6 +1304,7 @@ func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key 
 func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
 	opt := makeTxOpt(key, 0, nil, cost)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	trieKey, err := tokenContract.GetBalanceTrieKey(baseCallOpt, addr)
 	if err != nil {
@@ -1215,7 +1320,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
 	}
 
-	wait(3)
+	waitTx(tx.Hash())
 
 	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -1230,31 +1335,62 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 	if err != nil {
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
 	}
-
-	wait(3)
-
-	receipt, err = ethClient.TransactionReceipt(context.Background(), tx.Hash())
-	if err != nil {
-		t.Fatalf("Failed to get receipt: %v", err)
-	}
-	if receipt == nil {
-		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
-	}
-	if receipt.Status == 0 {
-		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
-	}
 }
 
-func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, key *ecdsa.PrivateKey, to common.Address, amount *big.Int) {
+func transferToken(t *testing.T, tokenContract *token.RequestableSimpleToken, key *ecdsa.PrivateKey, to common.Address, amount *big.Int, isRootChain bool) {
 	opt := makeTxOpt(key, 0, nil, nil)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	if isRootChain {
+		setNonce(opt, noncesRootChain[addr])
+	} else {
+		setNonce(opt, noncesChildChain[addr])
+	}
+
 	_, err := tokenContract.Transfer(opt, to, amount)
 	if err != nil {
 		t.Fatalf("Failed to transfer toekn: %v", err)
 	}
 }
 
+func finalizeBlocks(t *testing.T, rootchainContract *rootchain.RootChain, targetNumber int64) {
+	target := big.NewInt(targetNumber)
+
+	last, err := rootchainContract.GetLastFinalizedBlock(baseCallOpt, big.NewInt(0))
+	if err != nil {
+		t.Fatalf("Failed to GetLastFinalizedBlock: %v", err)
+	}
+
+	for last.Cmp(target) < 0 {
+		opt := opts[addr1]
+		setNonce(opt, noncesRootChain[addr1])
+
+		tx, err := rootchainContract.FinalizeBlock(opt)
+		if err != nil {
+			t.Errorf("Failed to fianlize block: %v", err)
+		}
+
+		waitTx(tx.Hash())
+
+		receipt, _ := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+		if receipt.Status == 0 {
+			t.Error("FinalizeBlock transaction is failed")
+		}
+
+		last, err = rootchainContract.GetLastFinalizedBlock(baseCallOpt, big.NewInt(0))
+		if err != nil {
+			t.Fatalf("Failed to GetLastFinalizedBlock: %v", err)
+		}
+
+		wait(3)
+	}
+
+}
+
 func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
 	opt := makeTxOpt(key, 0, nil, nil)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	setNonce(opt, noncesRootChain[addr])
 
 	wait(2)
 
@@ -1289,73 +1425,137 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		operator,
 	).ToBlock(dummyDB)
 
-	opt := bind.NewKeyedTransactor(operatorKey)
-	wait := func(hash common.Hash) {
-		<-time.NewTimer(1 * time.Second).C
-
-		for receipt, _ := ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
-			//if err != nil {
-			//	Fatalf("Failed to get receipt: %v", err)
-			//}
-
-			<-time.NewTimer(1 * time.Second).C
-
-			receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
-		}
-	}
-
 	var tx *types.Transaction
 	log.Info("Deploying contracts for development mode")
 
 	// 1. deploy MintableToken in root chain
-	mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, ethClient)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(operatorOpt, ethClient)
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 	}
-	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
+	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 2. deploy EtherToken in root chain
-	etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, ethClient, development, mintableTokenContract, swapEnabledInRootChain)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(operatorOpt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EtherToken contract: %v", err))
 	}
-	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
+	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 3. deploy EpochHandler in root chain
-	epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, ethClient)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(operatorOpt, ethClient)
+
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
 	}
-	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
 	// 4. deploy RootChain in root chain
-	rootchainContractAddress, tx, rootchainContract, err := rootchain.DeployRootChain(opt, ethClient, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(operatorOpt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
-	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContractAddress)
-	wait(tx.Hash())
+	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainAddr)
+	waitTx(tx.Hash())
 
 	// 5. initialize EtherToken
-	tx, err = etherToken.Init(opt, rootchainContractAddress)
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = etherToken.Init(operatorOpt, rootchainAddr)
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
 	log.Info("Initialize EtherToken", "hash", tx.Hash())
-	wait(tx.Hash())
+	waitTx(tx.Hash())
 
-	testPlsConfig.RootChainContract = rootchainContractAddress
+	// 6. mint tokens
+	mintEvents := make(chan *mintabletoken.MintableTokenMint)
+	mintWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	mintFilterrer, _ := mintableToken.WatchMint(mintWatchOpts, mintEvents, addrs)
 
-	return rootchainContractAddress, rootchainContract, err
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx1, err := mintableToken.Mint(operatorOpt, addr1, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx2, err := mintableToken.Mint(operatorOpt, addr2, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx3, err := mintableToken.Mint(operatorOpt, addr3, ether(100))
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx4, err := mintableToken.Mint(operatorOpt, addr4, ether(100))
+
+	<-mintEvents
+	<-mintEvents
+	<-mintEvents
+	<-mintEvents
+	mintFilterrer.Unsubscribe()
+
+	log.Info("Mint MintableToken to users")
+
+	// 7. swap MintableToken to EtherToken
+	setNonce(opt1, &addr1NonceRootChain)
+	setNonce(opt2, &addr2NonceRootChain)
+	setNonce(opt3, &addr3NonceRootChain)
+	setNonce(opt4, &addr4NonceRootChain)
+
+	tx1, _ = mintableToken.Approve(opt1, etherTokenAddr, ether(100))
+	tx2, _ = mintableToken.Approve(opt2, etherTokenAddr, ether(100))
+	tx3, _ = mintableToken.Approve(opt3, etherTokenAddr, ether(100))
+	tx4, _ = mintableToken.Approve(opt4, etherTokenAddr, ether(100))
+
+	log.Info("EtherToken is approved to EtherToken")
+
+	waitTx(tx1.Hash())
+	waitTx(tx2.Hash())
+	waitTx(tx3.Hash())
+	waitTx(tx4.Hash())
+
+	setNonce(opt1, &addr1NonceRootChain)
+	setNonce(opt2, &addr2NonceRootChain)
+	setNonce(opt3, &addr3NonceRootChain)
+	setNonce(opt4, &addr4NonceRootChain)
+
+	tx1, _ = etherToken.Deposit(opt1, ether(100))
+	tx2, _ = etherToken.Deposit(opt2, ether(100))
+	tx3, _ = etherToken.Deposit(opt3, ether(100))
+	tx4, _ = etherToken.Deposit(opt4, ether(100))
+
+	waitTx(tx1.Hash())
+	waitTx(tx2.Hash())
+	waitTx(tx3.Hash())
+	waitTx(tx4.Hash())
+
+	log.Info("Swap MintableToken to EtherToken")
+
+	for i, addr := range addrs {
+		bal, err := etherToken.BalanceOf(baseCallOpt, addr)
+		if err != nil {
+			log.Error("Failed to get EtherToken balance", "err", err)
+		}
+
+		bal.Div(bal, ether(1))
+
+		log.Info("EtherToken balance", "i", i, "balance", bal)
+	}
+
+	testPlsConfig.RootChainContract = rootchainAddr
+
+	return rootchainAddr, rootchainContract, err
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
@@ -1542,9 +1742,15 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	return pls, handler, d, nil
 }
 
+func setNonce(opt *bind.TransactOpts, nonce *uint64) {
+	opt.Nonce = big.NewInt(int64(*nonce))
+	*nonce++
+}
+
 func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.RequestableSimpleToken, common.Address, common.Address) {
 	opt := makeTxOpt(operatorKey, 0, nil, nil)
 
+	setNonce(opt, &operatorNonceRootChain)
 	tokenAddrInRootChain, _, tokenInRootChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		ethClient,
@@ -1554,6 +1760,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 	}
 	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
 
+	setNonce(opt, &operatorNonceChildChain)
 	tokenAddrInChildChain, _, tokenInChildChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		plsClient,
@@ -1562,7 +1769,6 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		t.Fatal("Failed to deploy token contract in child chain", "err", err)
 	}
 	log.Info("Token deployed in child chain", "address", tokenAddrInChildChain)
-	operatorNonce += 1
 
 	return tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain
 }
@@ -1590,6 +1796,20 @@ func makeManager() (*RootChainManager, func(), error) {
 	epochEnv := epoch.New()
 	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
+	_, ks := tmpKeyStore()
+	account, err := ks.ImportECDSA(operatorKey, "")
+	if err != nil {
+		log.Error("Failed to import operator account", "err", err)
+	}
+	if err = ks.Unlock(account, ""); err != nil {
+		log.Error("Failed to unlock operator account", "err", err)
+	}
+	// configure account manager with temporary keystore backend
+	backends := []accounts.Backend{
+		ks,
+	}
+	accManager := accounts.NewManager(backends...)
+
 	var rcm *RootChainManager
 
 	stopFn := func() {
@@ -1607,7 +1827,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		ethClient,
 		rootchainContract,
 		mux,
-		nil,
+		accManager,
 		miner,
 		epochEnv,
 	)
@@ -1652,16 +1872,28 @@ func wait(t time.Duration) {
 	<-timer.C
 }
 
+func waitTx(hash common.Hash) {
+	var receipt *types.Receipt
+	for receipt, _ = ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
+		<-time.NewTimer(1 * time.Second).C
+
+		receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
+	}
+
+	if receipt.Status == 0 {
+		log.Error("transaction reverted", "hash", hash)
+	}
+}
+
 // TODO: any user sends tx
 func makeSampleTx(rcm *RootChainManager) error {
 	pool := rcm.txPool
-	nonce := operatorNonce
-	operatorNonce += 1
 
 	// self transfer
 	var err error
 
-	tx := types.NewTransaction(nonce, operator, nil, 21000, nil, []byte{})
+	tx := types.NewTransaction(operatorNonceChildChain, operator, nil, 21000, nil, []byte{})
+	operatorNonceChildChain++
 
 	signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
 
@@ -1685,6 +1917,8 @@ func makeSampleTx(rcm *RootChainManager) error {
 func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmitedEvents chan *rootchain.RootChainBlockSubmitted, expectedIsRequest bool, expectedFork, expectedBlockNumber int64) error {
 	// TODO: delete below line after genesis.Difficulty is set 0
 	expectedFork += 1
+
+	setNonce(operatorOpt, &operatorNonceRootChain) // due to block submit
 
 	outC := make(chan struct{})
 	errC := make(chan error)
@@ -1856,7 +2090,7 @@ func getETHBalances(addrs []common.Address) []*big.Int {
 
 	for i, addr := range addrs {
 		// balances[i] would be nil if ethClient.BalanceAt fails
-		balances[i], _ = ethClient.BalanceAt(context.Background(), addr, nil)
+		balances[i], _ = etherToken.BalanceOf(baseCallOpt, addr)
 	}
 
 	return balances
