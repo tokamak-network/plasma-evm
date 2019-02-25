@@ -313,8 +313,6 @@ func TestScenario2(t *testing.T) {
 	startETHDeposit(t, rcm, key3, ether(1))
 	startETHDeposit(t, rcm, key4, ether(1))
 
-	wait(3)
-
 	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
 
 	if numEROs.Cmp(big.NewInt(0)) == 0 {
@@ -333,9 +331,8 @@ func TestScenario2(t *testing.T) {
 	var i uint64
 
 	// #1 NRE
-	for i = 0; i < NRELength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
@@ -348,12 +345,10 @@ func TestScenario2(t *testing.T) {
 	// #2 empty ORE
 
 	// #3 NRE
-	for i = 0; i < NRELength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -361,8 +356,7 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #4 ORE
-	for i = 0; i < 1; {
-		i++
+	for i = 0; i < 1; i++ {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
@@ -388,20 +382,16 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
 
 	// make exit request
-	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
-
-	wait(3)
+	startETHWithdraw(t, rcm, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
 
 	// #5 NRE
-	for i = 0; i < NRELength.Uint64()*6; {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -411,12 +401,10 @@ func TestScenario2(t *testing.T) {
 	// #6 empty ORE
 
 	// #7 NRE
-	for i = 0; i < NRELength.Uint64()*6; {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -424,8 +412,7 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #8 ORE
-	for i = 0; i < 1; {
-		i++
+	for i = 0; i < 1; i++ {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
