@@ -125,3 +125,25 @@ var DefaultStaminaConfig = StaminaConfig{
 	RecoverEpochLength: big.NewInt(7 * Day / Minute),
 	WithdrawalDelay:    big.NewInt((7 * Day / Minute) * 3),
 }
+
+func GetStaminaConfig(bc *BlockChain) StaminaConfig {
+	statedb, _ := bc.State()
+	initialized := statedb.GetState(StaminaContractAddress, InitializedKey)
+	minDeposit := statedb.GetState(StaminaContractAddress, MinDepositKey)
+	recoverEpochLength := statedb.GetState(StaminaContractAddress, RecoverEpochLengthKey)
+	withdrawalDelay := statedb.GetState(StaminaContractAddress, WithdrawalDelayKey)
+
+	return StaminaConfig{
+		Initialized:        byteToBool(initialized.Bytes()[31]),
+		MinDeposit:         minDeposit.Big(),
+		RecoverEpochLength: recoverEpochLength.Big(),
+		WithdrawalDelay:    withdrawalDelay.Big(),
+	}
+}
+
+func byteToBool(b byte) bool {
+	if b == 0 {
+		return false
+	}
+	return true
+}
