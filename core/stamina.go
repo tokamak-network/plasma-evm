@@ -134,16 +134,9 @@ func GetStaminaConfig(bc *BlockChain) StaminaConfig {
 	withdrawalDelay := statedb.GetState(StaminaContractAddress, WithdrawalDelayKey)
 
 	return StaminaConfig{
-		Initialized:        byteToBool(initialized.Bytes()[31]),
+		Initialized:        common.ByteToBool(initialized.Bytes()[31]),
 		MinDeposit:         minDeposit.Big(),
 		RecoverEpochLength: recoverEpochLength.Big(),
 		WithdrawalDelay:    withdrawalDelay.Big(),
 	}
-}
-
-func byteToBool(b byte) bool {
-	if b == 0 {
-		return false
-	}
-	return true
 }

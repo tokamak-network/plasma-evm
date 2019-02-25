@@ -312,7 +312,7 @@ func DefaultGenesisBlock(rootChainContract common.Address, staminaConfig Stamina
 	if err != nil {
 		panic(err)
 	}
-	initialized := boolToBytes(staminaConfig.Initialized)
+	initialized := common.BoolToBytes(staminaConfig.Initialized)
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
@@ -406,11 +406,4 @@ func decodePrealloc(data string) GenesisAlloc {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
 	}
 	return ga
-}
-
-func boolToBytes(b bool) []byte {
-	if b {
-		return []byte{1}
-	}
-	return []byte{0}
 }
