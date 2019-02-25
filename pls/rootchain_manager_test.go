@@ -1336,14 +1336,44 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	}
 }
 
-func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
-	opt := makeTxOpt(key, 0, nil, cost)
-	addr := crypto.PubkeyToAddress(key.PublicKey)
-	setNonce(opt, noncesRootChain[addr])
-
-	if _, err := rootchainContract.StartExit(opt, addr, empty32Bytes, empty32Bytes); err != nil {
-		t.Fatalf("Failed to make an exit request: %v", err)
+func startETHWithdraw(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value, cost *big.Int) {
+	if value.Cmp(big.NewInt(0)) == 0 {
+		t.Fatal("Cannot deposit 0 ETH")
 	}
+
+	watchOpt := &bind.WatchOpts{Start: nil, Context: context.Background()}
+	event := make(chan *rootchain.RootChainRequestCreated)
+	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
+	defer filterer.Unsubscribe()
+
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := makeTxOpt(key, 0, nil, cost)
+	setNonce(opt, noncesRootChain[addr])
+	opt.Nonce = nil
+
+	trieKey, err := etherToken.GetBalanceTrieKey(baseCallOpt, addr)
+	if err != nil {
+		t.Fatalf("Failed to get trie key: %v", err)
+	}
+	trieValue := value.Bytes()
+	trieValue32Bytes := common.BytesToHash(trieValue)
+
+	tx, err := rcm.rootchainContract.StartExit(opt, etherTokenAddr, trieKey, trieValue32Bytes)
+
+	if err != nil {
+		t.Fatalf("Failed to make an ETH withdraw request: %v", err)
+	}
+
+	waitTx(tx.Hash())
+
+	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatalf("Failed to send eth deposit tx: %v", err)
+	} else if receipt.Status == 0 {
+		t.Fatal("ETH withdraw tx is reverted")
+	}
+
+	<-event
 }
 
 func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
