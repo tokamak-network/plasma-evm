@@ -212,6 +212,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
+	// check invalid operator account
+	if config.NodeMode == ModeOperator {
+		addr, err := rootchainContract.Operator(baseCallOpt)
+		if err != nil {
+			log.Error("Failed to get operator account address from rootchain", "err", err)
+		}
+		if config.Operator.Address != addr {
+			config.NodeMode = ModeUser
+			config.Operator = accounts.Account{}
+			log.Warn("Invalid operator account used, converted to ModeUser", "expected", addr, "actual", config.Operator.Address)
+		}
+	}
+
 	stopFn := func() { pls.Stop() }
 
 	if pls.rootchainManager, err = NewRootChainManager(
