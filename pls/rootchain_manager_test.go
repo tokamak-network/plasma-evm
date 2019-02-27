@@ -51,8 +51,8 @@ var (
 	rootchainUrl   = "ws://localhost:8546"
 	plasmachainUrl = "http://localhost:8547"
 
-	operator         = params.Operator
 	operatorKey, _   = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	operator         = crypto.PubkeyToAddress(operatorKey.PublicKey)
 	challengerKey, _ = crypto.HexToECDSA("78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114")
 	operatorOpt      = bind.NewKeyedTransactor(operatorKey)
 
@@ -158,7 +158,7 @@ func init() {
 
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = *testTxPoolConfig
-	testPlsConfig.Operator = accounts.Account{Address: params.Operator}
+	testPlsConfig.Operator = accounts.Account{Address: operator}
 	//testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	testPlsConfig.RootChainURL = rootchainUrl
