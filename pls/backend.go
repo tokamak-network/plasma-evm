@@ -217,7 +217,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
-	if operatorAddr != pls.config.OperatorAddr {
+	// TODO: check only in operator mode or dev mode.
+	if operatorAddr != pls.config.Operator.Address {
 		return nil, errors.New("Operator address of rootchain contract and this client must be same. Check your account address")
 	}
 

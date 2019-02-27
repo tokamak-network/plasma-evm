@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"sync"
 	"time"
-
-	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 type rootchainState struct {
@@ -109,7 +107,7 @@ func (rs *rootchainState) getNonce() uint64 {
 
 	rs.lastUpdateTime = time.Now()
 
-	nonce, _ := rs.rcm.backend.NonceAt(context.Background(), params.Operator, nil)
+	nonce, _ := rs.rcm.backend.NonceAt(context.Background(), rs.rcm.config.Operator.Address, nil)
 	if rs.nonce < nonce {
 		rs.nonce = nonce
 	}

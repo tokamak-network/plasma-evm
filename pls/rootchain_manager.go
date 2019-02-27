@@ -542,9 +542,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	if !rcm.miner.Mining() {
-		go rcm.miner.Start(params.Operator, &e, false)
-	}
+	go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
