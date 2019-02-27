@@ -9,5 +9,6 @@ RUN apk add --no-cache make gcc musl-dev linux-headers git ca-certificates && \
 FROM alpine:latest
 
 COPY run.rootchain.sh /usr/local/bin/
+COPY test-rpc.sh /usr/local/bin/
 COPY --from=builder /go/go-ethereum/build/bin/geth /usr/local/bin/
 WORKDIR /usr/local/bin
