@@ -29,6 +29,8 @@ services:
     depends_on:
       plasma_root:
         condition: service_started
+    ports:
+      - "0.0.0.0:30301:30301"
     command: sh docker.bootnode.sh
 
   plasma_child_operator:
