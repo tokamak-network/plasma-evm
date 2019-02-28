@@ -550,9 +550,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	if !rcm.miner.Mining() {
-		go rcm.miner.Start(params.Operator, &e, false)
-	}
+	go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
@@ -744,10 +742,9 @@ func (rcm *RootChainManager) runDetector() {
 		return
 	}
 
-	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	events := rcm.eventMux.Subscribe(core.ChainHeadEvent{})
 	defer events.Unsubscribe()
 
-	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
 		Context: context.Background(),
@@ -757,7 +754,10 @@ func (rcm *RootChainManager) runDetector() {
 		select {
 		case ev := <-events.Chan():
 			rcm.lock.Lock()
-			if rcm.minerEnv.IsRequest {
+
+			block := ev.Data.(core.ChainHeadEvent).Block
+
+			if block.IsRequest() {
 				var invalidExitsList invalidExits
 
 				forkNumber, err := rcm.rootchainContract.CurrentFork(callerOpts)
@@ -769,26 +769,24 @@ func (rcm *RootChainManager) runDetector() {
 					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
 				}
 
-				blockInfo := ev.Data.(core.ChainHeadEvent)
-				blockNumber := blockInfo.Block.Number()
-				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
+				receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
 
 				// TODO: should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
 				for i := 0; i < len(receipts); i++ {
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{
 							forkNumber:  forkNumber,
-							blockNumber: blockNumber,
+							blockNumber: block.Number(),
 							receipt:     receipts[i],
 							index:       int64(i),
 							proof:       types.GetMerkleProof(receipts, i),
 						}
 						invalidExitsList = append(invalidExitsList, invalidExit)
 
-						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
+						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", block.Number())
 					}
 				}
-				rcm.invalidExits[forkNumber.Uint64()][blockNumber.Uint64()] = invalidExitsList
+				rcm.invalidExits[forkNumber.Uint64()][block.NumberU64()] = invalidExitsList
 			}
 			rcm.lock.Unlock()
 

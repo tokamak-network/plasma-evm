@@ -171,6 +171,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -212,16 +213,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
-	// check invalid operator account
+	// check operator account
 	if config.NodeMode == ModeOperator {
 		addr, err := rootchainContract.Operator(baseCallOpt)
+
 		if err != nil {
-			log.Error("Failed to get operator account address from rootchain", "err", err)
+			return nil, err
 		}
+
 		if config.Operator.Address != addr {
-			config.NodeMode = ModeUser
-			config.Operator = accounts.Account{}
-			log.Warn("Invalid operator account used, converted to ModeUser", "expected", addr, "actual", config.Operator.Address)
+			return nil, errors.New("specified operator is not actual operator of RootChain contract")
 		}
 	}
 
