@@ -159,7 +159,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = *testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: operator}
-	//testPlsConfig.OperatorKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testPlsConfig.NodeMode = ModeOperator
 
 	testPlsConfig.RootChainURL = rootchainUrl
 	testPlsConfig.PendingInterval = 500 * time.Millisecond
@@ -1604,8 +1604,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
-	// gspec = core.DefaultGenesisBlock()
-	gspec := core.DefaultGenesisBlock(common.Address{})
+	gspec := core.DeveloperGenesisBlock(0, common.Address{}, operator)
 	// Initialize a fresh chain with only a genesis block
 	db := ethdb.NewMemDatabase()
 	genesis := gspec.MustCommit(db)
