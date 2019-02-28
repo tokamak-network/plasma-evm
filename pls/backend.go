@@ -171,6 +171,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -212,14 +213,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
-	operatorAddr, err := rootchainContract.Operator(baseCallOpt)
-	if err != nil {
-		return nil, err
-	}
+	// check operator account
+	if config.NodeMode == ModeOperator {
+		addr, err := rootchainContract.Operator(baseCallOpt)
 
-	// TODO: check only in operator mode or dev mode.
-	if operatorAddr != pls.config.Operator.Address {
-		return nil, errors.New("Operator address of rootchain contract and this client must be same. Check your account address")
+		if err != nil {
+			return nil, err
+		}
+
+		if config.Operator.Address != addr {
+			return nil, errors.New("specified operator is not actual operator of RootChain contract")
+		}
 	}
 
 	stopFn := func() { pls.Stop() }

@@ -34,8 +34,15 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 )
 
+const (
+	ModeOperator = iota
+	ModeUser
+	ModeChallenger
+)
+
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
+	NodeMode: ModeUser,
 	SyncMode: downloader.FastSync,
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
@@ -92,6 +99,7 @@ type Config struct {
 	// Plasma options
 	Operator   accounts.Account
 	Challenger accounts.Account
+	NodeMode   int
 
 	OperatorMinEther   *big.Int
 	RootChainURL       string

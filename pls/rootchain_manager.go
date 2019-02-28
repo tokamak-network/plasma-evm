@@ -243,6 +243,10 @@ func (rcm *RootChainManager) watchEvents() error {
 }
 
 func (rcm *RootChainManager) runSubmitter() {
+	if rcm.config.NodeMode != ModeOperator {
+		return
+	}
+
 	w, err := rcm.accountManager.Find(rcm.config.Operator)
 	if err != nil {
 		log.Error("Failed to get operator wallet", "err", err)
@@ -505,6 +509,10 @@ func (rcm *RootChainManager) runSubmitter() {
 }
 
 func (rcm *RootChainManager) runHandlers() {
+	if rcm.config.NodeMode != ModeOperator {
+		return
+	}
+
 	for {
 		select {
 		case e := <-rcm.epochPreparedCh:
@@ -730,6 +738,10 @@ func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFi
 }
 
 func (rcm *RootChainManager) runDetector() {
+	if rcm.config.NodeMode == ModeUser {
+		return
+	}
+
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
@@ -755,7 +767,7 @@ func (rcm *RootChainManager) runDetector() {
 					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
 				}
 
-				blockInfo := ev.Data.(core.NewMinedBlockEvent)
+				blockInfo := ev.Data.(core.ChainHeadEvent)
 				blockNumber := blockInfo.Block.Number()
 				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
 

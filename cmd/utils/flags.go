@@ -1372,6 +1372,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		log.Info("Operator account is unlocked", "address", operatorAddr)
 		cfg.Operator = account
+		cfg.NodeMode = pls.ModeOperator
 	}
 
 	if ctx.GlobalIsSet(OperatorKeyFlag.Name) {
@@ -1397,6 +1398,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		if err = ks.Unlock(cfg.Operator, ""); err != nil {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
+		// set mode:operator
+		cfg.NodeMode = pls.ModeOperator
 	}
 
 	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
@@ -1428,6 +1431,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		log.Info("Challenger account is unlocked", "address", challenger.Address)
 		cfg.Challenger = challenger
+
+		if cfg.NodeMode == pls.ModeUser {
+			cfg.NodeMode = pls.ModeChallenger
+		}
 	}
 
 	if ctx.GlobalIsSet(RootChainContractFlag.Name) {
