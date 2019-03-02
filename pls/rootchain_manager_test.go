@@ -2051,21 +2051,21 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 		pbStateRoot := pb.StatesRoot[:]
 		bStateRoot := block.Header().Root.Bytes()
 		if bytes.Compare(pbStateRoot, bStateRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("Block Expected stateRoot: %s, Actual stateRoot: %s", pbStateRoot, bStateRoot))
+			errC <- errors.New(fmt.Sprintf("Block Expected stateRoot: %s, Actual stateRoot: %s", common.Bytes2Hex(pbStateRoot), common.Bytes2Hex(bStateRoot)))
 			return
 		}
 
 		pbTxRoot := pb.TransactionsRoot[:]
 		bTxRoot := block.Header().TxHash.Bytes()
 		if bytes.Compare(pbTxRoot, bTxRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("Block Expected txRoot: %s, Actual txRoot: %s", pbTxRoot, bTxRoot))
+			errC <- errors.New(fmt.Sprintf("Block Expected txRoot: %s, Actual txRoot: %s", common.Bytes2Hex(pbTxRoot), common.Bytes2Hex(bTxRoot)))
 			return
 		}
 
 		pbReceiptsRoot := pb.ReceiptsRoot[:]
 		bReceiptsRoot := block.Header().ReceiptHash.Bytes()
 		if bytes.Compare(pbReceiptsRoot, bReceiptsRoot) != 0 {
-			errC <- errors.New(fmt.Sprintf("Block Expected receiptsRoot: %s, Actual receiptsRoot: %s", pbReceiptsRoot, bReceiptsRoot))
+			errC <- errors.New(fmt.Sprintf("Block Expected receiptsRoot: %s, Actual receiptsRoot: %s", common.Bytes2Hex(pbReceiptsRoot), common.Bytes2Hex(bReceiptsRoot)))
 			return
 		}
 		log.Debug("Check block finished")

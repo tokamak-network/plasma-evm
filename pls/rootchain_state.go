@@ -46,7 +46,7 @@ func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs.lastEpoch = rs.getLastEpoch()
 	rs.currentFork = rs.getCurrentFork()
 
-	rs.getNonce()
+	rs.getNonce(true)
 	rs.initGasPrice()
 
 	return rs
@@ -92,15 +92,15 @@ func (rs *rootchainState) getCurrentFork() uint64 {
 	fork, _ := rs.rcm.rootchainContract.CurrentFork(baseCallOpt)
 	return fork.Uint64()
 }
-func (rs *rootchainState) getNonce() uint64 {
+func (rs *rootchainState) getNonce(force bool) uint64 {
 	rs.lock.Lock()
 	defer rs.lock.Unlock()
 
 	lastUpdateTime := rs.lastUpdateTime
-	lastUpdateTime = lastUpdateTime.Add(2 * time.Second)
+	lastUpdateTime = lastUpdateTime.Add(rs.rcm.config.PendingInterval)
 
 	now := time.Now()
-	if now.Before(lastUpdateTime) {
+	if now.Before(lastUpdateTime) || force {
 		timer := time.NewTimer(lastUpdateTime.Sub(now))
 		<-timer.C
 	}
