@@ -2,13 +2,13 @@ package tx
 
 import (
 	"encoding/binary"
-	"github.com/Onther-Tech/plasma-evm/params"
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 

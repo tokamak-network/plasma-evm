@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"flag"
+	"fmt"
 	"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"math/big"
@@ -108,19 +109,29 @@ func TestTransactionManager(t *testing.T) {
 
 	go tm.Start()
 
-	// addrs[0] send 1 ETH to addrs[1]
-	rawTx1 := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, "raw tx 1")
-	if err := tm.Add(accs[0], rawTx1); err != nil {
-		t.Fatalf("Failed to add rawTx1: %v", err)
+	// addrs[0] send 1 ETH to addrs[1] 20 times
+	n := 20
+	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	for i := 0; i < n; i++ {
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", i))
+		if err := tm.Add(accs[0], rawTx); err != nil {
+			t.Fatalf("Failed to add rawTx: %v", err)
+		}
 	}
 
-	timer := time.NewTimer(10 * time.Second)
+	timer := time.NewTimer(30 * time.Second)
+
+	<-timer.C
+	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	if nonce2-nonce1 != uint64(n) {
+		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n, nonce2)
+	}
 
 	if len(tm.addresses) != 1 {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, len(tm.addresses))
 	}
-
-	<-timer.C
 
 	defer tm.Stop()
 }

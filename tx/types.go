@@ -2,13 +2,13 @@ package tx
 
 import (
 	"context"
-	"github.com/Onther-Tech/plasma-evm/log"
 	"math/big"
 	"sync"
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/log"
 )
 
 // TODO: Belows should be moved into core/types package.

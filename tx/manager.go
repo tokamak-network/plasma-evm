@@ -3,10 +3,6 @@ package tx
 import (
 	"context"
 	"errors"
-	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/ethdb"
-	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/params"
 	"math/big"
 	"strings"
 	"sync"
@@ -15,8 +11,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 const (
@@ -263,8 +263,6 @@ func (tm *TransactionManager) Start() {
 		var f func() (common.Hash, error)
 
 		f = func() (common.Hash, error) {
-			log.Debug("Transaction is going to be sent", "addr", addr, "raw", raw)
-
 			tx := raw.ToTransaction(tm.gasPrice)
 			signedTx, err := tm.ks.SignTx(from, tx, tm.config.ChainId)
 
@@ -361,7 +359,7 @@ func (tm *TransactionManager) Start() {
 
 			for addr, _ := range tm.queue {
 				go func(addr common.Address) {
-					log.Debug("Processing addr", "addr", addr)
+					log.Trace("TransactionManager iterates", "addr", addr)
 					queue := tm.queue[addr]
 
 					clearQueue(addr)
