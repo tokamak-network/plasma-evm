@@ -319,8 +319,6 @@ func TestScenario2(t *testing.T) {
 	startETHDeposit(t, rcm, key3, ether(1))
 	startETHDeposit(t, rcm, key4, ether(1))
 
-	wait(3)
-
 	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
 
 	if numEROs.Cmp(big.NewInt(0)) == 0 {
@@ -339,9 +337,8 @@ func TestScenario2(t *testing.T) {
 	var i uint64
 
 	// #1 NRE
-	for i = 0; i < NRELength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
@@ -354,12 +351,10 @@ func TestScenario2(t *testing.T) {
 	// #2 empty ORE
 
 	// #3 NRE
-	for i = 0; i < NRELength.Uint64(); {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -367,8 +362,7 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #4 ORE
-	for i = 0; i < 1; {
-		i++
+	for i = 0; i < 1; i++ {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
@@ -394,20 +388,16 @@ func TestScenario2(t *testing.T) {
 	log.Info("balance of addr4 in root chain after enter", "balance", bal4ae)
 
 	// make exit request
-	startETHWithdraw(t, rcm.rootchainContract, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm.rootchainContract, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
-
-	wait(3)
+	startETHWithdraw(t, rcm, key1, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key2, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key3, ether(1), big.NewInt(int64(rcm.state.costERO)))
+	startETHWithdraw(t, rcm, key4, ether(1), big.NewInt(int64(rcm.state.costERO)))
 
 	// #5 NRE
-	for i = 0; i < NRELength.Uint64()*6; {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -417,12 +407,10 @@ func TestScenario2(t *testing.T) {
 	// #6 empty ORE
 
 	// #7 NRE
-	for i = 0; i < NRELength.Uint64()*6; {
+	for i = 0; i < NRELength.Uint64(); i++ {
 		makeSampleTx(rcm)
-		i++
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
 
 		if rcm.minerEnv.IsRequest {
 			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
@@ -430,8 +418,7 @@ func TestScenario2(t *testing.T) {
 	}
 
 	// #8 ORE
-	for i = 0; i < 1; {
-		i++
+	for i = 0; i < 1; i++ {
 		ev := <-events.Chan()
 		blockInfo := ev.Data.(core.NewMinedBlockEvent)
 		if !rcm.minerEnv.IsRequest {
@@ -1342,14 +1329,44 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	}
 }
 
-func startETHWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey, value, cost *big.Int) {
-	opt := makeTxOpt(key, 0, nil, cost)
-	addr := crypto.PubkeyToAddress(key.PublicKey)
-	setNonce(opt, noncesRootChain[addr])
-
-	if _, err := rootchainContract.StartExit(opt, addr, empty32Bytes, empty32Bytes); err != nil {
-		t.Fatalf("Failed to make an exit request: %v", err)
+func startETHWithdraw(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey, value, cost *big.Int) {
+	if value.Cmp(big.NewInt(0)) == 0 {
+		t.Fatal("Cannot deposit 0 ETH")
 	}
+
+	watchOpt := &bind.WatchOpts{Start: nil, Context: context.Background()}
+	event := make(chan *rootchain.RootChainRequestCreated)
+	filterer, _ := rcm.rootchainContract.WatchRequestCreated(watchOpt, event)
+	defer filterer.Unsubscribe()
+
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	opt := makeTxOpt(key, 0, nil, cost)
+	setNonce(opt, noncesRootChain[addr])
+	opt.Nonce = nil
+
+	trieKey, err := etherToken.GetBalanceTrieKey(baseCallOpt, addr)
+	if err != nil {
+		t.Fatalf("Failed to get trie key: %v", err)
+	}
+	trieValue := value.Bytes()
+	trieValue32Bytes := common.BytesToHash(trieValue)
+
+	tx, err := rcm.rootchainContract.StartExit(opt, etherTokenAddr, trieKey, trieValue32Bytes)
+
+	if err != nil {
+		t.Fatalf("Failed to make an ETH withdraw request: %v", err)
+	}
+
+	waitTx(tx.Hash())
+
+	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		t.Fatalf("Failed to send eth deposit tx: %v", err)
+	} else if receipt.Status == 0 {
+		t.Fatal("ETH withdraw tx is reverted")
+	}
+
+	<-event
 }
 
 func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, tokenContract *token.RequestableSimpleToken, tokenAddress common.Address, key *ecdsa.PrivateKey, amount, cost *big.Int) {
