@@ -156,6 +156,7 @@ var (
 		utils.OperatorAddressFlag,
 		utils.OperatorKeyFlag,
 		utils.DeveloperKeyFlag,
+		utils.DeployFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
 		utils.PlasmaMinGasPriceFlag,
