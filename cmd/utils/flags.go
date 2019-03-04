@@ -140,11 +140,6 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: pls.DefaultConfig.NetworkId,
 	}
-	RootChainNetworkIdFlag = cli.Uint64Flag{
-		Name:  "rootchain.networkid",
-		Usage: "Rootchain network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
-		Value: pls.DefaultConfig.NetworkId,
-	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
@@ -1253,9 +1248,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
-	if ctx.GlobalIsSet(RootChainNetworkIdFlag.Name) {
-		cfg.RootChainNetworkID = ctx.GlobalUint64(RootChainNetworkIdFlag.Name)
-	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
@@ -1356,6 +1348,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if err != nil {
 		Fatalf("Failed to connect rootchain: %v", err)
 	}
+
+	rootchainNetworkId, err := rootchainBackend.NetworkID(context.Background())
+	if err != nil {
+		Fatalf("Failed to read rootchain network id: %v", err)
+	}
+	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)

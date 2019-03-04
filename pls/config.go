@@ -52,7 +52,7 @@ var DefaultConfig = Config{
 		DatasetsOnDisk: 2,
 	},
 	NetworkId:          16,
-	RootChainNetworkID: 1337,
+	RootChainNetworkID: 1,
 	LightPeers:         100,
 	DatabaseCache:      512,
 	TrieCleanCache:     256,

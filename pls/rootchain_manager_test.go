@@ -168,6 +168,12 @@ func init() {
 	if err != nil {
 		log.Error("Failed to connect rootchian provider", "err", err)
 	}
+	rootchainNetworkId, err := ethClient.NetworkID(context.Background())
+	if err != nil {
+		log.Error("Failed to read rootchain network id: %v", err)
+	}
+
+	testPlsConfig.RootChainNetworkID = rootchainNetworkId.Uint64()
 
 	keys = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 	addrs = []common.Address{addr1, addr2, addr3, addr4}
