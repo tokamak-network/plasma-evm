@@ -17,8 +17,8 @@ rm -rf $DATADIR
 geth \
   --datadir $DATADIR \
   --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
-  --dev \
   --rpc \
+  --deploy \
   --networkid 1337 \
   --rpcaddr 0.0.0.0 \
   --rpcport 8547 \
