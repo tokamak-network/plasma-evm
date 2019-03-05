@@ -41,6 +41,7 @@ var (
 	backend    *ethclient.Client
 
 	defaultGasLimit uint64 = 7000000
+	defaultResubmit        = 500 * time.Millisecond
 	maxTxFee        *big.Int
 
 	err error
@@ -50,7 +51,7 @@ func init() {
 	log.PrintOrigins(true)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
-	testConfig.Resubmit = 500 * time.Millisecond
+	testConfig.Resubmit = defaultResubmit
 
 	backend, err = ethclient.Dial(rootchainUrl)
 	if err != nil {
@@ -79,7 +80,7 @@ func init() {
 	}
 }
 
-func makeTestManager() *TransactionManager {
+func makeTestManager(db ethdb.Database) *TransactionManager {
 	d, err := ioutil.TempDir("", "pls-transaction-manager-test")
 	if err != nil {
 		log.Error("Failed to set temporary keystore directory", "err", err)
@@ -98,26 +99,31 @@ func makeTestManager() *TransactionManager {
 		}
 	}
 
-	db := ethdb.NewMemDatabase()
 	tm, _ := NewTransactionManager(ks, backend, db, testConfig)
 
 	return tm
 }
 
-func TestTransactionManager(t *testing.T) {
-	tm := makeTestManager()
+func TestBasic(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	tm := makeTestManager(db)
 
-	go tm.Start()
+	tm.Start()
 
-	// addrs[0] send 1 ETH to addrs[1] 20 times
-	n := 20
+	// addrs[0] send 1 ETH to addrs[1] n1 times
+	n1 := 10
 	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
-	for i := 0; i < n; i++ {
+	for i := 0; i < n1; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", i))
 		if err := tm.Add(accs[0], rawTx); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
+		log.Debug(fmt.Sprintf("raw tx %d added", i))
+	}
+
+	if numAddrs := ReadNumAddr(tm.db); numAddrs != 1 {
+		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
 	}
 
 	timer := time.NewTimer(30 * time.Second)
@@ -125,13 +131,64 @@ func TestTransactionManager(t *testing.T) {
 	<-timer.C
 	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
-	if nonce2-nonce1 != uint64(n) {
-		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n, nonce2)
+	if nonce2-nonce1 != uint64(n1) {
+		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1, nonce2)
 	}
 
-	if len(tm.addresses) != 1 {
+	tm.Stop()
+}
+
+func TestRestart(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	tm := makeTestManager(db)
+	tm.Start()
+
+	// addrs[0] send 1 ETH to addrs[1] n1 times
+	n1 := 10
+	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	for i := 0; i < n1; i++ {
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", i))
+		if err := tm.Add(accs[0], rawTx); err != nil {
+			t.Fatalf("Failed to add rawTx: %v", err)
+		}
+		log.Debug(fmt.Sprintf("raw tx %d added", i))
+	}
+
+	timer := time.NewTimer(5 * time.Second)
+
+	<-timer.C
+
+	// restart TransactionManager
+	tm.Stop()
+
+	<-time.NewTimer(5 * time.Second).C
+	tm = makeTestManager(db)
+	tm.Start()
+
+	// addrs[0] send 1 ETH to addrs[1] n2 times
+	n2 := 10
+
+	for i := 0; i < n2; i++ {
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", n1+i))
+		if err := tm.Add(accs[0], rawTx); err != nil {
+			t.Fatalf("Failed to add rawTx: %v", err)
+		}
+		log.Debug(fmt.Sprintf("raw tx %d added", n1+i))
+	}
+
+	timer2 := time.NewTimer(45 * time.Second)
+
+	<-timer2.C
+	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	if nonce2-nonce1 != uint64(n1+n2) {
+		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1+n2, nonce2)
+	}
+
+	if ReadNumAddr(tm.db) != 1 {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, len(tm.addresses))
 	}
 
-	defer tm.Stop()
+	tm.Stop()
 }

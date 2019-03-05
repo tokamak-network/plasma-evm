@@ -3,6 +3,7 @@ package tx
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -73,31 +74,47 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 		quit: make(chan struct{}),
 	}
 
-	n := ReadNumAddr(db)
+	numAddrs := ReadNumAddr(db)
 
-	if n == MaxAccountNum {
+	if numAddrs == MaxUint64 {
 		return nil, errors.New("failed to read account number in database")
 	}
-
-	log.Info("Transaction manager loaded", "numAccounts", n)
 
 	var (
 		i   uint64
 		err error
 	)
 
-	for i = 0; i < n; i++ {
+	for i = 0; i < numAddrs; i++ {
 		addr := ReadAddr(db, uint64(i))
+		tm.addresses = append(tm.addresses, addr)
 
 		if tm.queue[addr] != nil {
 			log.Error("Duplicated account", "addr", addr)
 			return nil, errors.New("duplicated account")
 		}
 
-		tm.queue[addr] = ReadRawTxs(db, addr)
-		log.Info("Previous transactions are loaded", "addr", addr, "txs", len(tm.queue[addr]))
+		numRawTxs := ReadNumRawTxs(tm.db, addr)
+		if numRawTxs == MaxUint64 {
+			return nil, errors.New(fmt.Sprintf("failed to read number of raw transaction of %s", addr.String()))
+		}
 
-		tm.addresses = append(tm.addresses, addr)
+		lastPendingIndex := ReadLastPendingIndex(tm.db, addr)
+		if lastPendingIndex == MaxUint64 {
+			lastPendingIndex = 0
+		}
+
+		log.Info("Previous account loaded", "addr", addr, "numRawTxs", numRawTxs, "lastPendingIndex", lastPendingIndex)
+
+		for ; lastPendingIndex < numRawTxs; lastPendingIndex++ {
+			raw := ReadRawTx(tm.db, addr, lastPendingIndex)
+			if raw == nil {
+				return nil, errors.New("read raw transaction is nil")
+			}
+			tm.queue[addr] = append(tm.queue[addr], raw)
+		}
+
+		log.Info("Previous transactions are loaded", "addr", addr, "txs", len(tm.queue[addr]))
 
 		tm.nonces[addr] = ReadAddrNonce(db, addr)
 		if tm.nonces[addr] == 0 {
@@ -109,6 +126,8 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 			WriteAddrNonce(db, addr, tm.nonces[addr])
 		}
 	}
+
+	log.Info("Transaction manager loaded", "numAccounts", numAddrs)
 
 	return tm, nil
 }
@@ -125,30 +144,37 @@ func (tm *TransactionManager) Add(account accounts.Account, raw *RawTransaction)
 	}
 
 	// Update database for the first raw transaction from the account.
-	if tm.queue[addr] == nil {
-		n := len(tm.queue)
+	if tm.indexOf(addr) < 0 {
+		n := len(tm.addresses)
 		WriteNumAddr(tm.db, uint64(n+1))
 
 		tm.addresses = append(tm.addresses, addr)
 		WriteAddr(tm.db, uint64(n), addr)
 
-		tm.queue[addr] = make(RawTransactions, 0)
 		log.Debug("New account is added to transaction manager", "addr", addr)
 	}
 
+	if tm.queue[addr] == nil {
+		tm.queue[addr] = make(RawTransactions, 0)
+	}
+
+	n := ReadNumRawTxs(tm.db, addr)
+	WriteNumRawTxs(tm.db, addr, n+1)
+
+	if n == MaxUint64 {
+		return errors.New("failed to read number of raw transaction")
+	}
+
+	raw.Index = n
 	raw.Nonce = big.NewInt(int64(tm.nonces[addr]))
 	tm.nonces[addr]++
 
-	i := tm.indexOf(addr)
-	if i < 0 {
-		log.Error("Failed to find account nonce", "addr", addr)
-	} else {
-		WriteAddrNonce(tm.db, addr, tm.nonces[addr])
-	}
+	WriteAddrNonce(tm.db, addr, tm.nonces[addr])
 
 	// enqueue raw transaction
 	tm.queue[addr] = append(tm.queue[addr], raw)
-	WriteRawTxs(tm.db, addr, tm.queue[addr])
+
+	WriteRawTx(tm.db, addr, *raw)
 
 	return nil
 }
@@ -213,6 +239,16 @@ func (tm *TransactionManager) Start() {
 			return
 		}
 
+		// remove already mined raw transactions
+		i := 0
+		for ; i < len(queue); i++ {
+			if !queue[i].Mined(tm.backend) {
+				break
+			}
+		}
+		queue = queue[i:]
+
+		var lastMinedRaw *RawTransaction
 		for _, raw := range queue {
 			ok, err := raw.ClearPendings(tm.backend, false)
 			if err != nil {
@@ -224,17 +260,22 @@ func (tm *TransactionManager) Start() {
 				break
 			}
 
-			log.Info("Pending transactions are removed", "addr", addr)
+			log.Info("Transaction is mined", "addr", addr, "nonce", raw.Nonce, "caption", raw.Caption)
+
+			lastMinedRaw = raw
 		}
 
 		// update database
-		WriteRawTxs(tm.db, addr, queue)
+		if lastMinedRaw != nil {
+			WriteLastPendingIndex(tm.db, addr, lastMinedRaw.Index)
+			log.Debug("Last pending transaction updated", "index", lastMinedRaw.Index)
+		}
 	}
 
 	// send a single raw transaction to root chain.
 	send := func(addr common.Address, raw *RawTransaction) (common.Hash, error) {
-		tm.lock.Lock()
-		defer tm.lock.Unlock()
+		raw.sendLock.Lock()
+		defer raw.sendLock.Unlock()
 
 		// short circuit if transacrtion was already mined
 		if raw.Mined(tm.backend) {
@@ -271,13 +312,17 @@ func (tm *TransactionManager) Start() {
 				return signedTx.Hash(), err
 			}
 
+			if raw.HasPending(signedTx) {
+				return signedTx.Hash(), nil
+			}
+
 			raw.AddPending(signedTx)
-			WriteRawTxs(tm.db, addr, tm.queue[addr])
+			WriteRawTx(tm.db, addr, *raw)
 
 			err = tm.backend.SendTransaction(context.Background(), signedTx)
 
 			if err == nil {
-				log.Info("Transaction sent", "hash", signedTx.Hash(), "raw", raw)
+				log.Info("Transaction sent", "hash", signedTx.Hash(), "nonce", raw.Nonce, "caption", raw.Caption)
 				return signedTx.Hash(), nil
 			}
 
@@ -345,107 +390,109 @@ func (tm *TransactionManager) Start() {
 		return f()
 	}
 
-	ticker := time.NewTicker(tm.config.Resubmit)
-	defer ticker.Stop()
+	go func() {
+		ticker := time.NewTicker(tm.config.Resubmit)
+		defer ticker.Stop()
 
-	for {
-		select {
-		case _, ok := <-ticker.C:
-			if !ok {
-				continue
-			}
+		for {
+			select {
+			case _, ok := <-ticker.C:
+				if !ok {
+					continue
+				}
 
-			ctx := context.Background()
+				for addr, _ := range tm.queue {
+					go func(addr common.Address) {
+						log.Trace("TransactionManager iterates", "addr", addr)
+						queue := tm.queue[addr]
 
-			for addr, _ := range tm.queue {
-				go func(addr common.Address) {
-					log.Trace("TransactionManager iterates", "addr", addr)
-					queue := tm.queue[addr]
+						clearQueue(addr)
 
-					clearQueue(addr)
-
-					if len(queue) == 0 {
-						return
-					}
-
-					var raw *RawTransaction
-
-					// find next pending raw transaction
-					for _, pending := range queue {
-						if !pending.Mined(tm.backend) {
-							raw = pending
-							break
-						}
-					}
-
-					if raw == nil {
-						return
-					}
-
-					hash, err := send(addr, raw)
-
-					// resubmit transaction in pending intarval loop
-					if err == core.ErrReplaceUnderpriced {
-						log.Debug("Gas price is adjusted for underpriced transaction error")
-						adjust(false)
-						hash, err = send(addr, raw)
-						return
-					}
-
-					// short circuit if operator has not enough fund.
-					if err == core.ErrInsufficientFunds || err == core.ErrReplaceUnderpriced {
-						log.Error("Operator doesn't have enough fund to run the chain.")
-						hash, err = send(addr, raw)
-						return
-					}
-
-					receipt, err2 := tm.backend.TransactionReceipt(ctx, hash)
-
-					if receipt == nil && err == ErrKnownTransaction && tm.numKnownErr[hash] <= MaxNumKnownTx {
-						tm.numKnownErr[hash]++
-						return
-					}
-
-					if receipt == nil {
-						log.Warn("Trasaction not found. It may be pending", "err", err2, "hash", hash.Hex())
-					} else if err2 != nil {
-						log.Error("Send transaction failed", "err", err2, "hash", hash.Hex())
-					} else if receipt != nil {
-						log.Info("Transaction is mined", "addr", addr, "hash", hash.Hex(), "caption", raw.Caption)
-
-						if !raw.AllowRevert && receipt.Status == 0 {
-							// TODO: Do something..
+						if len(queue) == 0 {
+							return
 						}
 
-						return
-					}
+						var raw *RawTransaction
 
-					adjusted := false
+						// find next pending raw transaction
+						for _, pending := range queue {
+							if !pending.Mined(tm.backend) {
+								raw = pending
+								break
+							}
+						}
 
-					// handle previous submit errors
-					if err == ErrKnownTransaction {
-						log.Debug("Gas price is adjusted for known transaction error")
-						adjusted = true
-					}
+						if raw == nil {
+							return
+						}
 
-					if err != nil && !adjusted {
-						log.Debug("Gas price is adjusted for unknown transaction error")
-						adjust(false)
-					}
+						hash, err := send(addr, raw)
 
-					hash, err = send(addr, raw)
+						// resubmit transaction in pending intarval loop
+						if err == core.ErrReplaceUnderpriced {
+							log.Debug("Gas price is adjusted for underpriced transaction error")
+							adjust(false)
+							hash, err = send(addr, raw)
+							return
+						}
 
-					if err != nil && err != ErrKnownTransaction {
-						log.Error("Failed to submit block to root chain.", "err", err)
-					}
-				}(addr)
+						// short circuit if operator has not enough fund.
+						if err == core.ErrInsufficientFunds || err == core.ErrReplaceUnderpriced {
+							log.Error("Account doesn't have enough fund to run the chain.", "addr", addr)
+							hash, err = send(addr, raw)
+							return
+						}
+
+						receipt, err2 := tm.backend.TransactionReceipt(context.Background(), hash)
+						log.Debug("errS?", "err", err, "err2", err2)
+
+						if receipt == nil && err == ErrKnownTransaction && tm.numKnownErr[hash] <= MaxNumKnownTx {
+							tm.numKnownErr[hash]++
+							return
+						}
+
+						if receipt == nil {
+							log.Warn("Trasaction not found. It may be pending", "err", err2, "hash", hash.Hex())
+						} else if err2 != nil {
+							log.Error("Send transaction failed", "err", err2, "hash", hash.Hex())
+						} else if receipt != nil {
+							log.Info("Transaction is mined", "addr", addr, "hash", hash.Hex(), "caption", raw.Caption)
+
+							if !raw.AllowRevert && receipt.Status == 0 {
+								// TODO: Do something..
+							}
+
+							adjust(true)
+							return
+						}
+
+						adjusted := false
+
+						// handle previous submit errors
+						if err == ErrKnownTransaction {
+							log.Debug("Gas price is adjusted for known transaction error")
+							adjusted = true
+						}
+
+						if err != nil && !adjusted {
+							log.Debug("Gas price is adjusted for unknown transaction error")
+							adjust(false)
+						}
+
+						hash, err = send(addr, raw)
+
+						if err != nil && err != ErrKnownTransaction {
+							log.Error("Failed to submit block to root chain.", "err", err)
+						}
+					}(addr)
+				}
+
+			case <-tm.quit:
+				log.Info("TransactionManager stopped")
+				return
 			}
-
-		case <-tm.quit:
-			log.Info("TransactionManager stopped")
-			return
 		}
-	}
+	}()
 }
 
 func (tm *TransactionManager) indexOf(addr common.Address) int {

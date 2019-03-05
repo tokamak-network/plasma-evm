@@ -2,11 +2,11 @@ package tx
 
 import (
 	"encoding/binary"
+	"math"
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
-	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
@@ -15,16 +15,20 @@ import (
 // TODO: Belows should be move into rawdb package.
 
 const (
-	MaxAccountNum = 256
+	MaxUint64 = math.MaxUint64
 )
 
 var (
-	gasPriceKey     = []byte("gas-price")
+	gasPriceKey = []byte("gas-price")
+
 	numAddrKey      = []byte("num-address")   // numAddrKey -> the number of accounts
 	addrPrefix      = []byte("address")       // addrPrefix + i (uint64 big endian) -> i-th account to send transaction
 	addrNoncePrefix = []byte("address-nonce") // addrPrefix + address -> i-th account's nonce
-	rawTxsPrefix    = []byte("raw-txs")       // rawTxsPrefix + account address -> queued raw transactions to send to root chain
-	txQueuePrefix   = []byte("tx-queue")      // txQueuePrefix + raw tx hash -> sent transactions to root chain
+
+	numRawTxsPrefix        = []byte("num-raw-txs")      // numRawTxsPrefix + account address -> number of raw transactions
+	lastPendingIndexPrefix = []byte("last-pending-raw") // lastPendingIndexKey + account address -> index of last pending transaction
+
+	rawTxPrefix = []byte("raw-tx") // rawTxPrefix + account address + i (uint64 big endian) -> i-th raw transaction
 )
 
 func ReadGasPrice(db rawdb.DatabaseReader) *big.Int {
@@ -61,9 +65,9 @@ func ReadNumAddr(db rawdb.DatabaseReader) uint64 {
 	}
 
 	var n uint64
-	if err := rlp.DecodeBytes(data, n); err != nil {
+	if err := rlp.DecodeBytes(data, &n); err != nil {
 		log.Error("Failed to decode account number", "err", err)
-		return MaxAccountNum
+		return MaxUint64
 	}
 
 	return n
@@ -139,65 +143,93 @@ func WriteAddrNonce(db rawdb.DatabaseWriter, addr common.Address, nonce uint64) 
 	}
 }
 
-// rawTxsKey = rawTxsPrefix + address
-func rawTxsKey(addr common.Address) []byte {
-	return append(rawTxsPrefix, addr.Bytes()...)
+func numRawTxsKey(addr common.Address) []byte {
+	return append(numRawTxsPrefix, addr.Bytes()...)
 }
 
-func ReadRawTxs(db rawdb.DatabaseReader, addr common.Address) RawTransactions {
-	data, _ := db.Get(rawTxsKey(addr))
+func ReadNumRawTxs(db rawdb.DatabaseReader, addr common.Address) uint64 {
+	data, _ := db.Get(numRawTxsKey(addr))
 
 	if len(data) == 0 {
-		return RawTransactions{}
+		return 0
 	}
 
-	var rawTxs RawTransactions
-	if err := rlp.DecodeBytes(data, &rawTxs); err != nil {
-		log.Error("Failed to decode raw transactions", "err", err)
-		return RawTransactions{}
+	var n uint64
+	if err := rlp.DecodeBytes(data, &n); err != nil {
+		log.Error("Failed to decode number of raw transactions", "err", err)
+		return MaxUint64
 	}
 
-	return rawTxs
+	return n
 }
 
-func WriteRawTxs(db rawdb.DatabaseWriter, addr common.Address, rawTxs RawTransactions) {
-	data, err := rlp.EncodeToBytes(rawTxs)
+func WriteNumRawTxs(db rawdb.DatabaseWriter, addr common.Address, n uint64) {
+	data, err := rlp.EncodeToBytes(n)
 	if err != nil {
-		log.Crit("Failed to encode raw transactions", "err", err)
+		log.Crit("Failed to encode number of raw transactions", "err", err)
 	}
-	if err := db.Put(rawTxsKey(addr), data); err != nil {
-		log.Crit("Failed to store raw transactions", "err", err)
+	if err := db.Put(numRawTxsKey(addr), data); err != nil {
+		log.Crit("Failed to store number of raw transactions", "err", err)
 	}
 }
 
-// txQueueKey = txQueuePrefix + raw tx hash
-func txQueueKey(hash common.Hash) []byte {
-	return append(txQueuePrefix, hash.Bytes()...)
+func lastPendingIndexKey(addr common.Address) []byte {
+	return append(lastPendingIndexPrefix, addr.Bytes()...)
 }
 
-func ReadTxQueue(db rawdb.DatabaseReader, hash common.Hash) types.Transactions {
-	data, _ := db.Get(txQueueKey(hash))
+func ReadLastPendingIndex(db rawdb.DatabaseReader, addr common.Address) uint64 {
+	data, _ := db.Get(lastPendingIndexKey(addr))
 
 	if len(data) == 0 {
-		return types.Transactions{}
+		return MaxUint64
 	}
 
-	var txs types.Transactions
-	if err := rlp.DecodeBytes(data, &txs); err != nil {
-		log.Error("Failed to decode transaction queue", "err", err)
-		return types.Transactions{}
+	var i uint64
+	if err := rlp.DecodeBytes(data, &i); err != nil {
+		log.Error("Failed to decode number of raw transactions", "err", err)
+		return MaxUint64
 	}
 
-	return txs
+	return i
 }
 
-func WriteTxQueue(db rawdb.DatabaseWriter, hash common.Hash, txs types.Transactions) {
-	data, err := rlp.EncodeToBytes(txs)
+func WriteLastPendingIndex(db rawdb.DatabaseWriter, addr common.Address, i uint64) {
+	data, err := rlp.EncodeToBytes(i)
 	if err != nil {
-		log.Crit("Failed to encode transaction queue", "err", err)
+		log.Crit("Failed to encode number of raw transactions", "err", err)
 	}
-	if err := db.Put(txQueueKey(hash), data); err != nil {
-		log.Crit("Failed to store transaction queue", "err", err)
+	if err := db.Put(lastPendingIndexKey(addr), data); err != nil {
+		log.Crit("Failed to store number of raw transactions", "err", err)
+	}
+}
+
+func rawTxKey(addr common.Address, i uint64) []byte {
+	return append(append(rawTxPrefix, addr.Bytes()...), encodeNumber(i)...)
+}
+
+func ReadRawTx(db rawdb.DatabaseReader, addr common.Address, i uint64) *RawTransaction {
+	data, _ := db.Get(rawTxKey(addr, i))
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	var raw RawTransaction
+	if err := rlp.DecodeBytes(data, &raw); err != nil {
+		log.Error("Failed to decode raw transaction", "err", err, "addr", addr, "i", i)
+		return nil
+	}
+
+	return &raw
+}
+
+func WriteRawTx(db rawdb.DatabaseWriter, addr common.Address, raw RawTransaction) {
+	data, err := rlp.EncodeToBytes(raw)
+	if err != nil {
+		log.Crit("Failed to encode raw transaction", "err", err)
+	}
+	if err := db.Put(rawTxKey(addr, raw.Index), data); err != nil {
+		log.Crit("Failed to store raw transaction", "err", err)
 	}
 }
 

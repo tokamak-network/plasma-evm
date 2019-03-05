@@ -15,12 +15,16 @@ import (
 
 // (nonces, price) is set by TransactionManager.
 type RawTransaction struct {
-	Nonce       *big.Int
-	From        common.Address
-	GasLimit    uint64
-	Recipient   *common.Address
-	Amount      *big.Int
-	Payload     []byte
+	Index uint64
+
+	// transaction field
+	Nonce     *big.Int
+	From      common.Address
+	GasLimit  uint64
+	Recipient *common.Address
+	Amount    *big.Int
+	Payload   []byte
+
 	AllowRevert bool
 
 	PendingTxs  types.Transactions
@@ -29,7 +33,8 @@ type RawTransaction struct {
 
 	Caption string
 
-	lock sync.RWMutex
+	sendLock sync.Mutex
+	lock     sync.RWMutex
 }
 
 func NewRawTransaction(from common.Address, gasLimit uint64, receipt *common.Address, amount *big.Int, payload []byte, allowRevert bool, caption string) *RawTransaction {
@@ -76,9 +81,14 @@ func (raw *RawTransaction) AddPending(tx *types.Transaction) {
 	raw.PendingTxs = append(raw.PendingTxs, tx)
 }
 
-// minedTransaction returns mined transaction of a raw transaction.
-func (raw *RawTransaction) minedTransaction(backend *ethclient.Client) (int, *types.Transaction) {
-	for i, tx := range raw.PendingTxs {
+// ClearPendings clears all pending transactions. It returns true if transaction is mined and removed in pending tx.
+func (raw *RawTransaction) ClearPendings(backend *ethclient.Client, force bool) (bool, error) {
+	raw.lock.Lock()
+	defer raw.lock.Unlock()
+
+	mined := false
+
+	for _, tx := range raw.PendingTxs {
 		receipt, err := backend.TransactionReceipt(context.Background(), tx.Hash())
 
 		if receipt == nil {
@@ -90,42 +100,36 @@ func (raw *RawTransaction) minedTransaction(backend *ethclient.Client) (int, *ty
 			continue
 		}
 
+		log.Debug("RawTransaction is mined", "caption", raw.Caption, "tx", tx.Hash())
+
 		raw.Reverted = receipt.Status == 0
 		raw.MinedTxHash = tx.Hash()
-
-		return i, tx
+		mined = true
+		break
 	}
 
-	return -1, nil
-}
-
-// ClearPendings clears all pending transactions. It returns true if transaction is mined and removed in pending tx.
-func (raw *RawTransaction) ClearPendings(backend *ethclient.Client, force bool) (bool, error) {
-	raw.lock.Lock()
-	defer raw.lock.Unlock()
-
-	i, _ := raw.minedTransaction(backend)
-
-	if !force && i < 0 {
-		return false, nil
+	if mined {
+		raw.PendingTxs = make(types.Transactions, 0)
 	}
 
-	raw.PendingTxs = make(types.Transactions, 0)
-
-	return i >= 0, nil
+	return mined, nil
 }
 
 func (raw *RawTransaction) Mined(backend *ethclient.Client) bool {
 	raw.lock.Lock()
 	defer raw.lock.Unlock()
 
-	if (raw.MinedTxHash != common.Hash{}) {
-		return true
+	return (raw.MinedTxHash != common.Hash{})
+}
+
+func (raw *RawTransaction) HasPending(tx *types.Transaction) bool {
+	for _, pending := range raw.PendingTxs {
+		if pending.Hash() == tx.Hash() {
+			return true
+		}
 	}
 
-	i, _ := raw.minedTransaction(backend)
-
-	return i >= 0
+	return false
 }
 
 func toRawTransaction(from common.Address, tx *types.Transaction, allowRevert bool, caption string) *RawTransaction {
