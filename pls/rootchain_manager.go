@@ -791,7 +791,11 @@ func (rcm *RootChainManager) runDetector() {
 
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev, ok := <-events.Chan():
+			if !ok {
+				continue
+			}
+
 			rcm.lock.Lock()
 
 			block := ev.Data.(core.ChainHeadEvent).Block
