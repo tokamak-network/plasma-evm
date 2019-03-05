@@ -29,6 +29,8 @@ var (
 	lastPendingIndexPrefix = []byte("last-pending-raw") // lastPendingIndexKey + account address -> index of last pending transaction
 
 	rawTxPrefix = []byte("raw-tx") // rawTxPrefix + account address + i (uint64 big endian) -> i-th raw transaction
+
+	rawTxHashPrefix = []byte("tx-hash") // rawTxHashPrefix + account address + raw transaction hash -> raw transaction
 )
 
 func ReadGasPrice(db rawdb.DatabaseReader) *big.Int {
@@ -229,6 +231,36 @@ func WriteRawTx(db rawdb.DatabaseWriter, addr common.Address, raw RawTransaction
 		log.Crit("Failed to encode raw transaction", "err", err)
 	}
 	if err := db.Put(rawTxKey(addr, raw.Index), data); err != nil {
+		log.Crit("Failed to store raw transaction", "err", err)
+	}
+}
+
+func rawTxHashKey(addr common.Address, rawHash common.Hash) []byte {
+	return append(append(rawTxPrefix, addr.Bytes()...), rawHash.Bytes()...)
+}
+
+func ReadRawTxHash(db rawdb.DatabaseReader, addr common.Address, rawHash common.Hash) *RawTransaction {
+	data, _ := db.Get(rawTxHashKey(addr, rawHash))
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	var raw RawTransaction
+	if err := rlp.DecodeBytes(data, &raw); err != nil {
+		log.Error("Failed to decode raw transaction", "err", err, "addr", addr)
+		return nil
+	}
+
+	return &raw
+}
+
+func WriteRawTxHash(db rawdb.DatabaseWriter, addr common.Address, raw RawTransaction) {
+	data, err := rlp.EncodeToBytes(raw)
+	if err != nil {
+		log.Crit("Failed to encode raw transaction", "err", err)
+	}
+	if err := db.Put(rawTxHashKey(addr, raw.Hash()), data); err != nil {
 		log.Crit("Failed to store raw transaction", "err", err)
 	}
 }

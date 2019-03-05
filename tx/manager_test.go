@@ -115,7 +115,7 @@ func TestBasic(t *testing.T) {
 	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
 	for i := 0; i < n1; i++ {
-		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", i))
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
 		if err := tm.Add(accs[0], rawTx); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
@@ -148,7 +148,7 @@ func TestRestart(t *testing.T) {
 	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
 	for i := 0; i < n1; i++ {
-		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", i))
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
 		if err := tm.Add(accs[0], rawTx); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
@@ -170,7 +170,7 @@ func TestRestart(t *testing.T) {
 	n2 := 10
 
 	for i := 0; i < n2; i++ {
-		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(1e18), []byte{}, false, fmt.Sprintf("raw tx %d", n1+i))
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i+n1)), []byte{}, false, fmt.Sprintf("raw tx %d", n1+i))
 		if err := tm.Add(accs[0], rawTx); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}

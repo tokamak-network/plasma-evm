@@ -30,6 +30,7 @@ var (
 	ErrLockedAccount    = errors.New("account is locked")
 	ErrUnknownAccount   = errors.New("account not found in keystore")
 	ErrKnownTransaction = errors.New("known transaction")
+	ErrDuplicateRaw     = errors.New("duplicate raw transaction")
 )
 
 type TransactionManager struct {
@@ -157,6 +158,11 @@ func (tm *TransactionManager) Add(account accounts.Account, raw *RawTransaction)
 	if tm.queue[addr] == nil {
 		tm.queue[addr] = make(RawTransactions, 0)
 	}
+
+	if previous := ReadRawTxHash(tm.db, addr, raw.Hash()); previous != nil {
+		return ErrDuplicateRaw
+	}
+	WriteRawTxHash(tm.db, addr, *raw)
 
 	n := ReadNumRawTxs(tm.db, addr)
 	WriteNumRawTxs(tm.db, addr, n+1)
