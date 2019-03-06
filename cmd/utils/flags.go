@@ -682,6 +682,23 @@ var (
 		Usage: "Address of challenger account",
 	}
 
+	// Stamina Flags
+	StaminaMinDepositFlag = BigFlag{
+		Name:  "stamina.mindeposit",
+		Usage: "MinDeposit variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.MinDeposit,
+	}
+	StaminaRecoverEpochLengthFlag = BigFlag{
+		Name:  "stamina.recoverepochlength",
+		Usage: "RecoverEpochLength variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.RecoverEpochLength,
+	}
+	StaminaWithdrawalDelayFlag = BigFlag{
+		Name:  "stamina.withdrawaldelay",
+		Usage: "WithdrawalDelay variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.WithdrawalDelay,
+	}
+
 	EWASMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.ewasm",
 		Usage: "External ewasm configuration (default = built-in interpreter)",
@@ -1439,6 +1456,20 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
 
+	if ctx.GlobalIsSet(StaminaMinDepositFlag.Name) {
+		cfg.StaminaConfig.MinDeposit = GlobalBig(ctx, StaminaMinDepositFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaRecoverEpochLengthFlag.Name) {
+		cfg.StaminaConfig.RecoverEpochLength = GlobalBig(ctx, StaminaRecoverEpochLengthFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaWithdrawalDelayFlag.Name) {
+		cfg.StaminaConfig.WithdrawalDelay = GlobalBig(ctx, StaminaWithdrawalDelayFlag.Name)
+	}
+	if new(big.Int).Mul(cfg.StaminaConfig.RecoverEpochLength, big.NewInt(2)).Cmp(cfg.StaminaConfig.WithdrawalDelay) >= 0 {
+		Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", cfg.StaminaConfig.RecoverEpochLength, cfg.StaminaConfig.WithdrawalDelay)
+	}
+	cfg.StaminaConfig.Initialized = true
+
 	// TODO: set network id from params/config.go for each network
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
@@ -1541,7 +1572,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			// TODO: set genesis in case of user node
 		}
 	default:
-		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
+		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
 	}
 
 	if ctx.GlobalIsSet(PlasmaMinGasPriceFlag.Name) {
@@ -1694,7 +1725,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract)
+	staminaConfig := core.DefaultStaminaConfig
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, staminaConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}

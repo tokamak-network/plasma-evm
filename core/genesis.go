@@ -150,10 +150,10 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract)
+func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, staminaConfig *StaminaConfig) (*params.ChainConfig, common.Hash, error) {
+	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract, staminaConfig)
 }
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address, staminaConfig *StaminaConfig) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -166,7 +166,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 			if (rootChainContract == common.Address{}) {
 				return nil, common.Hash{}, errors.New(fmt.Sprintf("RootChain contract address must be set, but %s", rootChainContract.Hex()))
 			}
-			genesis = DefaultGenesisBlock(rootChainContract)
+			genesis = DefaultGenesisBlock(rootChainContract, staminaConfig)
 		} else {
 			log.Info("Writing custom genesis block", "rootChainContract", rootChainContract)
 		}
@@ -307,11 +307,12 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 }
 
 // DefaultGenesisBlock returns the Plasma main net genesis block.
-func DefaultGenesisBlock(rootChainContract common.Address) *Genesis {
+func DefaultGenesisBlock(rootChainContract common.Address, staminaConfig *StaminaConfig) *Genesis {
 	staminaBinBytes, err := hex.DecodeString(StaminaContractDeployedBin[2:])
 	if err != nil {
 		panic(err)
 	}
+	initialized := common.BoolToBytes(staminaConfig.Initialized)
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
@@ -329,6 +330,12 @@ func DefaultGenesisBlock(rootChainContract common.Address) *Genesis {
 			StaminaContractAddress: {
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
+				Storage: map[common.Hash]common.Hash{
+					InitializedKey:        common.BytesToHash(initialized),
+					MinDepositKey:         common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
+					RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
+					WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
+				},
 			},
 		},
 	}

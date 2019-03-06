@@ -49,6 +49,10 @@ func DeriveShaFromBMT(list DerivableList) common.Hash {
 }
 
 func getBinaryMerkleRoot(level []common.Hash) common.Hash {
+	if len(level) == 0 {
+		return EmptyRootHash
+	}
+
 	if len(level) == 1 {
 		root := level[0]
 		return root

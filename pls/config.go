@@ -68,6 +68,8 @@ var DefaultConfig = Config{
 	MaxGasPrice:      big.NewInt(300 * params.GWei),
 	PendingInterval:  10 * time.Second,
 
+	StaminaConfig: core.DefaultStaminaConfig,
+
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -95,6 +97,9 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	// Stamina config
+	StaminaConfig *core.StaminaConfig
 
 	// Plasma options
 	Operator   accounts.Account

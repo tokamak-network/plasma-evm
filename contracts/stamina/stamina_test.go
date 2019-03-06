@@ -186,6 +186,46 @@ func TestStamina(t *testing.T) {
 	}
 }
 
+func TestStaminaGenesisConfig(t *testing.T) {
+	defaultStaminaConfig := core.DefaultStaminaConfig
+	g := core.DefaultGenesisBlock(common.Address{}, defaultStaminaConfig)
+	gNumber := big.NewInt(0)
+	ctx := context.Background()
+	contractBackend := backends.NewSimulatedBackend(g.Alloc, 10000000000)
+
+	initialized, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.InitializedKey, gNumber)
+	if !common.ByteToBool(initialized[31]) {
+		t.Errorf("unexpected value: want %t, got %t", true, common.ByteToBool(initialized[31]))
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	minDeposit, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.MinDepositKey, gNumber)
+	if common.BytesToHash(minDeposit) != common.BytesToHash(defaultStaminaConfig.MinDeposit.Bytes()) {
+		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.MinDeposit.Bytes()), common.ToHex(minDeposit))
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	recoverEpochLength, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.RecoverEpochLengthKey, gNumber)
+	if common.BytesToHash(recoverEpochLength) != common.BytesToHash(defaultStaminaConfig.RecoverEpochLength.Bytes()) {
+		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.RecoverEpochLength.Bytes()), common.ToHex(recoverEpochLength))
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	withdrawalDelay, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.WithdrawalDelayKey, gNumber)
+	if common.BytesToHash(withdrawalDelay) != common.BytesToHash(defaultStaminaConfig.WithdrawalDelay.Bytes()) {
+		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.WithdrawalDelay.Bytes()), common.ToHex(withdrawalDelay))
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
 func sendSignedTransferTransaction(contractBackend *backends.SimulatedBackend, addr common.Address, key *ecdsa.PrivateKey) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
