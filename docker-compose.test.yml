@@ -1,0 +1,80 @@
+version: '2.3'
+services:
+  root:
+    image: plasma-evm/root
+    networks:
+      plasma:
+        ipv4_address: ${ROOTCHAIN_IP}
+    build:
+      context: ./containers/docker/rootchain
+      dockerfile: Dockerfile
+    healthcheck:
+      test: echo 'checking health'
+      interval: 60s
+      timeout: 30s
+      retries: 5
+    ports:
+      - "0.0.0.0:8545:8545"
+      - "0.0.0.0:8546:8546"
+    command: sh run.rootchain.sh
+
+  bootnode:
+    image: plasma-evm/bootnode
+    networks:
+      plasma:
+        ipv4_address: ${BOOTNODE_IP}
+    build:
+      context: .
+      dockerfile: Dockerfile.plasma
+      target: bootnode
+    ports:
+      - "0.0.0.0:30301:30301"
+    command: sh docker.bootnode.sh
+
+  child_operator:
+    image: plasma-evm/child
+    networks:
+      plasma:
+        ipv4_address: ${OPERATOR_IP}
+    build:
+      context: .
+      dockerfile: Dockerfile.plasma
+      target: geth
+    healthcheck:
+      test: echo 'checking health'
+      interval: 60s
+      timeout: 30s
+      retries: 5
+    depends_on:
+      root:
+        condition: service_started
+    ports:
+    - "0.0.0.0:8547:8547"
+    - "0.0.0.0:8548:8548"
+    command: sh docker.operator.pls.sh
+
+  child_user:
+    image: plasma-evm/child
+    networks:
+      - plasma
+    build:
+        context: .
+        dockerfile: Dockerfile.plasma
+    depends_on:
+        root:
+          condition: service_healthy
+        child_operator:
+          condition: service_healthy
+    environment:
+        - ROOTCHAIN_IP=${ROOTCHAIN_IP}
+        - OPERATOR_IP=${OPERATOR_IP}
+    command: sh docker.user.pls.sh
+
+networks:
+  plasma:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.30.0.0/24
+        gateway: 172.30.0.1
+
