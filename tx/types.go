@@ -81,7 +81,7 @@ func (raw *RawTransaction) AddPending(tx *types.Transaction) {
 	raw.PendingTxs = append(raw.PendingTxs, tx)
 }
 
-// ClearPendings clears all pending transactions. It returns true if transaction is mined and removed in pending tx.
+// ClearPendings clears all pending transactions and sets mined transaction hash if transaction is mined .
 func (raw *RawTransaction) ClearPendings(backend *ethclient.Client, force bool) (bool, error) {
 	raw.lock.Lock()
 	defer raw.lock.Unlock()
@@ -100,10 +100,9 @@ func (raw *RawTransaction) ClearPendings(backend *ethclient.Client, force bool) 
 			continue
 		}
 
-		log.Debug("RawTransaction is mined", "caption", raw.Caption, "tx", tx.Hash())
-
 		raw.Reverted = receipt.Status == 0
 		raw.MinedTxHash = tx.Hash()
+
 		mined = true
 		break
 	}
@@ -123,6 +122,9 @@ func (raw *RawTransaction) Mined(backend *ethclient.Client) bool {
 }
 
 func (raw *RawTransaction) HasPending(tx *types.Transaction) bool {
+	raw.lock.Lock()
+	defer raw.lock.Unlock()
+
 	for _, pending := range raw.PendingTxs {
 		if pending.Hash() == tx.Hash() {
 			return true

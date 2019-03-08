@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
@@ -51,8 +52,9 @@ type TransactionManager struct {
 
 	taskCh chan *RawTransaction
 
-	lock sync.RWMutex
-	quit chan struct{}
+	lock         sync.RWMutex
+	gasPriceLock sync.Mutex
+	quit         chan struct{}
 }
 
 func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db ethdb.Database, config *Config) (*TransactionManager, error) {
@@ -68,12 +70,20 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 
 		numKnownErr: make(map[common.Hash]uint64),
 
-		gasPrice: ReadGasPrice(db),
-
 		taskCh: make(chan *RawTransaction, MaxNumTask),
 
 		quit: make(chan struct{}),
 	}
+
+	gasPrice := ReadGasPrice(db)
+	if gasPrice.Cmp(config.MinGasPrice) < 0 {
+		gasPrice = new(big.Int).Set(config.MinGasPrice)
+	}
+	if gasPrice.Cmp(config.MaxGasPrice) > 0 {
+		gasPrice = new(big.Int).Set(config.MaxGasPrice)
+	}
+
+	tm.gasPrice = gasPrice
 
 	numAddrs := ReadNumAddr(db)
 
@@ -208,16 +218,39 @@ func (tm *TransactionManager) Count(account accounts.Account, tx *types.Transact
 
 func (tm *TransactionManager) Start() {
 	// adjust coordinates gas prices at reasonable prices.
-	adjust := func(decrease bool) {
-		previous := new(big.Int).Set(tm.gasPrice)
+	adjust := func(raw *RawTransaction, decrease bool) {
+		tm.gasPriceLock.Lock()
+		defer tm.gasPriceLock.Unlock()
+
+		var previousTxGasPrice *big.Int
+
+		if raw.Mined(tm.backend) {
+			minedTx, _, _ := tm.backend.TransactionByHash(context.Background(), raw.MinedTxHash)
+			previousTxGasPrice = new(big.Int).Set(minedTx.GasPrice())
+		} else {
+			lastPendingTx := raw.PendingTxs[len(raw.PendingTxs)-1]
+			previousTxGasPrice = new(big.Int).Set(lastPendingTx.GasPrice())
+		}
+
+		previousGwei := new(big.Float).Quo(new(big.Float).SetInt(tm.gasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
 
 		if decrease {
-			tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(4)), big.NewInt(3))
+			if tm.gasPrice.Cmp(previousTxGasPrice) < 0 {
+				tm.gasPrice = new(big.Int).Set(previousTxGasPrice)
+			} else {
+				tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(4))
+			}
+
 			if tm.gasPrice.Cmp(tm.config.MinGasPrice) < 0 {
 				tm.gasPrice.Set(tm.config.MinGasPrice)
 			}
 		} else {
-			tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(2)), big.NewInt(3))
+			if tm.gasPrice.Cmp(previousTxGasPrice) > 0 {
+				tm.gasPrice = new(big.Int).Set(previousTxGasPrice)
+			} else {
+				tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(12))
+			}
+
 			if tm.gasPrice.Cmp(tm.config.MaxGasPrice) > 0 {
 				tm.gasPrice.Set(tm.config.MaxGasPrice)
 			}
@@ -225,12 +258,13 @@ func (tm *TransactionManager) Start() {
 
 		WriteGasPrice(tm.db, tm.gasPrice)
 
-		previousGwei := new(big.Float).Quo(new(big.Float).SetInt(previous), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
+		previousTxGasPriceGwei := new(big.Float).Quo(new(big.Float).SetInt(previousTxGasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
 		adjustGwei := new(big.Float).Quo(new(big.Float).SetInt(tm.gasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
+		log.Info("Gas price adjusted", "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
 
-		if previous.Cmp(tm.gasPrice) != 0 {
-			log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
-		}
+		//if previous.Cmp(tm.gasPrice) != 0 {
+		//	log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
+		//}
 	}
 
 	// delete mined transactions from queue.
@@ -267,6 +301,7 @@ func (tm *TransactionManager) Start() {
 			}
 
 			log.Info("Transaction is mined", "addr", addr, "nonce", raw.Nonce, "caption", raw.Caption)
+			adjust(raw, true)
 
 			lastMinedRaw = raw
 		}
@@ -428,6 +463,7 @@ func (tm *TransactionManager) Start() {
 							}
 						}
 
+						// short circuit if no pending raw transaction exists
 						if raw == nil {
 							return
 						}
@@ -437,7 +473,7 @@ func (tm *TransactionManager) Start() {
 						// resubmit transaction in pending intarval loop
 						if err == core.ErrReplaceUnderpriced {
 							log.Debug("Gas price is adjusted for underpriced transaction error")
-							adjust(false)
+							adjust(raw, false)
 							hash, err = send(addr, raw)
 							return
 						}
@@ -450,29 +486,18 @@ func (tm *TransactionManager) Start() {
 						}
 
 						receipt, err2 := tm.backend.TransactionReceipt(context.Background(), hash)
-						log.Debug("errS?", "err", err, "err2", err2)
+						adjusted := false
+
+						// short circuit if tx is already mined
+						if receipt != nil {
+							log.Debug("Raw transaction is already mined", "caption", raw.Caption, "hash", receipt.TxHash.String())
+							return
+						}
 
 						if receipt == nil && err == ErrKnownTransaction && tm.numKnownErr[hash] <= MaxNumKnownTx {
 							tm.numKnownErr[hash]++
 							return
 						}
-
-						if receipt == nil {
-							log.Warn("Trasaction not found. It may be pending", "err", err2, "hash", hash.Hex())
-						} else if err2 != nil {
-							log.Error("Send transaction failed", "err", err2, "hash", hash.Hex())
-						} else if receipt != nil {
-							log.Info("Transaction is mined", "addr", addr, "hash", hash.Hex(), "caption", raw.Caption)
-
-							if !raw.AllowRevert && receipt.Status == 0 {
-								// TODO: Do something..
-							}
-
-							adjust(true)
-							return
-						}
-
-						adjusted := false
 
 						// handle previous submit errors
 						if err == ErrKnownTransaction {
@@ -480,9 +505,15 @@ func (tm *TransactionManager) Start() {
 							adjusted = true
 						}
 
+						if err2 == ethereum.NotFound {
+							log.Warn("Transaction not found. It may be pending", "err", err2, "hash", hash.Hex())
+							adjusted = true
+							adjust(raw, false)
+						}
+
 						if err != nil && !adjusted {
 							log.Debug("Gas price is adjusted for unknown transaction error")
-							adjust(false)
+							adjust(raw, false)
 						}
 
 						hash, err = send(addr, raw)

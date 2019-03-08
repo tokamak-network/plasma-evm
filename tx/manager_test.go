@@ -5,19 +5,22 @@ import (
 	"crypto/ecdsa"
 	"flag"
 	"fmt"
-	"github.com/mattn/go-colorable"
 	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/mattn/go-colorable"
 )
 
 var (
@@ -36,6 +39,7 @@ var (
 	keys  []*ecdsa.PrivateKey
 	addrs []common.Address
 	accs  []accounts.Account
+	opts  []*bind.TransactOpts
 
 	testConfig = DefaultConfig
 	backend    *ethclient.Client
@@ -77,6 +81,7 @@ func init() {
 		keys = append(keys, key)
 		addrs = append(addrs, addr)
 		accs = append(accs, accounts.Account{Address: addr})
+		opts = append(opts, bind.NewKeyedTransactor(key))
 	}
 }
 
@@ -126,7 +131,7 @@ func TestBasic(t *testing.T) {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
 	}
 
-	timer := time.NewTimer(30 * time.Second)
+	timer := time.NewTimer(40 * time.Second)
 
 	<-timer.C
 	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
@@ -188,6 +193,68 @@ func TestRestart(t *testing.T) {
 
 	if ReadNumAddr(tm.db) != 1 {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, len(tm.addresses))
+	}
+
+	tm.Stop()
+}
+
+func TestCongestedNetwork(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	tm := makeTestManager(db)
+
+	tm.Start()
+
+	// addrs[0] send 1 ETH to addrs[1] n1 times
+	n1 := 10
+	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	// addrs[1] send lots of tx to congest network
+	quit := make(chan struct{})
+	defer func() {
+		close(quit)
+	}()
+
+	go func() {
+		addr := addrs[2]
+		opt := opts[2]
+
+		nonce, _ := backend.NonceAt(context.Background(), addr, nil)
+		opt.GasPrice = big.NewInt(2 * params.GWei)
+		opt.GasLimit = 6500000
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				opt.Nonce = big.NewInt(int64(nonce))
+				_, _, _, err := epochhandler.DeployEpochHandler(opt, backend)
+				if err != nil {
+					nonce++
+				}
+				nonce++
+			}
+		}
+	}()
+
+	for i := 0; i < n1; i++ {
+		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
+		if err := tm.Add(accs[0], rawTx); err != nil {
+			t.Fatalf("Failed to add rawTx: %v", err)
+		}
+		log.Debug(fmt.Sprintf("raw tx %d added", i))
+	}
+
+	if numAddrs := ReadNumAddr(tm.db); numAddrs != 1 {
+		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
+	}
+
+	timer := time.NewTimer(40 * time.Second)
+
+	<-timer.C
+	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+
+	if nonce2-nonce1 != uint64(n1) {
+		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1, nonce2)
 	}
 
 	tm.Stop()
