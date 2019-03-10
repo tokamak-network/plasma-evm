@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -73,24 +74,35 @@ func TestGetBinaryMerkleRoot(t *testing.T) {
 }
 
 func TestCheckMembership(t *testing.T) {
-	list, index := setListAndTarget(8, 0)
-	root := DeriveShaFromBMT(list)
-	proof := GetMerkleProof(list, index)
-	computedHash := crypto.Keccak256(list.GetRlp(index))
-	nodeIndex := index
+	list := Transactions{}
 
-	for i := 0; i < len(proof); i++ {
-		if nodeIndex%2 == 0 {
-			computedHash = crypto.Keccak256(computedHash, proof[i].Bytes())
-		} else {
-			computedHash = crypto.Keccak256(proof[i].Bytes(), computedHash)
+	for size := 1; size <= 128; size++ {
+		list = append(list, tx)
+
+		fmt.Println("Test.... on size", size)
+
+		for index := 0; index < size; index++ {
+
+			root := DeriveShaFromBMT(list)
+			proof := GetMerkleProof(list, index)
+			computedHash := crypto.Keccak256(list.GetRlp(index))
+			nodeIndex := index
+
+			for i := 0; i < len(proof); i++ {
+				if nodeIndex%2 == 0 {
+					computedHash = crypto.Keccak256(computedHash, proof[i].Bytes())
+				} else {
+					computedHash = crypto.Keccak256(proof[i].Bytes(), computedHash)
+				}
+				nodeIndex = nodeIndex / 2
+			}
+			cH := common.BytesToHash(computedHash).Hex()
+			r := root.Hex()
+
+			if !assert.Equal(t, cH, r) {
+				t.Fatal("both hash should be equal, but they aren't", cH, r)
+			}
 		}
-		nodeIndex = nodeIndex / 2
 	}
-	cH := common.BytesToHash(computedHash).Hex()
-	r := root.Hex()
 
-	if !assert.Equal(t, cH, r) {
-		t.Fatal("both hash should be equal, but they aren't", cH, r)
-	}
 }

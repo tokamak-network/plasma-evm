@@ -52,7 +52,7 @@ var DefaultConfig = Config{
 		DatasetsOnDisk: 2,
 	},
 	NetworkId:          16,
-	RootChainNetworkID: 1337,
+	RootChainNetworkID: 1,
 	LightPeers:         100,
 	DatabaseCache:      512,
 	TrieCleanCache:     256,
@@ -67,6 +67,8 @@ var DefaultConfig = Config{
 	MinGasPrice:      big.NewInt(1 * params.GWei),
 	MaxGasPrice:      big.NewInt(300 * params.GWei),
 	PendingInterval:  10 * time.Second,
+
+	StaminaConfig: core.DefaultStaminaConfig,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -95,6 +97,9 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	// Stamina config
+	StaminaConfig *core.StaminaConfig
 
 	// Plasma options
 	Operator   accounts.Account
