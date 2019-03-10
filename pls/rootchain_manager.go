@@ -21,6 +21,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/tx"
 )
 
 const (
@@ -59,6 +60,7 @@ type RootChainManager struct {
 
 	eventMux       *event.TypeMux
 	accountManager *accounts.Manager
+	txManager      *tx.TransactionManager
 
 	miner    *miner.Miner
 	minerEnv *epoch.EpochEnvironment
@@ -89,6 +91,7 @@ func NewRootChainManager(
 	rootchainContract *rootchain.RootChain,
 	eventMux *event.TypeMux,
 	accountManager *accounts.Manager,
+	txManager *tx.TransactionManager,
 	miner *miner.Miner,
 	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
@@ -101,6 +104,7 @@ func NewRootChainManager(
 		rootchainContract: rootchainContract,
 		eventMux:          eventMux,
 		accountManager:    accountManager,
+		txManager:         txManager,
 		miner:             miner,
 		minerEnv:          env,
 		invalidExits:      make(map[uint64]map[uint64]invalidExits),
@@ -211,6 +215,8 @@ func (rcm *RootChainManager) watchEvents() error {
 		return err
 	}
 
+	// TODO: wait untli previous submit transaction is mined.
+
 	go func() {
 		for {
 			select {
@@ -298,16 +304,16 @@ func (rcm *RootChainManager) runSubmitter() {
 
 		if sufficient {
 			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
-			if gasPrice.Cmp(rcm.config.MinGasPrice) < 0 {
-				gasPrice.Set(rcm.config.MinGasPrice)
+			if gasPrice.Cmp(rcm.config.TxConfig.MinGasPrice) < 0 {
+				gasPrice.Set(rcm.config.TxConfig.MinGasPrice)
 			}
 		} else {
 			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
-			if gasPrice.Cmp(rcm.config.MaxGasPrice) > 0 {
-				gasPrice.Set(rcm.config.MaxGasPrice)
+			if gasPrice.Cmp(rcm.config.TxConfig.MaxGasPrice) > 0 {
+				gasPrice.Set(rcm.config.TxConfig.MaxGasPrice)
 			}
 
-			if gasPrice.Cmp(rcm.config.MaxGasPrice) == 0 {
+			if gasPrice.Cmp(rcm.config.TxConfig.MaxGasPrice) == 0 {
 				log.Warn("Gas price reached max price", "max", new(big.Float).Quo(new(big.Float).SetInt(gasPrice), new(big.Float).SetInt64(params.GWei)).String()+" Gwei")
 			}
 		}
@@ -423,7 +429,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			// send block submit transaction
 			txHash, err = submit(funcName, block)
 
-			pendingInterval := time.NewTicker(rcm.config.PendingInterval)
+			pendingInterval := time.NewTicker(rcm.config.TxConfig.Interval)
 			numTicker := 0
 
 		PendingLoop:

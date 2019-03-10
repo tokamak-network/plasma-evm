@@ -37,13 +37,13 @@ func ReadGasPrice(db rawdb.DatabaseReader) *big.Int {
 	data, _ := db.Get(gasPriceKey)
 
 	if len(data) == 0 {
-		return new(big.Int).SetInt64(params.GWei)
+		return new(big.Int).SetInt64(10 * params.GWei)
 	}
 
 	var gasPrice big.Int
 	if err := rlp.DecodeBytes(data, &gasPrice); err != nil {
 		log.Error("Failed to decode gas price", "err", err)
-		return new(big.Int).SetInt64(params.GWei)
+		return new(big.Int).SetInt64(10 * params.GWei)
 	}
 
 	return &gasPrice

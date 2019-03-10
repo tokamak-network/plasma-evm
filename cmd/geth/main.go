@@ -157,9 +157,9 @@ var (
 		utils.DeveloperKeyFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
-		utils.PlasmaMinGasPriceFlag,
-		utils.PlasmaMaxGasPriceFlag,
-		utils.PlasmaPendingInterval,
+		utils.TxMinGasPriceFlag,
+		utils.TxMaxGasPriceFlag,
+		utils.TxResubmitFlag,
 		utils.PlasmaRootChainChallenger,
 	}
 

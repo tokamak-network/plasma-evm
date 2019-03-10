@@ -76,11 +76,24 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 	}
 
 	gasPrice := ReadGasPrice(db)
+
+	if config.MinGasPrice.Cmp(config.MaxGasPrice) > 0 {
+		return nil, errors.New("min gas price cannot exceed max gas price")
+	}
+
+	if config.GasPrice.Cmp(big.NewInt(0)) == 0 {
+		gasPrice = new(big.Int).Set(DefaultConfig.GasPrice)
+		log.Info("Use default gas price", "gasprice", gasPrice)
+	}
+
 	if gasPrice.Cmp(config.MinGasPrice) < 0 {
 		gasPrice = new(big.Int).Set(config.MinGasPrice)
+		log.Warn("Gas price is below the min gas price.")
 	}
+
 	if gasPrice.Cmp(config.MaxGasPrice) > 0 {
 		gasPrice = new(big.Int).Set(config.MaxGasPrice)
+		log.Warn("Gas price is above the max gas price.")
 	}
 
 	tm.gasPrice = gasPrice
@@ -432,7 +445,7 @@ func (tm *TransactionManager) Start() {
 	}
 
 	go func() {
-		ticker := time.NewTicker(tm.config.Resubmit)
+		ticker := time.NewTicker(tm.config.Interval)
 		defer ticker.Stop()
 
 		for {

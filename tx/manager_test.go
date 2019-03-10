@@ -55,7 +55,7 @@ func init() {
 	log.PrintOrigins(true)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
-	testConfig.Resubmit = defaultResubmit
+	testConfig.Interval = defaultResubmit
 
 	backend, err = ethclient.Dial(rootchainUrl)
 	if err != nil {

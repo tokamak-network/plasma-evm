@@ -97,7 +97,7 @@ func (rs *rootchainState) getNonce(force bool) uint64 {
 	defer rs.lock.Unlock()
 
 	lastUpdateTime := rs.lastUpdateTime
-	lastUpdateTime = lastUpdateTime.Add(rs.rcm.config.PendingInterval)
+	lastUpdateTime = lastUpdateTime.Add(rs.rcm.config.TxConfig.Interval)
 
 	now := time.Now()
 	if now.Before(lastUpdateTime) || force {
@@ -120,7 +120,7 @@ func (rs *rootchainState) incNonce() {
 	rs.nonce += 1
 }
 func (rs *rootchainState) initGasPrice() {
-	minGasPrice := rs.rcm.config.MinGasPrice
-	maxGasPrice := rs.rcm.config.MaxGasPrice
+	minGasPrice := rs.rcm.config.TxConfig.MinGasPrice
+	maxGasPrice := rs.rcm.config.TxConfig.MaxGasPrice
 	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }

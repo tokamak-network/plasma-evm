@@ -42,6 +42,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/Onther-Tech/plasma-evm/rpc"
+	"github.com/Onther-Tech/plasma-evm/tx"
 	"github.com/mattn/go-colorable"
 )
 
@@ -165,7 +166,7 @@ func init() {
 	testPlsConfig.NodeMode = ModeOperator
 
 	testPlsConfig.RootChainURL = rootchainUrl
-	testPlsConfig.PendingInterval = 500 * time.Millisecond
+	testPlsConfig.TxConfig.Interval = 500 * time.Millisecond
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
@@ -1140,8 +1141,8 @@ func TestAdjustGasPrice(t *testing.T) {
 	newGasPrice := big.NewInt(1 * params.GWei)
 
 	pls.rootchainManager.state.gasPrice = new(big.Int).Set(originalGasPrice)
-	pls.rootchainManager.config.MaxGasPrice = big.NewInt(100 * params.GWei)
-	pls.config.PendingInterval = 300 * time.Millisecond
+	pls.rootchainManager.config.TxConfig.MaxGasPrice = big.NewInt(100 * params.GWei)
+	pls.config.TxConfig.Interval = 300 * time.Millisecond
 
 	go func() {
 		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
@@ -1828,6 +1829,11 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	}
 
 	stopFn := func() { pls.Stop() }
+	txManager, err := tx.NewTransactionManager(ks, rootchainBackend, db, &config.TxConfig)
+
+	if err != nil {
+		return nil, nil, d, err
+	}
 
 	if pls.rootchainManager, err = NewRootChainManager(
 		config,
@@ -1838,6 +1844,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 		rootchainContract,
 		pls.eventMux,
 		pls.accountManager,
+		txManager,
 		pls.miner,
 		epochEnv,
 	); err != nil {
@@ -1933,11 +1940,12 @@ func makeManager() (*RootChainManager, func(), error) {
 		db:         db,
 	}
 
+	_, ks := tmpKeyStore()
+
 	mux := new(event.TypeMux)
 	epochEnv := epoch.New()
 	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
-	_, ks := tmpKeyStore()
 	account, err := ks.ImportECDSA(operatorKey, "")
 	if err != nil {
 		log.Error("Failed to import operator account", "err", err)
@@ -1950,6 +1958,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		ks,
 	}
 	accManager := accounts.NewManager(backends...)
+	txManager, err := tx.NewTransactionManager(ks, ethClient, db, &testPlsConfig.TxConfig)
 
 	var rcm *RootChainManager
 
@@ -1969,6 +1978,7 @@ func makeManager() (*RootChainManager, func(), error) {
 		rootchainContract,
 		mux,
 		accManager,
+		txManager,
 		miner,
 		epochEnv,
 	)
