@@ -55,6 +55,7 @@ var (
 	operatorKey, _   = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	operator         = crypto.PubkeyToAddress(operatorKey.PublicKey)
 	challengerKey, _ = crypto.HexToECDSA("78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114")
+	challenger       = crypto.PubkeyToAddress(challengerKey.PublicKey)
 	operatorOpt      = bind.NewKeyedTransactor(operatorKey)
 
 	addr1 = common.HexToAddress("0x5df7107c960320b90a3d7ed9a83203d1f98a811d")
@@ -163,6 +164,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	testPlsConfig.TxPool = *testTxPoolConfig
 	testPlsConfig.Operator = accounts.Account{Address: operator}
+	testPlsConfig.Challenger = accounts.Account{Address: challenger}
 	testPlsConfig.NodeMode = ModeOperator
 
 	testPlsConfig.RootChainURL = rootchainUrl
@@ -177,7 +179,11 @@ func init() {
 		log.Error("Failed to read rootchain network id: %v", err)
 	}
 
-	testPlsConfig.RootChainNetworkID = rootchainNetworkId.Uint64()
+	networkId, err := ethClient.NetworkID(context.Background())
+	if err != nil {
+		log.Error("Failed to get network id", "err", err)
+	}
+	testPlsConfig.TxConfig.ChainId = networkId
 
 	keys = []*ecdsa.PrivateKey{key1, key2, key3, key4}
 	addrs = []common.Address{addr1, addr2, addr3, addr4}
@@ -1419,20 +1425,8 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
 	}
 
-	waitTx(tx.Hash())
-
-	receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
-	if err != nil {
-		t.Fatalf("Failed to get receipt: %v", err)
-	}
-	if receipt == nil {
-		t.Fatalf("Failed to send transaction: %v", tx.Hash().Hex())
-	}
-	if receipt.Status == 0 {
-		t.Fatalf("Transaction reverted: %v", tx.Hash().Hex())
-	}
-	if err != nil {
-		t.Fatalf("Failed to make an token withdrawal request: %v", err)
+	if err := waitTx(tx.Hash()); err != nil {
+		t.Fatalf("failed to make exit request for token withdrawal")
 	}
 }
 
@@ -1625,10 +1619,18 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	setNonce(opt3, &addr3NonceRootChain)
 	setNonce(opt4, &addr4NonceRootChain)
 
-	tx1, _ = mintableToken.Approve(opt1, etherTokenAddr, ether(100))
-	tx2, _ = mintableToken.Approve(opt2, etherTokenAddr, ether(100))
-	tx3, _ = mintableToken.Approve(opt3, etherTokenAddr, ether(100))
-	tx4, _ = mintableToken.Approve(opt4, etherTokenAddr, ether(100))
+	if tx1, err = mintableToken.Approve(opt1, etherTokenAddr, ether(100)); err != nil {
+		log.Error("Failed to approve MintableToken to EtherToken", "err", err)
+	}
+	if tx2, err = mintableToken.Approve(opt2, etherTokenAddr, ether(100)); err != nil {
+		log.Error("Failed to approve MintableToken to EtherToken", "err", err)
+	}
+	if tx3, err = mintableToken.Approve(opt3, etherTokenAddr, ether(100)); err != nil {
+		log.Error("Failed to approve MintableToken to EtherToken", "err", err)
+	}
+	if tx4, err = mintableToken.Approve(opt4, etherTokenAddr, ether(100)); err != nil {
+		log.Error("Failed to approve MintableToken to EtherToken", "err", err)
+	}
 
 	log.Info("MintableToken is approved to EtherToken")
 
@@ -2023,7 +2025,7 @@ func wait(t time.Duration) {
 	<-timer.C
 }
 
-func waitTx(hash common.Hash) {
+func waitTx(hash common.Hash) error {
 	var receipt *types.Receipt
 	for receipt, _ = ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
 		<-time.NewTimer(500 * time.Millisecond).C
@@ -2033,7 +2035,10 @@ func waitTx(hash common.Hash) {
 
 	if receipt.Status == 0 {
 		log.Error("transaction reverted", "hash", hash)
+		return errors.New("transaction reverted")
 	}
+
+	return nil
 }
 
 // TODO: any user sends tx

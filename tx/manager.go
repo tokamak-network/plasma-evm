@@ -313,7 +313,7 @@ func (tm *TransactionManager) Start() {
 				break
 			}
 
-			log.Info("Transaction is mined", "addr", addr, "nonce", raw.Nonce, "caption", raw.Caption)
+			log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.Caption, "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash)
 			adjust(raw, true)
 
 			lastMinedRaw = raw

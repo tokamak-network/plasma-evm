@@ -3,6 +3,7 @@ package pls
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -131,11 +132,14 @@ func (rcm *RootChainManager) Start() error {
 	}
 
 	go rcm.pingBackend()
+	rcm.txManager.Start()
 
 	return nil
 }
 
 func (rcm *RootChainManager) Stop() error {
+	rcm.txManager.Stop()
+
 	rcm.backend.Close()
 	close(rcm.quit)
 	return nil
@@ -254,11 +258,7 @@ func (rcm *RootChainManager) runSubmitter() {
 		return
 	}
 
-	w, err := rcm.accountManager.Find(rcm.config.Operator)
-	if err != nil {
-		log.Error("Failed to get operator wallet", "err", err)
-		return
-	}
+	operator := rcm.config.Operator
 
 	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer plasmaBlockMinedEvents.Unsubscribe()
@@ -271,61 +271,8 @@ func (rcm *RootChainManager) runSubmitter() {
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
-	newHeaderEvents := make(chan *types.Header)
-	newHeaderSub, err := rcm.backend.SubscribeNewHead(context.Background(), newHeaderEvents)
-	defer newHeaderSub.Unsubscribe()
-
-	if err != nil {
-		log.Error("Failed to subscribe new block event", "err", err)
-	}
-
-	clearHeaderEvent := func() {
-		for len(newHeaderEvents) > 0 {
-			<-newHeaderEvents
-		}
-	}
-
-	var (
-		gasPrice    = rcm.state.gasPrice
-		rootchainID = big.NewInt(int64(rcm.config.RootChainNetworkID))
-		nonce       = rcm.state.getNonce(false)
-		currentFork = big.NewInt(int64(rcm.state.currentFork))
-		numErrKnown = 0
-
-		funcName string
-		txHash   common.Hash
-
-		submit func(name string, block *types.Block) (common.Hash, error)
-	)
-
-	// adjust coordinates gas prices at reasonable prices.
-	adjust := func(sufficient bool) {
-		previous := new(big.Int).Set(gasPrice)
-
-		if sufficient {
-			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
-			if gasPrice.Cmp(rcm.config.TxConfig.MinGasPrice) < 0 {
-				gasPrice.Set(rcm.config.TxConfig.MinGasPrice)
-			}
-		} else {
-			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
-			if gasPrice.Cmp(rcm.config.TxConfig.MaxGasPrice) > 0 {
-				gasPrice.Set(rcm.config.TxConfig.MaxGasPrice)
-			}
-
-			if gasPrice.Cmp(rcm.config.TxConfig.MaxGasPrice) == 0 {
-				log.Warn("Gas price reached max price", "max", new(big.Float).Quo(new(big.Float).SetInt(gasPrice), new(big.Float).SetInt64(params.GWei)).String()+" Gwei")
-			}
-		}
-
-		previousGwei := new(big.Float).Quo(new(big.Float).SetInt(previous), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
-		adjustGwei := new(big.Float).Quo(new(big.Float).SetInt(gasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
-
-		log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
-	}
-
 	// submit sends transaction that submits ORB or NRB
-	submit = func(name string, block *types.Block) (common.Hash, error) {
+	submit := func(name string, block *types.Block) error {
 		input, err := rootchainContractABI.Pack(
 			name,
 			big.NewInt(int64(rcm.state.currentFork)),
@@ -335,61 +282,13 @@ func (rcm *RootChainManager) runSubmitter() {
 		)
 
 		if err != nil {
-			return common.Hash{}, err
+			return err
 		}
 
-		submitTx := types.NewTransaction(nonce, rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), params.SubmitBlockGasLimit, gasPrice, input)
-		signedTx, err := w.SignTx(rcm.config.Operator, submitTx, rootchainID)
-		if err != nil {
-			return common.Hash{}, err
-		}
+		caption := fmt.Sprintf("%s(%d)", name, block.NumberU64())
+		rawTx := tx.NewRawTransaction(operator.Address, params.SubmitBlockGasLimit, &rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), input, false, caption)
 
-		err = rcm.backend.SendTransaction(context.Background(), signedTx)
-		if err == nil {
-			gasPriceGwei := new(big.Float).Quo(new(big.Float).SetInt(gasPrice), new(big.Float).SetInt64(params.GWei))
-			log.Info("Submit block to rootchain", "funcName", funcName, "blockNumber", block.Number(), "nonce", nonce, "gasprice", gasPriceGwei.String()+"Gwei", "hash", signedTx.Hash().String())
-			return signedTx.Hash(), nil
-		}
-		errMessage := strings.ToLower(err.Error())
-
-		// short circuit if operator has not enough ether
-		if strings.Contains(errMessage, "insufficient funds for gas * price + value") {
-			return signedTx.Hash(), core.ErrInsufficientFunds
-		}
-
-		// resubmit transaction in pending intarval loop
-		if strings.Contains(errMessage, "replacement transaction underpriced") {
-			return signedTx.Hash(), core.ErrReplaceUnderpriced
-		}
-
-		// resubmit transaction in pending intarval loop
-		if strings.Contains(errMessage, "transaction underpriced") {
-			return signedTx.Hash(), core.ErrReplaceUnderpriced
-		}
-
-		// resubmit transaction at most MAX_NUM_KNOWN_TX times.
-		if strings.Contains(errMessage, "known transaction") {
-			numErrKnown++
-
-			if numErrKnown == MAX_NUM_KNOWN_TX {
-				numErrKnown = 0
-				return signedTx.Hash(), ErrKnownTransaction
-			}
-
-			clearHeaderEvent()
-			<-newHeaderEvents
-			return submit(name, block)
-		}
-
-		// resubmit transaction with nonce increased
-		if strings.Contains(errMessage, "nonce too low") {
-			nonce = rcm.state.getNonce(true)
-			return submit(name, block)
-		}
-
-		// return unknown error
-		log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
-		return signedTx.Hash(), err
+		return rcm.txManager.Add(operator, rawTx)
 	}
 
 	for {
@@ -417,135 +316,41 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			rcm.lock.Lock()
 
+			funcName := "submitNRB"
 			if rcm.minerEnv.IsRequest {
 				funcName = "submitORB"
-			} else {
-				funcName = "submitNRB"
 			}
 
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 			block := blockInfo.Block
 
 			// send block submit transaction
-			txHash, err = submit(funcName, block)
+			if err := submit(funcName, block); err != nil {
+				log.Error("Failed to submit block", "funcName", funcName, "blocknumber", block.NumberU64(), "err", err)
+				break
+			}
 
-			pendingInterval := time.NewTicker(rcm.config.TxConfig.Interval)
-			numTicker := 0
-
-		PendingLoop:
-			for {
-				select {
-				case _, ok := <-pendingInterval.C:
-					if ok {
-						numTicker++
-						log.Debug("NumTicker", "n", numTicker)
-
-						// resubmit transaction in pending intarval loop
-						if err == core.ErrReplaceUnderpriced {
-							log.Debug("Gas price is adjusted for underpriced transaction error")
-							adjust(false)
-							txHash, err = submit(funcName, block)
-							continue
-						}
-
-						// short circuit if operator has not enough fund.
-						if err == core.ErrInsufficientFunds || err == core.ErrReplaceUnderpriced {
-							log.Error("Operator doesn't have enough fund to run the chain.")
-							txHash, err = submit(funcName, block)
-							continue
-						}
-
-						lastBlock, err2 := rcm.lastBlock(currentFork, false)
-						if err2 != nil {
-							log.Error("Failed to get last block", "err", err2)
-							continue
-						}
-
-						if block.Number().Cmp(lastBlock) <= 0 {
-							log.Info("Block was already submitted. Stop submit loop", "blockNumber", block.Number())
-							pendingInterval.Stop()
-							break
-						}
-
-						receipt, err2 := rcm.backend.TransactionReceipt(context.Background(), txHash)
-
-						if receipt == nil && err == ErrKnownTransaction && numErrKnown <= MAX_NUM_NOT_FOUND {
-							numErrKnown++
-							continue
-						}
-
-						if receipt == nil {
-							log.Warn("Submit trasaction not found. It may be pending", "funcName", funcName, "nonce", nonce, "err", err2, "hash", txHash.Hex())
-						} else if err2 != nil {
-							log.Error("Submit transaction failed", "funcName", funcName, "nonce", nonce, "err", err2, "hash", txHash.Hex())
-						} else if receipt != nil && receipt.Status == 0 {
-							log.Error("Submit transaction reverted", "funcName", funcName, "blockNumber", block.Number(), "hash", txHash.Hex())
-						}
-
-						adjusted := false
-						lastPendingBlock, _ := rcm.lastBlock(currentFork, true)
-
-						// handle previous submit errors
-						if err == ErrKnownTransaction {
-							log.Debug("Gas price is adjusted for known transaction error")
-							adjusted = true
-						}
-
-						if err == core.ErrNonceTooLow {
-							if lastBlock.Cmp(lastPendingBlock) == 0 {
-								adjusted = true
-								nonce = rcm.state.getNonce(true)
-							} else {
-								// NOTE: There will be no chance to get in this case unless operator runs another client.
-								//       But at least, we have to let him know.
-								log.Error("Another submit transaction with different nonce is pending, and it cannot be overriden. Wait until another transaction is mined.")
-								continue
-							}
-						}
-
-						if err != nil && !adjusted {
-							log.Debug("Gas price is adjusted for unknown transaction error")
-							adjust(false)
-							log.Error("Unknown error", "funcName", funcName, "blockNumber", block.Number(), "hash", txHash.Hex(), "err", err)
-						}
-
-						txHash, err = submit(funcName, block)
-
-						if err != nil && err != ErrKnownTransaction {
-							log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
-						}
-					}
-
-				// TODO: check URB is submitted
-				case b := <-blockSubmitEvents:
-					pendingInterval.Stop()
-					rcm.state.incNonce()
-
-					numTicker = 0
-
-					if b.BlockNumber.Cmp(block.Number()) != 0 {
-						log.Error("Submitted block number is not expected.", "expected", block.Number(), "actual", b.BlockNumber)
-						rcm.stopFn()
-					}
-
-					actualBlock, _ := rcm.getBlock(currentFork, b.BlockNumber)
-
-					if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
-						log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
-						rcm.stopFn()
-					}
-
-					log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", txHash.String())
-					adjust(true)
-
-					rcm.lock.Unlock()
-
-					break PendingLoop
-
-				case <-rcm.quit:
-					return
+			select {
+			// TODO: check URB is submitted
+			case b := <-blockSubmitEvents:
+				if b.BlockNumber.Cmp(block.Number()) != 0 {
+					log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
+					rcm.stopFn()
 				}
 
+				actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
+
+				if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
+					log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
+					rcm.stopFn()
+				}
+
+				log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
+				rcm.lock.Unlock()
+
+			case <-rcm.quit:
+				rcm.lock.Unlock()
+				return
 			}
 		case <-rcm.quit:
 			return
@@ -735,7 +540,7 @@ func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFi
 
 	w, err := rcm.accountManager.Find(rcm.config.Challenger)
 	if err != nil {
-		log.Error("Failed to get challenger wallet", "err", err)
+		log.Error("Failed to get challenger account", "err", err)
 	}
 
 	block, err := rcm.rootchainContract.GetBlock(callerOpts, e.ForkNumber, e.BlockNumber)
