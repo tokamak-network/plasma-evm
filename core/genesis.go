@@ -341,6 +341,41 @@ func DefaultGenesisBlock(rootChainContract common.Address, staminaConfig *Stamin
 	}
 }
 
+func TestGenesisBlock(rootChainContract common.Address, staminaConfig *StaminaConfig, operator common.Address) *Genesis {
+	staminaBinBytes, err := hex.DecodeString(StaminaContractDeployedBin[2:])
+	if err != nil {
+		panic(err)
+	}
+	initialized := common.BoolToBytes(staminaConfig.Initialized)
+	return &Genesis{
+		Config:     params.PlasmaChainConfig,
+		ExtraData:  rootChainContract.Bytes(),
+		GasLimit:   1e8,
+		Difficulty: big.NewInt(1),
+		Alloc: map[common.Address]GenesisAccount{
+			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
+			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
+			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
+			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
+			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
+			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
+			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+			StaminaContractAddress: {
+				Code:    staminaBinBytes,
+				Balance: big.NewInt(0),
+				Storage: map[common.Hash]common.Hash{
+					InitializedKey:        common.BytesToHash(initialized),
+					MinDepositKey:         common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
+					RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
+					WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
+				},
+			},
+			operator: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+		},
+	}
+}
+
 // DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 	return &Genesis{

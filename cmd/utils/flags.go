@@ -1572,7 +1572,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			// TODO: set genesis in case of user node
 		}
 	default:
-		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
+		cfg.Genesis = core.TestGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig, cfg.Operator.Address)
 	}
 
 	if ctx.GlobalIsSet(PlasmaMinGasPriceFlag.Name) {
@@ -1594,7 +1594,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 
-	cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
+	// cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
+	cfg.PendingInterval = 30 * time.Second
 
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 
