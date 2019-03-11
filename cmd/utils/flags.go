@@ -1595,7 +1595,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	// cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
-	cfg.PendingInterval = 30 * time.Second
+	cfg.PendingInterval = 300 * time.Millisecond
 
 	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
 
