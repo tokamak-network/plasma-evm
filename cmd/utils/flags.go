@@ -1582,9 +1582,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			// TODO: set genesis in case of user node
 		}
 	default:
-		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
-	}
-
+		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.Operator.Address, cfg.StaminaConfig)
 	}
 	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
 		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
@@ -1734,10 +1732,11 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 // MakeChain creates a chain manager from set command line flags.
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
+	operator := common.Address{1}
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	staminaConfig := core.DefaultStaminaConfig
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, staminaConfig)
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, operator, staminaConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}

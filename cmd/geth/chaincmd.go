@@ -184,6 +184,8 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	// TODO: get operator parameter
+	operator := common.Address{1}
 	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
@@ -201,7 +203,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract, staminaConfig)
+		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract, operator, staminaConfig)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
