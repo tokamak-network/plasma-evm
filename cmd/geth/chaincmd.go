@@ -192,6 +192,7 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
 	rootChainContract := common.BytesToAddress(genesis.ExtraData)
+	staminaConfig := core.DefaultStaminaConfig	
 	log.Info("Using rootchain contract", "rootChainContract", rootChainContract)
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -200,7 +201,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract)
+		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract, staminaConfig)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}

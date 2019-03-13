@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/rlp"
@@ -50,6 +49,10 @@ func DeriveShaFromBMT(list DerivableList) common.Hash {
 }
 
 func getBinaryMerkleRoot(level []common.Hash) common.Hash {
+	if len(level) == 0 {
+		return EmptyRootHash
+	}
+
 	if len(level) == 1 {
 		root := level[0]
 		return root
@@ -113,6 +116,11 @@ func GetMerkleProof(list DerivableList, index int) []common.Hash {
 	for i := 0; i < depth; i++ {
 		if nodeIndex%2 == 0 {
 			siblingIndex := nodeIndex + 1
+
+			if len(tree[i]) == siblingIndex {
+				siblingIndex = nodeIndex
+			}
+
 			proof = append(proof, tree[i][siblingIndex])
 		} else {
 			siblingIndex := nodeIndex - 1

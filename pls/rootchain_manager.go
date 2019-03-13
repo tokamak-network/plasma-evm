@@ -26,6 +26,7 @@ import (
 const (
 	MAX_EPOCH_EVENTS  = 0
 	MAX_NUM_NOT_FOUND = 2
+	MAX_NUM_KNOWN_TX  = 5
 )
 
 var (
@@ -264,15 +265,31 @@ func (rcm *RootChainManager) runSubmitter() {
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
+	newHeaderEvents := make(chan *types.Header)
+	newHeaderSub, err := rcm.backend.SubscribeNewHead(context.Background(), newHeaderEvents)
+	defer newHeaderSub.Unsubscribe()
+
+	if err != nil {
+		log.Error("Failed to subscribe new block event", "err", err)
+	}
+
+	clearHeaderEvent := func() {
+		for len(newHeaderEvents) > 0 {
+			<-newHeaderEvents
+		}
+	}
+
 	var (
 		gasPrice    = rcm.state.gasPrice
 		rootchainID = big.NewInt(int64(rcm.config.RootChainNetworkID))
-		nonce       = rcm.state.getNonce()
+		nonce       = rcm.state.getNonce(false)
 		currentFork = big.NewInt(int64(rcm.state.currentFork))
 		numErrKnown = 0
 
 		funcName string
 		txHash   common.Hash
+
+		submit func(name string, block *types.Block) (common.Hash, error)
 	)
 
 	// adjust coordinates gas prices at reasonable prices.
@@ -289,6 +306,10 @@ func (rcm *RootChainManager) runSubmitter() {
 			if gasPrice.Cmp(rcm.config.MaxGasPrice) > 0 {
 				gasPrice.Set(rcm.config.MaxGasPrice)
 			}
+
+			if gasPrice.Cmp(rcm.config.MaxGasPrice) == 0 {
+				log.Warn("Gas price reached max price", "max", new(big.Float).Quo(new(big.Float).SetInt(gasPrice), new(big.Float).SetInt64(params.GWei)).String()+" Gwei")
+			}
 		}
 
 		previousGwei := new(big.Float).Quo(new(big.Float).SetInt(previous), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
@@ -298,7 +319,7 @@ func (rcm *RootChainManager) runSubmitter() {
 	}
 
 	// submit sends transaction that submits ORB or NRB
-	submit := func(name string, block *types.Block) (common.Hash, error) {
+	submit = func(name string, block *types.Block) (common.Hash, error) {
 		input, err := rootchainContractABI.Pack(
 			name,
 			big.NewInt(int64(rcm.state.currentFork)),
@@ -306,6 +327,7 @@ func (rcm *RootChainManager) runSubmitter() {
 			block.Header().TxHash,
 			block.Header().ReceiptHash,
 		)
+
 		if err != nil {
 			return common.Hash{}, err
 		}
@@ -322,30 +344,45 @@ func (rcm *RootChainManager) runSubmitter() {
 			log.Info("Submit block to rootchain", "funcName", funcName, "blockNumber", block.Number(), "nonce", nonce, "gasprice", gasPriceGwei.String()+"Gwei", "hash", signedTx.Hash().String())
 			return signedTx.Hash(), nil
 		}
-
 		errMessage := strings.ToLower(err.Error())
 
-		if strings.Contains(errMessage, "transaction underpriced") {
-			return signedTx.Hash(), core.ErrUnderpriced
-		}
-
-		if strings.Contains(errMessage, "replacement transaction underpriced") {
-			return signedTx.Hash(), core.ErrReplaceUnderpriced
-		}
-
-		if strings.Contains(errMessage, "known transaction") {
-			numErrKnown++
-			return signedTx.Hash(), ErrKnownTransaction
-		}
-
+		// short circuit if operator has not enough ether
 		if strings.Contains(errMessage, "insufficient funds for gas * price + value") {
 			return signedTx.Hash(), core.ErrInsufficientFunds
 		}
 
-		if strings.Contains(errMessage, "nonce too low") {
-			return signedTx.Hash(), core.ErrNonceTooLow
+		// resubmit transaction in pending intarval loop
+		if strings.Contains(errMessage, "replacement transaction underpriced") {
+			return signedTx.Hash(), core.ErrReplaceUnderpriced
 		}
 
+		// resubmit transaction in pending intarval loop
+		if strings.Contains(errMessage, "transaction underpriced") {
+			return signedTx.Hash(), core.ErrReplaceUnderpriced
+		}
+
+		// resubmit transaction at most MAX_NUM_KNOWN_TX times.
+		if strings.Contains(errMessage, "known transaction") {
+			numErrKnown++
+
+			if numErrKnown == MAX_NUM_KNOWN_TX {
+				numErrKnown = 0
+				return signedTx.Hash(), ErrKnownTransaction
+			}
+
+			clearHeaderEvent()
+			<-newHeaderEvents
+			return submit(name, block)
+		}
+
+		// resubmit transaction with nonce increased
+		if strings.Contains(errMessage, "nonce too low") {
+			nonce = rcm.state.getNonce(true)
+			return submit(name, block)
+		}
+
+		// return unknown error
+		log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
 		return signedTx.Hash(), err
 	}
 
@@ -379,12 +416,12 @@ func (rcm *RootChainManager) runSubmitter() {
 			} else {
 				funcName = "submitNRB"
 			}
+
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 			block := blockInfo.Block
+
+			// send block submit transaction
 			txHash, err = submit(funcName, block)
-			if err != nil {
-				log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
-			}
 
 			pendingInterval := time.NewTicker(rcm.config.PendingInterval)
 			numTicker := 0
@@ -397,13 +434,18 @@ func (rcm *RootChainManager) runSubmitter() {
 						numTicker++
 						log.Debug("NumTicker", "n", numTicker)
 
-						// short circuit if transaction is underpricded.
-						if err == core.ErrUnderpriced || err == core.ErrReplaceUnderpriced {
+						// resubmit transaction in pending intarval loop
+						if err == core.ErrReplaceUnderpriced {
+							log.Debug("Gas price is adjusted for underpriced transaction error")
 							adjust(false)
 							txHash, err = submit(funcName, block)
-							if err != nil {
-								log.Error("Failed to submit block to root chain.", "funcName", funcName, "blockNumber", block.Number(), "err", err)
-							}
+							continue
+						}
+
+						// short circuit if operator has not enough fund.
+						if err == core.ErrInsufficientFunds || err == core.ErrReplaceUnderpriced {
+							log.Error("Operator doesn't have enough fund to run the chain.")
+							txHash, err = submit(funcName, block)
 							continue
 						}
 
@@ -439,14 +481,14 @@ func (rcm *RootChainManager) runSubmitter() {
 
 						// handle previous submit errors
 						if err == ErrKnownTransaction {
-							numErrKnown = 0
-							adjust(false)
+							log.Debug("Gas price is adjusted for known transaction error")
 							adjusted = true
 						}
 
 						if err == core.ErrNonceTooLow {
 							if lastBlock.Cmp(lastPendingBlock) == 0 {
-								nonce = rcm.state.getNonce()
+								adjusted = true
+								nonce = rcm.state.getNonce(true)
 							} else {
 								// NOTE: There will be no chance to get in this case unless operator runs another client.
 								//       But at least, we have to let him know.
@@ -455,11 +497,8 @@ func (rcm *RootChainManager) runSubmitter() {
 							}
 						}
 
-						if err == core.ErrInsufficientFunds {
-							log.Error("Operator doesn't have enough fund to run the chain.")
-						}
-
 						if err != nil && !adjusted {
+							log.Debug("Gas price is adjusted for unknown transaction error")
 							adjust(false)
 							log.Error("Unknown error", "funcName", funcName, "blockNumber", block.Number(), "hash", txHash.Hex(), "err", err)
 						}
@@ -550,9 +589,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	if !rcm.miner.Mining() {
-		go rcm.miner.Start(params.Operator, &e, false)
-	}
+	go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
@@ -640,7 +677,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		var numMinedORBs uint64 = 0
 
-		// Unlock mutext and make submit loop to process
+		// Unlock mutex and make submit loop to process
 		rcm.lock.Unlock()
 
 		for numMinedORBs < numORBs.Uint64() {
@@ -744,10 +781,9 @@ func (rcm *RootChainManager) runDetector() {
 		return
 	}
 
-	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	events := rcm.eventMux.Subscribe(core.ChainHeadEvent{})
 	defer events.Unsubscribe()
 
-	// TODO: check callOpts first if caller doesn't work.
 	callerOpts := &bind.CallOpts{
 		Pending: false,
 		Context: context.Background(),
@@ -755,9 +791,16 @@ func (rcm *RootChainManager) runDetector() {
 
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev, ok := <-events.Chan():
+			if !ok {
+				continue
+			}
+
 			rcm.lock.Lock()
-			if rcm.minerEnv.IsRequest {
+
+			block := ev.Data.(core.ChainHeadEvent).Block
+
+			if block.IsRequest() {
 				var invalidExitsList invalidExits
 
 				forkNumber, err := rcm.rootchainContract.CurrentFork(callerOpts)
@@ -769,26 +812,24 @@ func (rcm *RootChainManager) runDetector() {
 					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
 				}
 
-				blockInfo := ev.Data.(core.ChainHeadEvent)
-				blockNumber := blockInfo.Block.Number()
-				receipts := rcm.blockchain.GetReceiptsByHash(blockInfo.Block.Hash())
+				receipts := rcm.blockchain.GetReceiptsByHash(block.Hash())
 
 				// TODO: should check if the request[i] is enter or exit request. Undo request will make posterior enter request.
 				for i := 0; i < len(receipts); i++ {
 					if receipts[i].Status == types.ReceiptStatusFailed {
 						invalidExit := &invalidExit{
 							forkNumber:  forkNumber,
-							blockNumber: blockNumber,
+							blockNumber: block.Number(),
 							receipt:     receipts[i],
 							index:       int64(i),
 							proof:       types.GetMerkleProof(receipts, i),
 						}
 						invalidExitsList = append(invalidExitsList, invalidExit)
 
-						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", blockNumber)
+						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", block.Number())
 					}
 				}
-				rcm.invalidExits[forkNumber.Uint64()][blockNumber.Uint64()] = invalidExitsList
+				rcm.invalidExits[forkNumber.Uint64()][block.NumberU64()] = invalidExitsList
 			}
 			rcm.lock.Unlock()
 
