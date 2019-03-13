@@ -32,6 +32,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
+	"github.com/Onther-Tech/plasma-evm/tx"
 )
 
 const (
@@ -44,6 +45,7 @@ const (
 var DefaultConfig = Config{
 	NodeMode: ModeUser,
 	SyncMode: downloader.FastSync,
+	TxConfig: *tx.DefaultConfig,
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
 		CachesInMem:    2,
@@ -64,9 +66,6 @@ var DefaultConfig = Config{
 	MinerRecommit:      3 * time.Second,
 
 	OperatorMinEther: big.NewInt(0.5 * params.Ether),
-	MinGasPrice:      big.NewInt(1 * params.GWei),
-	MaxGasPrice:      big.NewInt(300 * params.GWei),
-	PendingInterval:  10 * time.Second,
 
 	StaminaConfig: core.DefaultStaminaConfig,
 
@@ -101,6 +100,8 @@ type Config struct {
 	// Stamina config
 	StaminaConfig *core.StaminaConfig
 
+	TxConfig tx.Config
+
 	// Plasma options
 	Operator   accounts.Account
 	Challenger accounts.Account
@@ -110,11 +111,6 @@ type Config struct {
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
-
-	// Gas price options for submitting a block
-	MinGasPrice     *big.Int
-	MaxGasPrice     *big.Int
-	PendingInterval time.Duration
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

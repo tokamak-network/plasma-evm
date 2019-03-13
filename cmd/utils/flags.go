@@ -633,6 +633,11 @@ var (
 		Value: "localhost",
 	}
 
+	DeveloperKeyFlag = cli.StringFlag{
+		Name:  "dev.key",
+		Usage: "Comma seperated developer account key as hex(for dev)",
+	}
+
 	// Operator flags
 	OperatorAddressFlag = cli.StringFlag{
 		Name:  "operator",
@@ -647,9 +652,11 @@ var (
 		Usage: "Plasma operator minimum balance (default = 0.5 ether)",
 		Value: "0.5",
 	}
-	DeveloperKeyFlag = cli.StringFlag{
-		Name:  "dev.key",
-		Usage: "Comma seperated developer account key as hex(for dev)",
+
+	// Challenger flags
+	PlasmaRootChainChallenger = cli.StringFlag{
+		Name:  "rootchain.challenger",
+		Usage: "Address of challenger account",
 	}
 
 	// Rootchain Flags
@@ -662,24 +669,27 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
-	PlasmaMinGasPriceFlag = BigFlag{
-		Name:  "rootchain.mingasprice",
+
+	// Transaction Flags
+	TxGasPriceFlag = BigFlag{
+		Name:  "tx.gasprice",
+		Usage: "Gas price for transaction (default = 10 Gwei)",
+		Value: big.NewInt(0),
+	}
+	TxMinGasPriceFlag = BigFlag{
+		Name:  "tx.mingasprice",
 		Usage: "Minimum gas price for submitting a block (default = 1 Gwei)",
-		Value: pls.DefaultConfig.MinGasPrice,
+		Value: pls.DefaultConfig.TxConfig.MinGasPrice,
 	}
-	PlasmaMaxGasPriceFlag = BigFlag{
-		Name:  "rootchain.maxgasprice",
-		Usage: "Maximum gas price for submitting a block (default = 300 Gwei)",
-		Value: pls.DefaultConfig.MaxGasPrice,
+	TxMaxGasPriceFlag = BigFlag{
+		Name:  "tx.maxgasprice",
+		Usage: "Maximum gas price for submitting a block (default = 100 Gwei)",
+		Value: pls.DefaultConfig.TxConfig.MaxGasPrice,
 	}
-	PlasmaPendingInterval = cli.DurationFlag{
-		Name:  "rootchain.interval",
+	TxResubmitFlag = cli.DurationFlag{
+		Name:  "tx.interval",
 		Usage: "Pending interval time after submitting a block (default = 10s). If block submit transaction is not mined in 2 intervals, gas price will be adjusted. See https://golang.org/pkg/time/#ParseDuration",
-		Value: pls.DefaultConfig.PendingInterval,
-	}
-	PlasmaRootChainChallenger = cli.StringFlag{
-		Name:  "rootchain.challenger",
-		Usage: "Address of challenger account",
+		Value: pls.DefaultConfig.TxConfig.Interval,
 	}
 
 	// Stamina Flags
@@ -1575,28 +1585,29 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
 	}
 
-	if ctx.GlobalIsSet(PlasmaMinGasPriceFlag.Name) {
-		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
-			minGasPrice := GlobalBig(ctx, PlasmaMinGasPriceFlag.Name)
-			maxGasPrice := GlobalBig(ctx, PlasmaMaxGasPriceFlag.Name)
+	}
+	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
+		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
+			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
+			maxGasPrice := GlobalBig(ctx, TxMaxGasPriceFlag.Name)
 
 			if minGasPrice.Cmp(maxGasPrice) >= 0 {
 				Fatalf("min gas price is equal to or greater than max gas price: min gas price: %v, max gas price: %v", minGasPrice, maxGasPrice)
 			}
-			cfg.MinGasPrice = minGasPrice
-			cfg.MaxGasPrice = maxGasPrice
+			cfg.TxConfig.MinGasPrice = minGasPrice
+			cfg.TxConfig.MaxGasPrice = maxGasPrice
 		} else {
-			Fatalf("--%s flag must use with --%s flag", PlasmaMinGasPriceFlag.Name, PlasmaMaxGasPriceFlag.Name)
+			Fatalf("--%s flag must use with --%s flag", TxMinGasPriceFlag.Name, TxMaxGasPriceFlag.Name)
 		}
 	} else {
-		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
-			Fatalf("--%s flag must use with --%s flag", PlasmaMaxGasPriceFlag.Name, PlasmaMinGasPriceFlag.Name)
+		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
+			Fatalf("--%s flag must use with --%s flag", TxMaxGasPriceFlag.Name, TxMinGasPriceFlag.Name)
 		}
 	}
 
-	cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
+	cfg.TxConfig.Interval = ctx.Duration(TxResubmitFlag.Name)
 
-	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
+	log.Info("Set options for submitting a block", "mingaspirce", cfg.TxConfig.MinGasPrice, "maxgasprice", cfg.TxConfig.MaxGasPrice, "resubmit", cfg.TxConfig.Interval.String())
 
 	// default operator min ether = 1ether
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))

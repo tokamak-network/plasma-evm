@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus"
@@ -52,6 +53,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/rpc"
+	"github.com/Onther-Tech/plasma-evm/tx"
 )
 
 type LesServer interface {
@@ -228,6 +230,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 
 	stopFn := func() { pls.Stop() }
 
+	ks := ctx.AccountManager.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	txManager, err := tx.NewTransactionManager(ks, rootchainBackend, chainDb, &config.TxConfig)
+
+	if err != nil {
+		return nil, err
+	}
+
 	if pls.rootchainManager, err = NewRootChainManager(
 		config,
 		stopFn,
@@ -237,6 +246,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		rootchainContract,
 		pls.eventMux,
 		pls.accountManager,
+		txManager,
 		pls.miner,
 		epochEnv,
 	); err != nil {

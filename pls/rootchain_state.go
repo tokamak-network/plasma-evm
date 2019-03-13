@@ -1,7 +1,6 @@
 package pls
 
 import (
-	"context"
 	"math/big"
 	"sync"
 	"time"
@@ -46,7 +45,6 @@ func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs.lastEpoch = rs.getLastEpoch()
 	rs.currentFork = rs.getCurrentFork()
 
-	rs.getNonce(true)
 	rs.initGasPrice()
 
 	return rs
@@ -92,35 +90,8 @@ func (rs *rootchainState) getCurrentFork() uint64 {
 	fork, _ := rs.rcm.rootchainContract.CurrentFork(baseCallOpt)
 	return fork.Uint64()
 }
-func (rs *rootchainState) getNonce(force bool) uint64 {
-	rs.lock.Lock()
-	defer rs.lock.Unlock()
-
-	lastUpdateTime := rs.lastUpdateTime
-	lastUpdateTime = lastUpdateTime.Add(rs.rcm.config.PendingInterval)
-
-	now := time.Now()
-	if now.Before(lastUpdateTime) || force {
-		timer := time.NewTimer(lastUpdateTime.Sub(now))
-		<-timer.C
-	}
-
-	rs.lastUpdateTime = time.Now()
-
-	nonce, _ := rs.rcm.backend.NonceAt(context.Background(), rs.rcm.config.Operator.Address, nil)
-	if rs.nonce < nonce {
-		rs.nonce = nonce
-	}
-	return rs.nonce
-}
-func (rs *rootchainState) incNonce() {
-	rs.lock.Lock()
-	defer rs.lock.Unlock()
-
-	rs.nonce += 1
-}
 func (rs *rootchainState) initGasPrice() {
-	minGasPrice := rs.rcm.config.MinGasPrice
-	maxGasPrice := rs.rcm.config.MaxGasPrice
+	minGasPrice := rs.rcm.config.TxConfig.MinGasPrice
+	maxGasPrice := rs.rcm.config.TxConfig.MaxGasPrice
 	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }
