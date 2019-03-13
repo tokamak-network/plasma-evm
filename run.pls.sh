@@ -24,4 +24,4 @@ build/bin/geth \
   --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5,$CHALLENGER_KEY \
   --operator $OPERATOR \
   --rootchain.challenger $CHALLENGER \
-  --rootchain.interval "300ms"
+  --tx.interval "300ms"
