@@ -186,9 +186,62 @@ func TestStamina(t *testing.T) {
 	}
 }
 
+func TestGetStaminaFromStorageKey(t *testing.T) {
+	staminaBinBytes, err := hex.DecodeString(core.StaminaContractDeployedBin[2:])
+	if err != nil {
+		panic(err)
+	}
+
+	contractBackend := backends.NewSimulatedBackend(core.GenesisAlloc{
+		delegateeAddr: {Balance: big.NewInt(10000000000)},
+		addr1:         {Balance: big.NewInt(0)},
+		addr2:         {Balance: big.NewInt(10000000000)},
+		core.StaminaContractAddress: {
+			Code:    staminaBinBytes,
+			Balance: big.NewInt(0),
+		},
+	}, 10000000000)
+
+	staminaContract, err := NewStamina(delegateeOpt, core.StaminaContractAddress, contractBackend)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// init
+	if _, err := staminaContract.Init(minDeposit, recoveryEpochLength, withdrawalDelay); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	contractBackend.Commit()
+
+	initialized, err := staminaContract.Initialized()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !initialized {
+		t.Errorf("expected: %v, got %v", false, initialized)
+	}
+
+	staminaContract.TransactOpts.Value = stamina
+	// deposit
+	if _, err := staminaContract.Deposit(delegateeAddr); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	contractBackend.Commit()
+
+	gNumber := big.NewInt(2)
+	ctx := context.Background()
+	staminaStorageAt, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.GetStaminaKey(delegateeAddr), gNumber)
+	if common.BytesToHash(staminaStorageAt) != common.BytesToHash(stamina.Bytes()) {
+		t.Errorf("unexpected value: want %x, got %x", stamina, common.Bytes2Hex(staminaStorageAt))
+	}
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
 func TestStaminaGenesisConfig(t *testing.T) {
 	defaultStaminaConfig := core.DefaultStaminaConfig
-	g := core.DefaultGenesisBlock(common.Address{}, defaultStaminaConfig)
+	g := core.DefaultGenesisBlock(common.Address{}, common.Address{1}, defaultStaminaConfig)
 	gNumber := big.NewInt(0)
 	ctx := context.Background()
 	contractBackend := backends.NewSimulatedBackend(g.Alloc, 10000000000)
