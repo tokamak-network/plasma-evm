@@ -333,6 +333,11 @@ func (rcm *RootChainManager) runSubmitter() {
 			select {
 			// TODO: check URB is submitted
 			case b := <-blockSubmitEvents:
+				if b.Raw.Removed {
+					log.Error("Previous submitted block is removed in root chain", "number", b.BlockNumber)
+					rcm.stopFn()
+				}
+
 				if b.BlockNumber.Cmp(block.Number()) != 0 {
 					log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
 					rcm.stopFn()
