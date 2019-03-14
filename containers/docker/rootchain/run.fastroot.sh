@@ -12,6 +12,7 @@ KEY1="bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5";
 KEY2="067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc";
 KEY3="ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66";
 
+geth init genesis.json
 
 geth \
   --networkid 1337 \
@@ -27,4 +28,6 @@ geth \
   --ws \
   --wsaddr 0.0.0.0 \
   --wsport 8546 \
-  --wsorigins="*"
+  --wsorigins="*" &
+
+echo "fast geth Running as Back ground" && tail -f /dev/null
