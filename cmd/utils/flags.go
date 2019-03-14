@@ -1381,6 +1381,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		Fatalf("Failed to read rootchain network id: %v", err)
 	}
 	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
+	cfg.TxConfig.ChainId = rootchainNetworkId
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)
