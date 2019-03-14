@@ -205,6 +205,8 @@ func (tm *TransactionManager) Add(account accounts.Account, raw *RawTransaction)
 
 	WriteRawTx(tm.db, addr, *raw)
 
+	log.Info("Raw transaction added", "caption", raw.Caption, "from", raw.From)
+
 	return nil
 }
 

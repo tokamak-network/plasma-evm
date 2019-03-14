@@ -295,8 +295,11 @@ func (rcm *RootChainManager) runSubmitter() {
 		select {
 		case ev, ok := <-plasmaBlockMinedEvents.Chan():
 			if !ok {
+				log.Error("Failed to read plasmaBlockMinedEvents")
 				continue
 			}
+
+			log.Info("New block is mined")
 
 			// if the epoch is completed, stop mining operation and wait next epoch
 			rcm.minerEnv.Lock()
@@ -325,11 +328,15 @@ func (rcm *RootChainManager) runSubmitter() {
 			block := blockInfo.Block
 
 			// send block submit transaction
-			if err := submit(funcName, block); err != nil {
+			if err := submit(funcName, block); err == tx.ErrKnownTransaction {
+				continue
+			} else if  err != nil {
 				log.Error("Failed to submit block", "funcName", funcName, "blocknumber", block.NumberU64(), "err", err)
-				break
+				rcm.stopFn()
+				return
 			}
 
+		WaitLoop:
 			for {
 				select {
 				// TODO: check URB is submitted
@@ -355,7 +362,7 @@ func (rcm *RootChainManager) runSubmitter() {
 
 					log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
 					rcm.lock.Unlock()
-					break
+					break WaitLoop
 
 				case <-rcm.quit:
 					rcm.lock.Unlock()

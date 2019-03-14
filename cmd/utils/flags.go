@@ -1530,6 +1530,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			log.Info("Deploying contracts for development mode")
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
+			opt.GasLimit = 7000000
+			opt.GasPrice = big.NewInt(10 * params.GWei)
 
 			// 1. deploy MintableToken in root chain
 			mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
