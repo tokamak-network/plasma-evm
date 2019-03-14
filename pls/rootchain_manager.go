@@ -330,33 +330,39 @@ func (rcm *RootChainManager) runSubmitter() {
 				break
 			}
 
-			select {
-			// TODO: check URB is submitted
-			case b := <-blockSubmitEvents:
-				if b.Raw.Removed {
-					log.Error("Previous submitted block is removed in root chain", "number", b.BlockNumber)
-					rcm.stopFn()
+			for {
+				select {
+				// TODO: check URB is submitted
+				case b := <-blockSubmitEvents:
+					if b.Raw.Removed {
+						log.Error("Previous submitted block is removed in root chain", "number", b.BlockNumber)
+						continue
+					}
+
+					if b.BlockNumber.Cmp(block.Number()) != 0 {
+						log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
+						rcm.stopFn()
+						return
+					}
+
+					actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
+
+					if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
+						log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
+						rcm.stopFn()
+						return
+					}
+
+					log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
+					rcm.lock.Unlock()
+					break
+
+				case <-rcm.quit:
+					rcm.lock.Unlock()
+					return
 				}
-
-				if b.BlockNumber.Cmp(block.Number()) != 0 {
-					log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
-					rcm.stopFn()
-				}
-
-				actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
-
-				if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
-					log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
-					rcm.stopFn()
-				}
-
-				log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
-				rcm.lock.Unlock()
-
-			case <-rcm.quit:
-				rcm.lock.Unlock()
-				return
 			}
+
 		case <-rcm.quit:
 			return
 		}
