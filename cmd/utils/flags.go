@@ -1585,7 +1585,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
 	}
 
-	}
 	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
 		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
 			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
