@@ -418,7 +418,7 @@ func (tm *TransactionManager) Start() {
 			}
 
 			// resubmit transaction with nonce increased.
-			if strings.Contains(errMessage, "nonce too low") {
+			if strings.Contains(errMessage, "nonce too low") || strings.Contains(errMessage, "nonce is too low") {
 				// increase nonce immediately if only 1 transaction is pending.
 				if len(raw.PendingTxs) == 1 {
 					tm.nonces[addr], err = tm.backend.NonceAt(context.Background(), addr, nil)
