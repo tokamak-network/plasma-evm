@@ -1,0 +1,31 @@
+version: '2.3'
+services:
+  bootnode:
+    image: plasma-evm/bootnode
+    networks:
+      plasma:
+        ipv4_address: ${BOOTNODE_IP}
+    build:
+      context: .
+      dockerfile: Dockerfile.plasma
+      target: bootnode
+    ports:
+      - "0.0.0.0:30301:30301"
+    command: sh docker.bootnode.sh
+
+  child_user:
+    image: plasma-evm/child
+    networks:
+      - plasma
+    build:
+        context: .
+        dockerfile: Dockerfile.plasma
+    depends_on:
+        root:
+          condition: service_started
+        child_operator:
+          condition: service_started
+    environment:
+        - ROOTCHAIN_IP=${ROOTCHAIN_IP}
+        - OPERATOR_IP=${OPERATOR_IP}
+    command: sh docker.user.pls.sh
