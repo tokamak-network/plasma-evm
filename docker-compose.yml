@@ -20,8 +20,7 @@ services:
         ipv4_address: 172.30.0.4
     build:
       context: .
-      dockerfile: Dockerfile.plasma
-      target: geth
+      dockerfile: Dockerfile
     healthcheck:
       test: echo 'checking health'
       interval: 60s
