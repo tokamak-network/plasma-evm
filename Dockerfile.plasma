@@ -10,9 +10,9 @@ RUN cd /go/src/github.com/Onther-Tech/plasma-evm && \
 
 # Plasma chain images
 FROM alpine:latest as geth
-RUN apk add curl
+RUN apk add curl jq 
 
-COPY docker.user.pls.sh docker.operator.pls.sh /usr/local/bin/
+COPY docker.user.pls.sh docker.operator.pls.sh health_checker.sh /usr/local/bin/
 COPY --from=builder /go/src/github.com/Onther-Tech/plasma-evm/build/bin/geth /usr/local/bin/
 
 WORKDIR /usr/local/bin
