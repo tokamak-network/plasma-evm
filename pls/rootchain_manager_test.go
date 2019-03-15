@@ -844,16 +844,18 @@ func TestScenario3(t *testing.T) {
 
 	// apply requests (4 ETH deposits, 1 Token deposits, 4 Token withdrawals)
 	for i := 0; i < 4+1; i++ {
-		applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
+		applyRequest(t, pls.rootchainManager.rootchainContract, operatorKey)
 	}
 	for i := 0; i < 4; i++ {
 		tokenBalanceBefore, _ := tokenInRootChain.Balances(baseCallOpt, addr2)
-		applyRequests(t, pls.rootchainManager.rootchainContract, operatorKey)
+		applyRequest(t, pls.rootchainManager.rootchainContract, operatorKey)
 		tokenBalanceAfter, _ := tokenInRootChain.Balances(baseCallOpt, addr2)
 
 		if tokenBalanceAfter.Cmp(new(big.Int).Add(tokenBalanceBefore, tokenAmountToWithdraw)) != 0 {
 			t.Fatalf("applyRequest() does not increase token balance")
 		}
+
+		log.Info("Exit request applied")
 	}
 
 	t.Log("Test finished")
@@ -1291,60 +1293,124 @@ func TestStress(t *testing.T) {
 	}
 }
 
-func TestAdjustGasPrice(t *testing.T) {
-	quit := make(chan bool, 1)
+//func TestAdjustGasPrice(t *testing.T) {
+//	quit := make(chan bool, 1)
+//	pls, rpcServer, dir, err := makePls()
+//	if err != nil {
+//		t.Fatalf("Failed to make pls service: %v", err)
+//	}
+//	wait(3)
+//
+//	defer os.RemoveAll(dir)
+//	defer pls.Stop()
+//	defer rpcServer.Stop()
+//	defer func() {
+//		quit <- true
+//	}()
+//
+//	originalGasPrice := big.NewInt(1 * params.GWei)
+//	newGasPrice := big.NewInt(1 * params.GWei)
+//
+//	pls.rootchainManager.state.gasPrice = new(big.Int).Set(originalGasPrice)
+//	pls.rootchainManager.config.TxConfig.MaxGasPrice = big.NewInt(100 * params.GWei)
+//	pls.config.TxConfig.Interval = 300 * time.Millisecond
+//
+//	go func() {
+//		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
+//		opt1.GasPrice = big.NewInt(2 * params.GWei)
+//		for {
+//			select {
+//			case <-quit:
+//				return
+//			default:
+//				opt1.Nonce = big.NewInt(int64(nonce))
+//				_, _, _, err := epochhandler.DeployEpochHandler(opt1, ethClient)
+//				if err != nil {
+//					nonce++
+//				}
+//				nonce++
+//			}
+//		}
+//	}()
+//
+//	pls.protocolManager.Start(1)
+//
+//	if err := pls.rootchainManager.Start(); err != nil {
+//		t.Fatalf("Failed to start RootChainManager: %v", err)
+//	}
+//
+//	pls.StartMining(runtime.NumCPU())
+//
+//	// assign to global variable
+//	rpcClient := rpc.DialInProc(rpcServer)
+//	plsClient = plsclient.NewClient(rpcClient)
+//
+//	//plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+//	//defer plasmaBlockMinedEvents.Unsubscribe()
+//
+//	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+//	blockSubmitWatchOpts := &bind.WatchOpts{
+//		Start:   nil,
+//		Context: context.Background(),
+//	}
+//	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+//	defer blockFilterer.Unsubscribe()
+//
+//	log.Info("All backends are set up")
+//
+//	timerInterval := 20 * time.Second
+//	timer := time.NewTimer(timerInterval)
+//
+//	for i := 0; i < 10; i++ {
+//		makeSampleTx(pls.rootchainManager)
+//		//<-plasmaBlockMinedEvents.Chan()
+//
+//		select {
+//		case <-blockSubmitEvents:
+//			timer.Reset(timerInterval)
+//		case _, ok := <-timer.C:
+//			if ok {
+//				t.Fatal("out of time")
+//			}
+//		}
+//
+//		originalGasPrice = new(big.Int).Set(newGasPrice)
+//		newGasPrice = new(big.Int).Set(pls.rootchainManager.state.gasPrice)
+//
+//		if originalGasPrice.Cmp(newGasPrice) == 0 {
+//			t.Fatalf("originalGasPrice: %v, new: %v", originalGasPrice, newGasPrice)
+//		}
+//	}
+//}
+
+func TestRestart(t *testing.T) {
+	timer := time.NewTimer(2 * time.Minute)
+	go func() {
+		<-timer.C
+		t.Fatal("Out of time")
+	}()
+
 	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
 	if err != nil {
 		t.Fatalf("Failed to make pls service: %v", err)
 	}
-	wait(3)
-
-	defer os.RemoveAll(dir)
 	defer pls.Stop()
 	defer rpcServer.Stop()
-	defer func() {
-		quit <- true
-	}()
-
-	originalGasPrice := big.NewInt(1 * params.GWei)
-	newGasPrice := big.NewInt(1 * params.GWei)
-
-	pls.rootchainManager.state.gasPrice = new(big.Int).Set(originalGasPrice)
-	pls.rootchainManager.config.TxConfig.MaxGasPrice = big.NewInt(100 * params.GWei)
-	pls.config.TxConfig.Interval = 300 * time.Millisecond
-
-	go func() {
-		nonce, _ := ethClient.NonceAt(context.Background(), addr1, nil)
-		opt1.GasPrice = big.NewInt(2 * params.GWei)
-		for {
-			select {
-			case <-quit:
-				return
-			default:
-				opt1.Nonce = big.NewInt(int64(nonce))
-				_, _, _, err := epochhandler.DeployEpochHandler(opt1, ethClient)
-				if err != nil {
-					nonce++
-				}
-				nonce++
-			}
-		}
-	}()
-
-	pls.protocolManager.Start(1)
 
 	if err := pls.rootchainManager.Start(); err != nil {
 		t.Fatalf("Failed to start RootChainManager: %v", err)
 	}
+	pls.protocolManager.Start(1)
 
-	pls.StartMining(runtime.NumCPU())
+	rpcClient := rpc.DialInProc(rpcServer)
 
 	// assign to global variable
-	rpcClient := rpc.DialInProc(rpcServer)
 	plsClient = plsclient.NewClient(rpcClient)
 
-	//plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	//defer plasmaBlockMinedEvents.Unsubscribe()
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
 
 	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
 	blockSubmitWatchOpts := &bind.WatchOpts{
@@ -1354,31 +1420,54 @@ func TestAdjustGasPrice(t *testing.T) {
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
+	rcm := pls.rootchainManager
+
+	wait(3)
+
 	log.Info("All backends are set up")
 
-	timerInterval := 20 * time.Second
-	timer := time.NewTimer(timerInterval)
+	// ORE#4 make enter request
+	enterAmount := ether(1)
 
-	for i := 0; i < 10; i++ {
-		makeSampleTx(pls.rootchainManager)
-		//<-plasmaBlockMinedEvents.Chan()
+	startETHDeposit(t, rcm, key1, enterAmount)
+	startETHDeposit(t, rcm, key2, enterAmount)
+	startETHDeposit(t, rcm, key3, enterAmount)
+	startETHDeposit(t, rcm, key4, enterAmount)
 
-		select {
-		case <-blockSubmitEvents:
-			timer.Reset(timerInterval)
-		case _, ok := <-timer.C:
-			if ok {
-				t.Fatal("out of time")
-			}
-		}
+	// NRE#1 / NRB#1
+	// deploy EtherToken in child chain
+	deployEtherTokenInChildChain(t)
 
-		originalGasPrice = new(big.Int).Set(newGasPrice)
-		newGasPrice = new(big.Int).Set(pls.rootchainManager.state.gasPrice)
-
-		if originalGasPrice.Cmp(newGasPrice) == 0 {
-			t.Fatalf("originalGasPrice: %v, new: %v", originalGasPrice, newGasPrice)
-		}
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
+		t.Fatal(err)
 	}
+	// NRE#1 / NRB#2
+	//tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
+	deployTokenContracts(t)
+
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#2 is empty
+
+	// NRE#3 / NRB#3
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+	// NRE#3 / NRB#4
+	makeSampleTx(pls.rootchainManager)
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#4 / ORB#5 : enter request
+	if err := checkBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 5); err != nil {
+		t.Fatal(err)
+	}
+
+	// stop pls service
 }
 
 func TestMinerRestart(t *testing.T) {
@@ -1686,6 +1775,26 @@ func finalizeBlocks(t *testing.T, rootchainContract *rootchain.RootChain, target
 	log.Info("All blocks are fianlized")
 }
 
+// apply a single request
+func applyRequest(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
+	opt := makeTxOpt(key, 2000000, nil, nil)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	setNonce(opt, noncesRootChain[addr])
+
+	wait(1)
+
+	tx, err := rootchainContract.FinalizeRequest(opt)
+	if err != nil {
+		t.Fatalf("failed to apply requeest: %v", err)
+	}
+
+	if err := waitTx(tx.Hash()); err != nil {
+		t.Fatalf("failed to apply requeest: %v", err)
+	}
+}
+
+// apply all requests
 func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) {
 	opt := makeTxOpt(key, 2000000, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -1708,18 +1817,20 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 
 		wait(1)
 
-		tx, err := rootchainContract.ApplyRequest(opt)
+		tx, err := rootchainContract.FinalizeRequest(opt)
 		if err != nil {
 			t.Fatalf("failed to apply requeest: %v", err)
 		}
 
-		waitTx(tx.Hash())
+		if err := waitTx(tx.Hash()); err != nil {
+			t.Fatalf("failed to apply requeest: %v", err)
+
+		}
 
 		last, _ = rootchainContract.LastAppliedERO(baseCallOpt)
 		target, _ = rootchainContract.GetNumEROs(baseCallOpt)
 
 	}
-
 }
 
 func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
