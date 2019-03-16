@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"errors"
 	"math/big"
 	"strings"
@@ -32,7 +31,7 @@ var (
 	RecoverEpochLengthKey = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000a")
 	WithdrawalDelayKey    = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000b")
 
-	staminaPosition = "0000000000000000000000000000000000000000000000000000000000000001"
+	staminaPosition = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 
 	blockchainAccount = accountWrapper{common.HexToAddress("0x00")}
 	staminaAccount    = accountWrapper{StaminaContractAddress}
@@ -143,9 +142,6 @@ func GetStaminaConfig(bc *BlockChain) *StaminaConfig {
 
 // '000000000000000000000000' + operator address + stamina state variable position
 func GetStaminaKey(operator common.Address) common.Hash {
-	var buffer bytes.Buffer
-	buffer.WriteString("000000000000000000000000")
-	buffer.WriteString(strings.TrimPrefix(operator.String(), "0x"))
-	buffer.WriteString(staminaPosition)
-	return crypto.Keccak256Hash(common.Hex2Bytes(buffer.String()))
+	operatorKey := append(common.LeftPadBytes(operator.Bytes(), 32), staminaPosition...)
+	return crypto.Keccak256Hash(operatorKey)
 }
