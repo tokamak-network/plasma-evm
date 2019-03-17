@@ -336,7 +336,7 @@ func DefaultGenesisBlock(rootChainContract common.Address, operator common.Addre
 					MinDepositKey:         common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
 					RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
 					WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
-					StaminaKey:            common.HexToHash(hexutil.EncodeBig(big.NewInt(1 * params.Ether))),
+					StaminaKey:            common.HexToHash(hexutil.EncodeBig(DefaultStamina)),
 				},
 			},
 		},

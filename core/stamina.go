@@ -18,6 +18,8 @@ const (
 	Day    = 60 * 60 * 24
 )
 
+var DefaultStamina = big.NewInt(1 * params.Ether)
+
 var (
 	errUpdateStamina = errors.New("failed to update stamina")
 
