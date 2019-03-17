@@ -10,9 +10,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind/backends"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
@@ -186,56 +189,21 @@ func TestStamina(t *testing.T) {
 	}
 }
 
-func TestGetStaminaFromStorageKey(t *testing.T) {
-	staminaBinBytes, err := hex.DecodeString(core.StaminaContractDeployedBin[2:])
-	if err != nil {
-		panic(err)
-	}
+func TestGetDefaultStaminaFromStorageKey(t *testing.T) {
+	var (
+		defaultStaminaConfig = core.DefaultStaminaConfig
+		operator             = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
+	)
 
-	contractBackend := backends.NewSimulatedBackend(core.GenesisAlloc{
-		delegateeAddr: {Balance: big.NewInt(10000000000)},
-		addr1:         {Balance: big.NewInt(0)},
-		addr2:         {Balance: big.NewInt(10000000000)},
-		core.StaminaContractAddress: {
-			Code:    staminaBinBytes,
-			Balance: big.NewInt(0),
-		},
-	}, 10000000000)
+	gspec := core.DefaultGenesisBlock(common.Address{}, operator, defaultStaminaConfig)
+	db := ethdb.NewMemDatabase()
+	gspec.MustCommit(db)
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, ethash.NewFaker(), vm.Config{EnablePreimageRecording: true}, nil)
 
-	staminaContract, err := NewStamina(delegateeOpt, core.StaminaContractAddress, contractBackend)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// init
-	if _, err := staminaContract.Init(minDeposit, recoveryEpochLength, withdrawalDelay); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	contractBackend.Commit()
-
-	initialized, err := staminaContract.Initialized()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if !initialized {
-		t.Errorf("expected: %v, got %v", false, initialized)
-	}
-
-	staminaContract.TransactOpts.Value = stamina
-	// deposit
-	if _, err := staminaContract.Deposit(delegateeAddr); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	contractBackend.Commit()
-
-	gNumber := big.NewInt(2)
-	ctx := context.Background()
-	staminaStorageAt, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.GetStaminaKey(delegateeAddr), gNumber)
-	if common.BytesToHash(staminaStorageAt) != common.BytesToHash(stamina.Bytes()) {
-		t.Errorf("unexpected value: want %x, got %x", stamina, common.Bytes2Hex(staminaStorageAt))
-	}
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	statedb, _ := blockchain.State()
+	stamina := statedb.GetState(core.StaminaContractAddress, core.GetStaminaKey(operator))
+	if common.BytesToHash(core.DefaultStamina.Bytes()) != common.BytesToHash(stamina.Bytes()) {
+		t.Fatalf("unexpected value: want %x, got %x", core.DefaultStamina, stamina)
 	}
 }
 
