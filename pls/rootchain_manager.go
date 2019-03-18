@@ -359,7 +359,12 @@ func (rcm *RootChainManager) runSubmitter() {
 						continue
 					}
 
-					if b.BlockNumber.Cmp(block.Number()) != 0 {
+					if b.BlockNumber.Cmp(block.Number()) < 0 {
+						log.Error("Submit event has lower block number than local. It may be removed due to chain reorg", "local", block.Number(), "event", b.BlockNumber)
+						continue
+					}
+
+					if b.BlockNumber.Cmp(block.Number()) > 0 {
 						log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
 						rcm.stopFn()
 						return
