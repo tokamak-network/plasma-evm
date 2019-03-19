@@ -184,8 +184,6 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	// TODO: get operator parameter
-	operator := common.Address{1}
 	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
@@ -194,8 +192,30 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
 	rootChainContract := common.BytesToAddress(genesis.ExtraData)
-	staminaConfig := core.DefaultStaminaConfig	
-	log.Info("Using rootchain contract", "rootChainContract", rootChainContract)
+
+	var (
+		operator      common.Address
+		staminaConfig *core.StaminaConfig
+	)
+
+	if len(genesis.Alloc) != 2 {
+		utils.Fatalf("must have two accounts (operator / stamina)")
+	}
+	for address, account := range genesis.Alloc {
+		if address == core.StaminaContractAddress {
+			staminaConfig = &core.StaminaConfig{
+				Initialized:        true,
+				MinDeposit:         account.Storage[core.MinDepositKey].Big(),
+				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
+				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
+			}
+		} else {
+			operator = address
+			log.Info("Setup rootchain contract", "address", rootChainContract, "operator", operator)
+		}
+	}
+	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {
