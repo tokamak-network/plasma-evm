@@ -191,20 +191,6 @@ func (w *wizard) makeGenesis() {
 		},
 	}
 
-	// Consensus all set, just ask for initial funds and go
-	fmt.Println()
-	fmt.Println("Which accounts should be pre-funded? (advisable at least one)")
-	for {
-		// Read the address of the account to fund
-		if address := w.readAddress(); address != nil {
-			genesis.Alloc[*address] = core.GenesisAccount{
-				Balance: new(big.Int).Lsh(big.NewInt(1), 256-7), // 2^256 / 128 (allow many pre-funds without balance overflows)
-			}
-			continue
-		}
-		break
-	}
-
 	// Query the user for some custom extras
 	fmt.Println()
 	fmt.Println("Specify your chain/network ID if you want an explicit one (default = random)")
