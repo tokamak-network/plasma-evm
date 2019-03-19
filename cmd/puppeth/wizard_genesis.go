@@ -133,6 +133,9 @@ func (w *wizard) makeGenesis() {
 	if address := w.readAddress(); address != nil {
 		operator = *address
 	}
+	genesis.Alloc[operator] = core.GenesisAccount{
+		Balance: big.NewInt(0),
+	}
 
 	fmt.Println()
 	fmt.Println("Specify your default stamina amount")
