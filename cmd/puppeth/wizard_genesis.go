@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -116,6 +118,76 @@ func (w *wizard) makeGenesis() {
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
+
+	var (
+		stamina             int64
+		minDeposit          int64
+		recoveryEpochLength int64
+		withdrawalDelay     int64
+	)
+
+	// Query for the stamina
+	fmt.Println()
+	fmt.Println("What is the operator address?")
+	var operator common.Address
+	if address := w.readAddress(); address != nil {
+		operator = *address
+	}
+
+	fmt.Println()
+	fmt.Println("Specify your default stamina amount")
+	stamina = int64(w.readInt())
+
+	for {
+		fmt.Println()
+		fmt.Println("Specify your minimum deposit amount")
+		minDeposit = int64(w.readInt())
+		if minDeposit <= 0 {
+			log.Error("Must be greater than 0")
+			continue
+		}
+		break
+	}
+
+	for {
+		fmt.Println()
+		fmt.Println("Specify epoch length for stamina recovery")
+		recoveryEpochLength = int64(w.readInt())
+		if recoveryEpochLength <= 0 {
+			log.Error("Must be greater than 0")
+			continue
+		}
+		break
+	}
+
+	for {
+		fmt.Println()
+		fmt.Println("Specify delay duration for withdrawal (must greater than recovery epoch * 2)")
+		withdrawalDelay = int64(w.readInt())
+		if withdrawalDelay <= 0 {
+			log.Error("Must be greater than 0")
+			continue
+		} else if recoveryEpochLength*2 >= withdrawalDelay {
+			log.Error("Must be greater than recovery epoch length * 2")
+			continue
+		}
+		break
+	}
+
+	staminaKey := core.GetStaminaKey(operator)
+	staminaBinBytes, _ := hex.DecodeString(core.StaminaContractDeployedBin[2:])
+	genesis.Alloc[core.StaminaContractAddress] = core.GenesisAccount{
+		Code:    staminaBinBytes,
+		Balance: big.NewInt(0),
+		Storage: map[common.Hash]common.Hash{
+			core.InitializedKey:        common.BytesToHash([]byte{1}),
+			core.MinDepositKey:         common.HexToHash(hexutil.EncodeBig(big.NewInt(minDeposit))),
+			core.RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(big.NewInt(recoveryEpochLength))),
+			core.WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(big.NewInt(withdrawalDelay))),
+			staminaKey:                 common.HexToHash(hexutil.EncodeBig(big.NewInt(stamina))),
+		},
+	}
+
 	// Consensus all set, just ask for initial funds and go
 	fmt.Println()
 	fmt.Println("Which accounts should be pre-funded? (advisable at least one)")
