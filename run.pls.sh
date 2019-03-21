@@ -19,6 +19,7 @@ build/bin/geth \
   --datadir $DATADIR \
   --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
   --dev \
+  --dev.p2p \
   --rpc \
   --rpcport 8547 \
   --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5,$CHALLENGER_KEY \
