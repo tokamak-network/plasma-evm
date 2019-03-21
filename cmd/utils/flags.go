@@ -637,6 +637,10 @@ var (
 		Name:  "dev.key",
 		Usage: "Comma seperated developer account key as hex(for dev)",
 	}
+	DeveloperP2PFlag = cli.BoolFlag{
+		Name:  "dev.p2p",
+		Usage: "Allow nodes to send data in dev mode",
+	}
 
 	// Operator flags
 	OperatorAddressFlag = cli.StringFlag{
@@ -1049,7 +1053,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NetRestrict = list
 	}
 
-	if ctx.GlobalBool(DeveloperFlag.Name) {
+	if ctx.GlobalBool(DeveloperFlag.Name) && !ctx.GlobalBool(DeveloperP2PFlag.Name) {
 		// --dev mode can't use p2p networking.
 		cfg.MaxPeers = 0
 		cfg.ListenAddr = ":0"
