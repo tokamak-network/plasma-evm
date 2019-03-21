@@ -1,0 +1,25 @@
+# Build Geth in a stock Go builder container
+FROM golang:1.11-alpine as builder
+
+RUN apk add --no-cache make gcc musl-dev linux-headers
+
+ADD . /go/src/github.com/Onther-Tech/plasma-evm
+RUN cd /go/src/github.com/Onther-Tech/plasma-evm && \
+    make geth && \
+    build/env.sh go run build/ci.go install cmd/bootnode/main.go
+
+# Plasma chain images
+FROM alpine:latest as geth
+RUN apk add curl jq 
+
+COPY docker.user.pls.sh docker.operator.pls.sh health_checker.sh /usr/local/bin/
+COPY --from=builder /go/src/github.com/Onther-Tech/plasma-evm/build/bin/geth /usr/local/bin/
+
+WORKDIR /usr/local/bin
+
+# Bootnode image
+FROM alpine:latest as bootnode
+
+COPY docker.bootnode.sh boot.key /usr/local/bin/
+COPY --from=builder /go/src/github.com/Onther-Tech/plasma-evm/build/bin/main /usr/local/bin/bootnode
+WORKDIR /usr/local/bin

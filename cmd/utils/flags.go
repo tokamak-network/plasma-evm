@@ -152,6 +152,10 @@ var (
 		Name:  "override.constantinople",
 		Usage: "Manually specify constantinople fork-block, overriding the bundled setting",
 	}
+	DeployFlag = cli.BoolFlag{
+		Name: "deploy",
+		Usage: "Deploy RootChain Contract into rootchain",
+	}
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
 		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -1251,7 +1255,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
-	checkExclusive(ctx, DeveloperFlag, RootChainContractFlag)
+	checkExclusive(ctx, DeployFlag, RootChainContractFlag)
 	checkExclusive(ctx, OperatorAddressFlag, OperatorKeyFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1495,7 +1499,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
-	case ctx.GlobalBool(DeveloperFlag.Name):
+	case ctx.GlobalBool(DeployFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
 		}
@@ -1589,7 +1593,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			// TODO: set genesis in case of user node
 		}
 	default:
-		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)
+		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), cfg.RootChainContract, operatorAddr)
 	}
 
 	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
@@ -1733,6 +1738,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
+	case ctx.GlobalBool(DeployFlag.Name):
+		Fatalf("Use DeployFlag chains are ephemeral")
 	}
 	return genesis
 }
