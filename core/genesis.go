@@ -371,27 +371,31 @@ func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, oper
 	if err != nil {
 		panic(err)
 	}
-
+	genesisAlloc := map[common.Address]GenesisAccount{
+		common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+		common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
+		common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
+		common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
+		common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
+		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
+		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
+		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+		StaminaContractAddress: {
+			Code:    staminaBinBytes,
+			Balance: big.NewInt(0),
+		},
+		operator: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+	}
+	faucetedAlloc := decodePrealloc(developerModeAllocData)
+	for address, account := range faucetedAlloc {
+		genesisAlloc[address] = account
+	}
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   1e8,
 		Difficulty: big.NewInt(1),
-		Alloc: map[common.Address]GenesisAccount{
-			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
-			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
-			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
-			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
-			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
-			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
-			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			StaminaContractAddress: {
-				Code:    staminaBinBytes,
-				Balance: big.NewInt(0),
-			},
-			operator: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
-		},
+		Alloc:      genesisAlloc,
 	}
 }
 
