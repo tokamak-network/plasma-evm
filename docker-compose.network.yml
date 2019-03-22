@@ -1,0 +1,22 @@
+version: '2.3'
+services:
+  cadvisor:
+    image: vimagick/cadvisor
+    networks:
+      - tokamak
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: always
+ 
+networks:
+  tokamak:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.30.0.0/24
+        gateway: 172.30.0.1
