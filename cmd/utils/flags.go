@@ -641,6 +641,14 @@ var (
 		Name:  "dev.p2p",
 		Usage: "Allow nodes to send data in dev mode",
 	}
+	DeveloperRootChain = cli.StringFlag{
+		Name:  "dev.rootchain",
+		Usage: "Address of the RootChain contract in dev mode",
+	}
+	DeveloperOperator = cli.StringFlag{
+		Name:  "dev.operator",
+		Usage: "Address of the operator account in dev mode",
+	}
 
 	// Operator flags
 	OperatorAddressFlag = cli.StringFlag{
@@ -1587,6 +1595,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			cfg.RootChainContract = rootchainContract
 		} else {
 			// TODO: set genesis in case of user node
+			cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(DeveloperRootChain.Name))
+			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), cfg.RootChainContract, common.HexToAddress(ctx.GlobalString(DeveloperOperator.Name)))
 		}
 	default:
 		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.StaminaConfig)

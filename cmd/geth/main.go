@@ -156,6 +156,8 @@ var (
 		utils.OperatorKeyFlag,
 		utils.DeveloperKeyFlag,
 		utils.DeveloperP2PFlag,
+		utils.DeveloperRootChain,
+		utils.DeveloperOperator,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
 		utils.TxMinGasPriceFlag,
