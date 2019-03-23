@@ -92,12 +92,6 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "DEPLOY ROOTCHAIN CONTRACT",
-		Flags: []cli.Flag{
-			utils.DeployFlag,
-		},
-	},
-	{
 		Name: "ETHASH",
 		Flags: []cli.Flag{
 			utils.EthashCacheDirFlag,
