@@ -14,7 +14,8 @@ CHALLENGER="0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
 
 rm -rf $DATADIR
 
-geth \
+make geth && \
+build/bin/geth \
   --datadir $DATADIR \
   --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
   --dev \
