@@ -316,6 +316,10 @@ func (tm *TransactionManager) Start() {
 			}
 
 			log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.Caption, "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash)
+
+			if raw.Reverted {
+				log.Error("Transaction is reverted", "caption", raw.Caption)
+			}
 			adjust(raw, true)
 
 			lastMinedRaw = raw

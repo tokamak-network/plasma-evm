@@ -237,21 +237,21 @@ func (_Ownable *OwnableTransactorSession) RenounceOwnership() (*types.Transactio
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_Ownable *OwnableTransactor) TransferOwnership(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
 	return _Ownable.contract.Transact(opts, "transferOwnership", _newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_Ownable *OwnableSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
 	return _Ownable.Contract.TransferOwnership(&_Ownable.TransactOpts, _newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_Ownable *OwnableTransactorSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
 	return _Ownable.Contract.TransferOwnership(&_Ownable.TransactOpts, _newOwner)
 }
@@ -331,7 +331,7 @@ type OwnableOwnershipRenounced struct {
 
 // FilterOwnershipRenounced is a free log retrieval operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
 //
-// Solidity: e OwnershipRenounced(previousOwner indexed address)
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
 func (_Ownable *OwnableFilterer) FilterOwnershipRenounced(opts *bind.FilterOpts, previousOwner []common.Address) (*OwnableOwnershipRenouncedIterator, error) {
 
 	var previousOwnerRule []interface{}
@@ -348,7 +348,7 @@ func (_Ownable *OwnableFilterer) FilterOwnershipRenounced(opts *bind.FilterOpts,
 
 // WatchOwnershipRenounced is a free log subscription operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
 //
-// Solidity: e OwnershipRenounced(previousOwner indexed address)
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
 func (_Ownable *OwnableFilterer) WatchOwnershipRenounced(opts *bind.WatchOpts, sink chan<- *OwnableOwnershipRenounced, previousOwner []common.Address) (event.Subscription, error) {
 
 	var previousOwnerRule []interface{}
@@ -464,7 +464,7 @@ type OwnableOwnershipTransferred struct {
 
 // FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
-// Solidity: e OwnershipTransferred(previousOwner indexed address, newOwner indexed address)
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_Ownable *OwnableFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*OwnableOwnershipTransferredIterator, error) {
 
 	var previousOwnerRule []interface{}
@@ -485,7 +485,7 @@ func (_Ownable *OwnableFilterer) FilterOwnershipTransferred(opts *bind.FilterOpt
 
 // WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
-// Solidity: e OwnershipTransferred(previousOwner indexed address, newOwner indexed address)
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_Ownable *OwnableFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *OwnableOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
 	var previousOwnerRule []interface{}
@@ -529,11 +529,214 @@ func (_Ownable *OwnableFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts,
 	}), nil
 }
 
+// RequestableIABI is the input ABI used to generate the binding from.
+const RequestableIABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+
+// RequestableIBin is the compiled bytecode used for deploying new contracts.
+const RequestableIBin = `0x`
+
+// DeployRequestableI deploys a new Ethereum contract, binding an instance of RequestableI to it.
+func DeployRequestableI(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableI, error) {
+	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableIBin), backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
+}
+
+// RequestableI is an auto generated Go binding around an Ethereum contract.
+type RequestableI struct {
+	RequestableICaller     // Read-only binding to the contract
+	RequestableITransactor // Write-only binding to the contract
+	RequestableIFilterer   // Log filterer for contract events
+}
+
+// RequestableICaller is an auto generated read-only Go binding around an Ethereum contract.
+type RequestableICaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RequestableITransactor is an auto generated write-only Go binding around an Ethereum contract.
+type RequestableITransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RequestableIFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type RequestableIFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RequestableISession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type RequestableISession struct {
+	Contract     *RequestableI     // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// RequestableICallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type RequestableICallerSession struct {
+	Contract *RequestableICaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts       // Call options to use throughout this session
+}
+
+// RequestableITransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type RequestableITransactorSession struct {
+	Contract     *RequestableITransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts       // Transaction auth options to use throughout this session
+}
+
+// RequestableIRaw is an auto generated low-level Go binding around an Ethereum contract.
+type RequestableIRaw struct {
+	Contract *RequestableI // Generic contract binding to access the raw methods on
+}
+
+// RequestableICallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type RequestableICallerRaw struct {
+	Contract *RequestableICaller // Generic read-only contract binding to access the raw methods on
+}
+
+// RequestableITransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type RequestableITransactorRaw struct {
+	Contract *RequestableITransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewRequestableI creates a new instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableI(address common.Address, backend bind.ContractBackend) (*RequestableI, error) {
+	contract, err := bindRequestableI(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
+}
+
+// NewRequestableICaller creates a new read-only instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableICaller(address common.Address, caller bind.ContractCaller) (*RequestableICaller, error) {
+	contract, err := bindRequestableI(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &RequestableICaller{contract: contract}, nil
+}
+
+// NewRequestableITransactor creates a new write-only instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableITransactor(address common.Address, transactor bind.ContractTransactor) (*RequestableITransactor, error) {
+	contract, err := bindRequestableI(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &RequestableITransactor{contract: contract}, nil
+}
+
+// NewRequestableIFilterer creates a new log filterer instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableIFilterer(address common.Address, filterer bind.ContractFilterer) (*RequestableIFilterer, error) {
+	contract, err := bindRequestableI(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &RequestableIFilterer{contract: contract}, nil
+}
+
+// bindRequestableI binds a generic wrapper to an already deployed contract.
+func bindRequestableI(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_RequestableI *RequestableIRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RequestableI.Contract.RequestableICaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_RequestableI *RequestableIRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RequestableI.Contract.RequestableITransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_RequestableI *RequestableIRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RequestableI.Contract.RequestableITransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_RequestableI *RequestableICallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RequestableI.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_RequestableI *RequestableITransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RequestableI.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_RequestableI *RequestableITransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RequestableI.Contract.contract.Transact(opts, method, params...)
+}
+
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
+//
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactor) ApplyRequestInChildChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.contract.Transact(opts, "applyRequestInChildChain", isExit, requestId, requestor, trieKey, trieValue)
+}
+
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
+//
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableISession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInChildChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+}
+
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
+//
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactorSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInChildChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+}
+
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
+//
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactor) ApplyRequestInRootChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.contract.Transact(opts, "applyRequestInRootChain", isExit, requestId, requestor, trieKey, trieValue)
+}
+
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
+//
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableISession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInRootChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+}
+
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
+//
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactorSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInRootChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+}
+
 // RequestableSimpleTokenABI is the input ABI used to generate the binding from.
-const RequestableSimpleTokenABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"who\",\"type\":\"address\"}],\"name\":\"getBalanceTrieKey\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"_requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"_trieValue\",\"type\":\"bytes32\"}],\"name\":\"Request\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"}],\"name\":\"OwnershipRenounced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}]"
+const RequestableSimpleTokenABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"who\",\"type\":\"address\"}],\"name\":\"getBalanceTrieKey\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"decodeTrieValue\",\"outputs\":[{\"name\":\"v\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"_requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"_trieValue\",\"type\":\"bytes\"}],\"name\":\"Request\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"}],\"name\":\"OwnershipRenounced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}]"
 
 // RequestableSimpleTokenBin is the compiled bytecode used for deploying new contracts.
-const RequestableSimpleTokenBin = `0x608060405260008054600160a060020a031916331790556108b4806100256000396000f3006080604052600436106100a35763ffffffff7c010000000000000000000000000000000000000000000000000000000060003504166318160ddd81146100a857806327e235e3146100cf57806340c10f19146100f0578063715018a6146101165780638da5cb5b1461012b578063a9059cbb1461015c578063b18fcfdf14610180578063d9afd3a9146101a1578063e904e3d9146101e4578063f2fde38b14610213575b600080fd5b3480156100b457600080fd5b506100bd610234565b60408051918252519081900360200190f35b3480156100db57600080fd5b506100bd600160a060020a036004351661023a565b3480156100fc57600080fd5b50610114600160a060020a036004351660243561024c565b005b34801561012257600080fd5b50610114610347565b34801561013757600080fd5b506101406103b3565b60408051600160a060020a039092168252519081900360200190f35b34801561016857600080fd5b50610114600160a060020a03600435166024356103c2565b34801561018c57600080fd5b506100bd600160a060020a0360043516610475565b3480156101ad57600080fd5b506101d06004351515602435600160a060020a036044351660643560843561049a565b604080519115158252519081900360200190f35b3480156101f057600080fd5b506101d06004351515602435600160a060020a0360443516606435608435610662565b34801561021f57600080fd5b50610114600160a060020a03600435166107b8565b60015481565b60026020526000908152604090205481565b600054600160a060020a0316331461026357600080fd5b600154610276908263ffffffff6107db16565b600155600160a060020a0382166000908152600260205260409020546102a2908263ffffffff6107db16565b600160a060020a03831660008181526002602090815260409182902093909355805191825291810183905281517f0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885929181900390910190a16040805160008152600160a060020a038416602082015280820183905290517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b600054600160a060020a0316331461035e57600080fd5b60008054604051600160a060020a03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a26000805473ffffffffffffffffffffffffffffffffffffffff19169055565b600054600160a060020a031681565b336000908152600260205260409020546103e2908263ffffffff6107f416565b3360009081526002602052604080822092909255600160a060020a03841681522054610414908263ffffffff6107db16565b600160a060020a03831660008181526002602090815260409182902093909355805133815292830191909152818101839052517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b60408051600160a060020a039290921682526002602083015280519182900301902090565b60008481526003602052604081205460ff16156104b657600080fd5b851561054b578215156104f0576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a038616179055610546565b60018314156104fe57610546565b60408051600160a060020a038616815260026020820152815190819003909101902083141561054657600160a060020a03841660009081526002602052604090208054830190555b6105e8565b82151561056c57600054600160a060020a0385811691161461054657600080fd5b600183141561057a57600080fd5b60408051600160a060020a03861681526002602082015281519081900390910190208314156100a357600160a060020a0384166000908152600260205260409020548211156105c857600080fd5b600160a060020a0384166000908152600260205260409020805483900390555b600085815260036020908152604091829020805460ff1916600117905581518815158152600160a060020a038716918101919091528082018590526060810184905290517f1607eee29334711e8e6be82c8fd0b4aebd9951a9bcbcaa82da0abc1ce57dbb879181900360800190a150600195945050505050565b60008481526003602052604081205460ff161561067e57600080fd5b851561072a578215156106aa57600054600160a060020a038581169116146106a557600080fd5b610546565b60018314156106b857600080fd5b60408051600160a060020a03861681526002602082015281519081900390910190208314156100a357600160a060020a03841660009081526002602052604090205482111561070657600080fd5b600160a060020a038416600090815260026020526040902080548390039055610546565b82151561075e576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0386161790556105e8565b600183141561076c576105e8565b60408051600160a060020a03861681526002602082015281519081900390910190208314156100a357600160a060020a03841660009081526002602052604090208054830190556105e8565b600054600160a060020a031633146107cf57600080fd5b6107d88161080b565b50565b6000828201838110156107ed57600080fd5b9392505050565b6000808383111561080457600080fd5b5050900390565b600160a060020a038116151561082057600080fd5b60008054604051600160a060020a03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a36000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03929092169190911790555600a165627a7a72305820b8facf699204bd1854baa62e715973bf5746a8f00d4005fcf9ecb298de3192620029`
+const RequestableSimpleTokenBin = `0x608060405260008054600160a060020a031916331790556109d6806100256000396000f3006080604052600436106100ae5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663141ecf4681146100b357806318160ddd1461010257806327e235e31461012957806340c10f191461014a578063715018a6146101705780638da5cb5b14610185578063a9059cbb146101b6578063a9f79308146101da578063b18fcfdf14610215578063b9e59d0914610236578063f2fde38b1461028f575b600080fd5b3480156100bf57600080fd5b506100ee600480351515906024803591600160a060020a036044351691606435916084359182019101356102b0565b604080519115158252519081900360200190f35b34801561010e57600080fd5b50610117610550565b60408051918252519081900360200190f35b34801561013557600080fd5b50610117600160a060020a0360043516610556565b34801561015657600080fd5b5061016e600160a060020a0360043516602435610568565b005b34801561017c57600080fd5b5061016e610663565b34801561019157600080fd5b5061019a6106cf565b60408051600160a060020a039092168252519081900360200190f35b3480156101c257600080fd5b5061016e600160a060020a03600435166024356106de565b3480156101e657600080fd5b506100ee600480351515906024803591600160a060020a03604435169160643591608435918201910135610791565b34801561022157600080fd5b50610117600160a060020a036004351661089c565b34801561024257600080fd5b506040805160206004803580820135601f81018490048402850184019095528484526101179436949293602493928401919081908401838280828437509497506108c19650505050505050565b34801561029b57600080fd5b5061016e600160a060020a03600435166108da565b60008581526003602052604081205460ff16156102cc57600080fd5b86156103eb578315156102f857600054600160a060020a038681169116146102f357600080fd5b6103e6565b600184141561030657600080fd5b60408051600160a060020a03871681526002602082015281519081900390910190208414156100ae5761036883838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a038616600090815260026020526040902054101561038c57600080fd5b6103c583838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a038616600090815260026020526040902080549190910390555b6104af565b83151561041f576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0387161790556104af565b600184141561042d576104af565b60408051600160a060020a03871681526002602082015281519081900390910190208414156100ae5761048f83838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a0386166000908152600260205260409020805490910190555b600086815260036020908152604091829020805460ff1916600117905581518915158152600160a060020a038816918101919091529081018590526080606082018181529082018490527faf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b918991889188918891889160a0820184848082843760405192018290039850909650505050505050a15060019695505050505050565b60015481565b60026020526000908152604090205481565b600054600160a060020a0316331461057f57600080fd5b600154610592908263ffffffff6108fd16565b600155600160a060020a0382166000908152600260205260409020546105be908263ffffffff6108fd16565b600160a060020a03831660008181526002602090815260409182902093909355805191825291810183905281517f0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885929181900390910190a16040805160008152600160a060020a038416602082015280820183905290517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b600054600160a060020a0316331461067a57600080fd5b60008054604051600160a060020a03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a26000805473ffffffffffffffffffffffffffffffffffffffff19169055565b600054600160a060020a031681565b336000908152600260205260409020546106fe908263ffffffff61091616565b3360009081526002602052604080822092909255600160a060020a03841681522054610730908263ffffffff6108fd16565b600160a060020a03831660008181526002602090815260409182902093909355805133815292830191909152818101839052517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b60008581526003602052604081205460ff16156107ad57600080fd5b861561087b578315156107e7576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0387161790556103e6565b60018414156107f5576103e6565b60408051600160a060020a03871681526002602082015281519081900390910190208414156103e65761085783838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a0386166000908152600260205260409020805490910190556103e6565b8315156102f857600054600160a060020a038681169116146103e657600080fd5b60408051600160a060020a039290921682526002602083015280519182900301902090565b80516000906020146108d257600080fd5b506020015190565b600054600160a060020a031633146108f157600080fd5b6108fa8161092d565b50565b60008282018381101561090f57600080fd5b9392505050565b6000808383111561092657600080fd5b5050900390565b600160a060020a038116151561094257600080fd5b60008054604051600160a060020a03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a36000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03929092169190911790555600a165627a7a72305820cc0dade0ce868ede6eb4fb2bc67c857efcb2f0a4fa2a063f22f06fb2c8f1d6940029`
 
 // DeployRequestableSimpleToken deploys a new Ethereum contract, binding an instance of RequestableSimpleToken to it.
 func DeployRequestableSimpleToken(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableSimpleToken, error) {
@@ -692,7 +895,7 @@ func (_RequestableSimpleToken *RequestableSimpleTokenTransactorRaw) Transact(opt
 
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
-// Solidity: function balances( address) constant returns(uint256)
+// Solidity: function balances(address ) constant returns(uint256)
 func (_RequestableSimpleToken *RequestableSimpleTokenCaller) Balances(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
@@ -704,21 +907,47 @@ func (_RequestableSimpleToken *RequestableSimpleTokenCaller) Balances(opts *bind
 
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
-// Solidity: function balances( address) constant returns(uint256)
+// Solidity: function balances(address ) constant returns(uint256)
 func (_RequestableSimpleToken *RequestableSimpleTokenSession) Balances(arg0 common.Address) (*big.Int, error) {
 	return _RequestableSimpleToken.Contract.Balances(&_RequestableSimpleToken.CallOpts, arg0)
 }
 
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
-// Solidity: function balances( address) constant returns(uint256)
+// Solidity: function balances(address ) constant returns(uint256)
 func (_RequestableSimpleToken *RequestableSimpleTokenCallerSession) Balances(arg0 common.Address) (*big.Int, error) {
 	return _RequestableSimpleToken.Contract.Balances(&_RequestableSimpleToken.CallOpts, arg0)
 }
 
+// DecodeTrieValue is a free data retrieval call binding the contract method 0xb9e59d09.
+//
+// Solidity: function decodeTrieValue(bytes trieValue) constant returns(uint256 v)
+func (_RequestableSimpleToken *RequestableSimpleTokenCaller) DecodeTrieValue(opts *bind.CallOpts, trieValue []byte) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _RequestableSimpleToken.contract.Call(opts, out, "decodeTrieValue", trieValue)
+	return *ret0, err
+}
+
+// DecodeTrieValue is a free data retrieval call binding the contract method 0xb9e59d09.
+//
+// Solidity: function decodeTrieValue(bytes trieValue) constant returns(uint256 v)
+func (_RequestableSimpleToken *RequestableSimpleTokenSession) DecodeTrieValue(trieValue []byte) (*big.Int, error) {
+	return _RequestableSimpleToken.Contract.DecodeTrieValue(&_RequestableSimpleToken.CallOpts, trieValue)
+}
+
+// DecodeTrieValue is a free data retrieval call binding the contract method 0xb9e59d09.
+//
+// Solidity: function decodeTrieValue(bytes trieValue) constant returns(uint256 v)
+func (_RequestableSimpleToken *RequestableSimpleTokenCallerSession) DecodeTrieValue(trieValue []byte) (*big.Int, error) {
+	return _RequestableSimpleToken.Contract.DecodeTrieValue(&_RequestableSimpleToken.CallOpts, trieValue)
+}
+
 // GetBalanceTrieKey is a free data retrieval call binding the contract method 0xb18fcfdf.
 //
-// Solidity: function getBalanceTrieKey(who address) constant returns(bytes32)
+// Solidity: function getBalanceTrieKey(address who) constant returns(bytes32)
 func (_RequestableSimpleToken *RequestableSimpleTokenCaller) GetBalanceTrieKey(opts *bind.CallOpts, who common.Address) ([32]byte, error) {
 	var (
 		ret0 = new([32]byte)
@@ -730,14 +959,14 @@ func (_RequestableSimpleToken *RequestableSimpleTokenCaller) GetBalanceTrieKey(o
 
 // GetBalanceTrieKey is a free data retrieval call binding the contract method 0xb18fcfdf.
 //
-// Solidity: function getBalanceTrieKey(who address) constant returns(bytes32)
+// Solidity: function getBalanceTrieKey(address who) constant returns(bytes32)
 func (_RequestableSimpleToken *RequestableSimpleTokenSession) GetBalanceTrieKey(who common.Address) ([32]byte, error) {
 	return _RequestableSimpleToken.Contract.GetBalanceTrieKey(&_RequestableSimpleToken.CallOpts, who)
 }
 
 // GetBalanceTrieKey is a free data retrieval call binding the contract method 0xb18fcfdf.
 //
-// Solidity: function getBalanceTrieKey(who address) constant returns(bytes32)
+// Solidity: function getBalanceTrieKey(address who) constant returns(bytes32)
 func (_RequestableSimpleToken *RequestableSimpleTokenCallerSession) GetBalanceTrieKey(who common.Address) ([32]byte, error) {
 	return _RequestableSimpleToken.Contract.GetBalanceTrieKey(&_RequestableSimpleToken.CallOpts, who)
 }
@@ -794,65 +1023,65 @@ func (_RequestableSimpleToken *RequestableSimpleTokenCallerSession) TotalSupply(
 	return _RequestableSimpleToken.Contract.TotalSupply(&_RequestableSimpleToken.CallOpts)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) ApplyRequestInChildChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) ApplyRequestInChildChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.contract.Transact(opts, "applyRequestInChildChain", isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.ApplyRequestInChildChain(&_RequestableSimpleToken.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.ApplyRequestInChildChain(&_RequestableSimpleToken.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) ApplyRequestInRootChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) ApplyRequestInRootChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.contract.Transact(opts, "applyRequestInRootChain", isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.ApplyRequestInRootChain(&_RequestableSimpleToken.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.ApplyRequestInRootChain(&_RequestableSimpleToken.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
 // Mint is a paid mutator transaction binding the contract method 0x40c10f19.
 //
-// Solidity: function mint(_to address, _value uint256) returns()
+// Solidity: function mint(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) Mint(opts *bind.TransactOpts, _to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.contract.Transact(opts, "mint", _to, _value)
 }
 
 // Mint is a paid mutator transaction binding the contract method 0x40c10f19.
 //
-// Solidity: function mint(_to address, _value uint256) returns()
+// Solidity: function mint(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenSession) Mint(_to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.Mint(&_RequestableSimpleToken.TransactOpts, _to, _value)
 }
 
 // Mint is a paid mutator transaction binding the contract method 0x40c10f19.
 //
-// Solidity: function mint(_to address, _value uint256) returns()
+// Solidity: function mint(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) Mint(_to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.Mint(&_RequestableSimpleToken.TransactOpts, _to, _value)
 }
@@ -880,42 +1109,42 @@ func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) Renounce
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
 //
-// Solidity: function transfer(_to address, _value uint256) returns()
+// Solidity: function transfer(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) Transfer(opts *bind.TransactOpts, _to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.contract.Transact(opts, "transfer", _to, _value)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
 //
-// Solidity: function transfer(_to address, _value uint256) returns()
+// Solidity: function transfer(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenSession) Transfer(_to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.Transfer(&_RequestableSimpleToken.TransactOpts, _to, _value)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
 //
-// Solidity: function transfer(_to address, _value uint256) returns()
+// Solidity: function transfer(address _to, uint256 _value) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) Transfer(_to common.Address, _value *big.Int) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.Transfer(&_RequestableSimpleToken.TransactOpts, _to, _value)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactor) TransferOwnership(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
 	return _RequestableSimpleToken.contract.Transact(opts, "transferOwnership", _newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.TransferOwnership(&_RequestableSimpleToken.TransactOpts, _newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
-// Solidity: function transferOwnership(_newOwner address) returns()
+// Solidity: function transferOwnership(address _newOwner) returns()
 func (_RequestableSimpleToken *RequestableSimpleTokenTransactorSession) TransferOwnership(_newOwner common.Address) (*types.Transaction, error) {
 	return _RequestableSimpleToken.Contract.TransferOwnership(&_RequestableSimpleToken.TransactOpts, _newOwner)
 }
@@ -996,7 +1225,7 @@ type RequestableSimpleTokenMint struct {
 
 // FilterMint is a free log retrieval operation binding the contract event 0x0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885.
 //
-// Solidity: e Mint(_to address, _value uint256)
+// Solidity: event Mint(address _to, uint256 _value)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterMint(opts *bind.FilterOpts) (*RequestableSimpleTokenMintIterator, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.FilterLogs(opts, "Mint")
@@ -1008,7 +1237,7 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterMint(opts *
 
 // WatchMint is a free log subscription operation binding the contract event 0x0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885.
 //
-// Solidity: e Mint(_to address, _value uint256)
+// Solidity: event Mint(address _to, uint256 _value)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *RequestableSimpleTokenMint) (event.Subscription, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.WatchLogs(opts, "Mint")
@@ -1118,7 +1347,7 @@ type RequestableSimpleTokenOwnershipRenounced struct {
 
 // FilterOwnershipRenounced is a free log retrieval operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
 //
-// Solidity: e OwnershipRenounced(previousOwner indexed address)
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterOwnershipRenounced(opts *bind.FilterOpts, previousOwner []common.Address) (*RequestableSimpleTokenOwnershipRenouncedIterator, error) {
 
 	var previousOwnerRule []interface{}
@@ -1135,7 +1364,7 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterOwnershipRe
 
 // WatchOwnershipRenounced is a free log subscription operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
 //
-// Solidity: e OwnershipRenounced(previousOwner indexed address)
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchOwnershipRenounced(opts *bind.WatchOpts, sink chan<- *RequestableSimpleTokenOwnershipRenounced, previousOwner []common.Address) (event.Subscription, error) {
 
 	var previousOwnerRule []interface{}
@@ -1251,7 +1480,7 @@ type RequestableSimpleTokenOwnershipTransferred struct {
 
 // FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
-// Solidity: e OwnershipTransferred(previousOwner indexed address, newOwner indexed address)
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*RequestableSimpleTokenOwnershipTransferredIterator, error) {
 
 	var previousOwnerRule []interface{}
@@ -1272,7 +1501,7 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterOwnershipTr
 
 // WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
-// Solidity: e OwnershipTransferred(previousOwner indexed address, newOwner indexed address)
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *RequestableSimpleTokenOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
 	var previousOwnerRule []interface{}
@@ -1388,13 +1617,13 @@ type RequestableSimpleTokenRequest struct {
 	IsExit    bool
 	Requestor common.Address
 	TrieKey   [32]byte
-	TrieValue [32]byte
+	TrieValue []byte
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterRequest is a free log retrieval operation binding the contract event 0x1607eee29334711e8e6be82c8fd0b4aebd9951a9bcbcaa82da0abc1ce57dbb87.
+// FilterRequest is a free log retrieval operation binding the contract event 0xaf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b.
 //
-// Solidity: e Request(_isExit bool, _requestor address, _trieKey bytes32, _trieValue bytes32)
+// Solidity: event Request(bool _isExit, address _requestor, bytes32 _trieKey, bytes _trieValue)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterRequest(opts *bind.FilterOpts) (*RequestableSimpleTokenRequestIterator, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.FilterLogs(opts, "Request")
@@ -1404,9 +1633,9 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterRequest(opt
 	return &RequestableSimpleTokenRequestIterator{contract: _RequestableSimpleToken.contract, event: "Request", logs: logs, sub: sub}, nil
 }
 
-// WatchRequest is a free log subscription operation binding the contract event 0x1607eee29334711e8e6be82c8fd0b4aebd9951a9bcbcaa82da0abc1ce57dbb87.
+// WatchRequest is a free log subscription operation binding the contract event 0xaf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b.
 //
-// Solidity: e Request(_isExit bool, _requestor address, _trieKey bytes32, _trieValue bytes32)
+// Solidity: event Request(bool _isExit, address _requestor, bytes32 _trieKey, bytes _trieValue)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchRequest(opts *bind.WatchOpts, sink chan<- *RequestableSimpleTokenRequest) (event.Subscription, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.WatchLogs(opts, "Request")
@@ -1518,7 +1747,7 @@ type RequestableSimpleTokenTransfer struct {
 
 // FilterTransfer is a free log retrieval operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 //
-// Solidity: e Transfer(_from address, _to address, _value uint256)
+// Solidity: event Transfer(address _from, address _to, uint256 _value)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterTransfer(opts *bind.FilterOpts) (*RequestableSimpleTokenTransferIterator, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.FilterLogs(opts, "Transfer")
@@ -1530,7 +1759,7 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) FilterTransfer(op
 
 // WatchTransfer is a free log subscription operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 //
-// Solidity: e Transfer(_from address, _to address, _value uint256)
+// Solidity: event Transfer(address _from, address _to, uint256 _value)
 func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *RequestableSimpleTokenTransfer) (event.Subscription, error) {
 
 	logs, sub, err := _RequestableSimpleToken.contract.WatchLogs(opts, "Transfer")
