@@ -603,6 +603,11 @@ func TestScenario3(t *testing.T) {
 
 	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 
+	data1, err := pls.rootchainManager.rootchainContract.GetEROTxData(baseCallOpt, big.NewInt(4))
+	if err != nil {
+		t.Fatalf("Failed to get ero tx data: %v", err)
+	}
+
 	// NRE#3 / Block#3 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
@@ -1143,6 +1148,7 @@ func TestStress(t *testing.T) {
 	testPlsConfig.MinerRecommit = 10 * time.Second
 	testPlsConfig.TxConfig.Interval = 10 * time.Second
 	timeout := testPlsConfig.MinerRecommit / 100
+	targetBlockNumber := 10
 
 	pls, rpcServer, dir, err := makePls()
 	defer os.RemoveAll(dir)
@@ -1175,7 +1181,6 @@ func TestStress(t *testing.T) {
 	defer blockFilterer.Unsubscribe()
 
 	blockNumber := 0
-	targetBlockNumber := 10
 
 	timer := time.NewTimer(5 * time.Minute)
 	go func() {
@@ -1283,6 +1288,7 @@ func TestStress(t *testing.T) {
 		}
 	}
 
+	nTxs := 0
 	lastBlockNumber := pls.blockchain.CurrentBlock().NumberU64()
 	for i := 1; i <= int(lastBlockNumber); i++ {
 		block := pls.blockchain.GetBlockByNumber(uint64(i))
@@ -1290,7 +1296,17 @@ func TestStress(t *testing.T) {
 		if block.Transactions().Len() == 0 {
 			t.Fatalf("Block#%d has no transaction", i)
 		}
+
+		nTxs += block.Transactions().Len()
 	}
+
+	firstBlock := pls.blockchain.GetBlockByNumber(uint64(1))
+	lastBlock := pls.blockchain.GetBlockByNumber(uint64(lastBlockNumber))
+
+	elapsed := new(big.Int).Sub(lastBlock.Time(), firstBlock.Time())
+	tps := float64(nTxs) / float64(elapsed.Int64())
+	t.Logf("Elapsed time: %s nTxs: %d TPS: %6.3f", elapsed.String(), nTxs, tps)
+
 }
 
 //func TestAdjustGasPrice(t *testing.T) {
@@ -1555,13 +1571,15 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 	trieValue := amount.Bytes()
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, etherTokenAddr, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, etherTokenAddr, trieKey, trieValue32Bytes[:])
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
 	}
 
-	waitTx(tx.Hash())
+	if err = waitTx(tx.Hash()); err != nil {
+		t.Fatalf("Failed to make an ETH deposit request: %v", err)
+	}
 
 	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -1595,7 +1613,7 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rcm.rootchainContract.StartEnter(opt, tokenAddress, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartEnter(opt, tokenAddress, trieKey, trieValue32Bytes[:])
 
 	if err != nil {
 		log.Error("Failed to make an token deposit request", "err", err, "hash", tx.Hash())
@@ -1640,7 +1658,7 @@ func startETHWithdraw(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey
 	trieValue := value.Bytes()
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rcm.rootchainContract.StartExit(opt, etherTokenAddr, trieKey, trieValue32Bytes)
+	tx, err := rcm.rootchainContract.StartExit(opt, etherTokenAddr, trieKey, trieValue32Bytes[:])
 
 	if err != nil {
 		t.Fatalf("Failed to make an ETH withdraw request: %v", err)
@@ -1671,7 +1689,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 	trieValue = common.LeftPadBytes(trieValue, 32)
 	trieValue32Bytes := common.BytesToHash(trieValue)
 
-	tx, err := rootchainContract.StartExit(opt, tokenAddress, trieKey, trieValue32Bytes)
+	tx, err := rootchainContract.StartExit(opt, tokenAddress, trieKey, trieValue32Bytes[:])
 
 	if err != nil {
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
@@ -2414,8 +2432,10 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 
 	go func() {
 		select {
-		case <-timer.C:
-			errC <- errors.New("Out of time")
+		case _, ok := <-timer.C:
+			if ok {
+				errC <- errors.New("Out of time")
+			}
 		case <-quit:
 			return
 		}

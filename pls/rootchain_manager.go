@@ -26,14 +26,12 @@ import (
 )
 
 const (
-	MAX_EPOCH_EVENTS  = 0
-	MAX_NUM_NOT_FOUND = 2
-	MAX_NUM_KNOWN_TX  = 5
+	MAX_EPOCH_EVENTS = 0
 )
 
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
-	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
+	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableIABI))
 	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
 
 	ErrKnownTransaction = errors.New("known transaction")
@@ -503,7 +501,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 						log.Error("Failed to pack applyRequestInChildChain", "err", err)
 					}
 
-					log.Debug("Request tx.data", "payload", input)
+					log.Debug("Request tx.data", "payload", common.Bytes2Hex(input))
 				}
 
 				requestTx := types.NewTransaction(0, to, value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
