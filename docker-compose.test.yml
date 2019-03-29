@@ -3,16 +3,17 @@ services:
   root:
     image: plasma-evm/root
     networks:
-      plasma:
-        ipv4_address: ${ROOTCHAIN_IP}
+      plasma-test:
+        ipv4_address: ${SUBNET}.${ROOTCHAIN_IP}
     build:
       context: ./containers/docker/rootchain
       dockerfile: Dockerfile
     healthcheck:
-      test: echo 'checking health'
+      test: ["CMD-SHELL", "sh health_checker.sh || exit 1"]
       interval: 60s
       timeout: 30s
-      retries: 5
+      retries: 0
+      start_period: 60s
     ports:
       - "0.0.0.0:8545:8545"
       - "0.0.0.0:8546:8546"
@@ -21,8 +22,8 @@ services:
   bootnode:
     image: plasma-evm/bootnode
     networks:
-      plasma:
-        ipv4_address: ${BOOTNODE_IP}
+      plasma-test:
+        ipv4_address: ${SUBNET}.${BOOTNODE_IP}
     build:
       context: .
       dockerfile: Dockerfile.plasma
@@ -34,17 +35,18 @@ services:
   child_operator:
     image: plasma-evm/child
     networks:
-      plasma:
-        ipv4_address: ${OPERATOR_IP}
+      plasma-test:
+        ipv4_address: ${SUBNET}.${OPERATOR_IP}
     build:
       context: .
       dockerfile: Dockerfile.plasma
       target: geth
     healthcheck:
-      test: echo 'checking health'
+      test: ["CMD-SHELL", "sh health_checker.sh || exit 1"]
       interval: 60s
       timeout: 30s
-      retries: 5
+      retries: 0
+      start_period: 60s
     depends_on:
       root:
         condition: service_started
@@ -56,7 +58,7 @@ services:
   child_user:
     image: plasma-evm/child
     networks:
-      - plasma
+      - plasma-test
     build:
         context: .
         dockerfile: Dockerfile.plasma
@@ -66,8 +68,8 @@ services:
         child_operator:
           condition: service_healthy
     environment:
-        - ROOTCHAIN_IP=${ROOTCHAIN_IP}
-        - OPERATOR_IP=${OPERATOR_IP}
+        - ROOTCHAIN_IP=${SUBNET}.${ROOTCHAIN_IP}
+        - OPERATOR_IP=${SUBNET}.${OPERATOR_IP}
     command: sh docker.user.pls.sh
 
 networks:
@@ -75,6 +77,6 @@ networks:
     driver: bridge
     ipam:
       config:
-      - subnet: 172.30.0.0/24
-        gateway: 172.30.0.1
+      - subnet: ${SUBNET}/24
+        gateway: ${SUBNET}.1
 
