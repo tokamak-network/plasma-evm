@@ -45,7 +45,7 @@ In this model, rebase is considered as a default behavior. URB is renamed ``esca
 
 Below 4 stages are processed sequentially in one **cycle**.
 
-- In **pre-commit** stage, operator commits only transactions root to ``RootChain`` contract. If operator stop committing in this stage, **halting condition** is fulfilled. Halting condition forces to proceed the next stage.
-- In **DA check** stage, if users notice unavailability for the root, they make a escape request. User also
-- In **rebase** stage, operator mines and commits escape blocks whose parent is last block of previous cycle.
-- In **commit** stage, operator commits other merkle roots of pre-committed blocks.
+- In **pre-commit** stage, operator commits only transactions root to ``RootChain`` contract. If operator stop committing in this stage, **halting condition** is fulfilled. Halting condition forces to fully execute incomplete stage.
+- In **DA check** stage, if users notice unavailability for the root, they make a escape request. User also can make it in pre-commit stage.
+- In **commit** stage, operator mines and commits escape blocks first whose parent is last block of previous cycle. And rebase blocks which were commited in pre-commit stage.
+- In **challenge** stage, anyone can challenge on blocks commited in commit stage by computation challenge.
