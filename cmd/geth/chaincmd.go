@@ -207,6 +207,7 @@ func initGenesis(ctx *cli.Context) error {
 				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
 				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
 			}
+			break;
 		}
 	}
 	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
