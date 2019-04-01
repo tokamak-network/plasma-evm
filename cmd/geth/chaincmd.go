@@ -48,6 +48,7 @@ var (
 		ArgsUsage: "<genesisPath>",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
+			utils.RootChainUrlFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -198,9 +199,6 @@ func initGenesis(ctx *cli.Context) error {
 		staminaConfig *core.StaminaConfig
 	)
 
-	if len(genesis.Alloc) != 2 {
-		utils.Fatalf("must have two accounts (operator / stamina)")
-	}
 	for address, account := range genesis.Alloc {
 		if address == core.StaminaContractAddress {
 			staminaConfig = &core.StaminaConfig{
@@ -209,9 +207,6 @@ func initGenesis(ctx *cli.Context) error {
 				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
 				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
 			}
-		} else {
-			operator = address
-			log.Info("Setup rootchain contract", "address", rootChainContract, "operator", operator)
 		}
 	}
 	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)

@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -30,9 +31,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
@@ -54,6 +59,8 @@ func (w *wizard) makeGenesis() {
 			ConstantinopleBlock: big.NewInt(5),
 		},
 	}
+	var operator common.Address
+
 	// Figure out which consensus engine to choose
 	fmt.Println()
 	fmt.Println("Which consensus engine to use? (default = clique)")
@@ -63,19 +70,44 @@ func (w *wizard) makeGenesis() {
 	choice := w.read()
 	switch {
 	case choice == "1":
+		fmt.Println()
+		fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
+		if w.readDefaultYesNo(true) {
+			// Add a batch of precompile balances to avoid them getting deleted
+			for i := int64(0); i < 256; i++ {
+				genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
+			}
+		}
+
 		// In case of ethash, we're pretty much done
 		genesis.Config.Ethash = new(params.EthashConfig)
 		genesis.ExtraData = make([]byte, 20)
 		genesis.Difficulty = big.NewInt(1)
 
+		fmt.Println()
+		fmt.Println("What is the rootchain URL?")
+		rootchainBackend, err := ethclient.Dial(w.readString())
+		if err != nil {
+			utils.Fatalf("Failed to connect rootchain: %v", err)
+		}
+
 		// Query for the rootchain contract
 		fmt.Println()
 		fmt.Println("What is the rootchain contract address?")
-		var rootchain []common.Address
+		var rootchainAddress common.Address
 		if address := w.readAddress(); address != nil {
-			rootchain = append(rootchain, *address)
+			rootchainAddress = *address
 		}
-		copy(genesis.ExtraData[:common.AddressLength], rootchain[0][:])
+		genesis.ExtraData = rootchainAddress.Bytes()
+
+		rootchainContract, err := rootchain.NewRootChain(rootchainAddress, rootchainBackend)
+		if err != nil {
+			utils.Fatalf("Failed to get rootchain contract: %v", err)
+		}
+		operator, err = rootchainContract.Operator(&bind.CallOpts{Pending: false, Context: context.Background()})
+		if err != nil {
+			utils.Fatalf("Failed to get operator address: %v", err)
+		}
 
 	case choice == "" || choice == "2":
 		// In the case of clique, configure the consensus parameters
@@ -125,17 +157,6 @@ func (w *wizard) makeGenesis() {
 		recoveryEpochLength int64
 		withdrawalDelay     int64
 	)
-
-	// Query for the stamina
-	fmt.Println()
-	fmt.Println("What is the operator address?")
-	var operator common.Address
-	if address := w.readAddress(); address != nil {
-		operator = *address
-	}
-	genesis.Alloc[operator] = core.GenesisAccount{
-		Balance: big.NewInt(0),
-	}
 
 	fmt.Println()
 	fmt.Println("Specify your default stamina amount")
