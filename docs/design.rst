@@ -32,7 +32,7 @@ Basic concept is that user can make special kind of request, ``exit request for 
 
 So any user can make a new fork without fear of data unavailability. If they notice unavailability, then will make a new fork before unavailable block is finalized. But **to give higher priority on user-submitted request block than operator-submitted block**, the block number of user-submitted block has to be less than those of operator-submitted block.
 
-We call this updating priority by **rebase**, named after git's rebase. Any operator-submitted blocks are placed after user-submitted block by rebasing. Rebase requires many computations in plasma chain and transactions in root chain, we considered "making fork even when data is available" as a attack.
+We call this updating priority by **rebase**, named after git's rebase. Any operator-submitted blocks are placed after user-submitted block by rebasing. Rebase requires many computations in plasma chain and transactions in root chain, so we considered "making fork even when data is available" as a attack.
 
 But there is no concrete structural solution to prevent this attack. Our first naive approach is to charge higher cost to user, but this naive and finantial solution cannot be considerred as a soultion.
 
@@ -41,7 +41,7 @@ So we set rebase as the default behavior.
 Continous Rebase
 ~~~~~~~~~~~~~~~~
 
-In this model, rebase is considered as a default behavior. URB is renamed ``escape block`` and exit request for URB as ``escape request``.
+In this model, rebase is considered as the default behavior. URB is renamed ``escape block`` and exit request for URB as ``escape request``.
 
 Below 4 stages are processed sequentially in one **cycle**.
 
