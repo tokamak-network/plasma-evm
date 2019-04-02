@@ -314,6 +314,7 @@ func DefaultGenesisBlock(rootChainContract common.Address, operator common.Addre
 	}
 	initialized := common.BoolToBytes(staminaConfig.Initialized)
 	StaminaKey := GetStaminaKey(operator)
+	OperatorAsDelegatorKey := GetOperatorAsDelegatorKey(operator)
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
@@ -332,11 +333,12 @@ func DefaultGenesisBlock(rootChainContract common.Address, operator common.Addre
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
 				Storage: map[common.Hash]common.Hash{
-					InitializedKey:        common.BytesToHash(initialized),
-					MinDepositKey:         common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
-					RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
-					WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
-					StaminaKey:            common.HexToHash(hexutil.EncodeBig(DefaultStamina)),
+					InitializedKey:         common.BytesToHash(initialized),
+					MinDepositKey:          common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
+					RecoverEpochLengthKey:  common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
+					WithdrawalDelayKey:     common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
+					StaminaKey:             common.HexToHash(hexutil.EncodeBig(DefaultStamina)),
+					OperatorAsDelegatorKey: operator.Hash(),
 				},
 			},
 		},

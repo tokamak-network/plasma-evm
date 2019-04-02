@@ -33,7 +33,8 @@ var (
 	RecoverEpochLengthKey = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000a")
 	WithdrawalDelayKey    = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000b")
 
-	staminaPosition = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
+	delegateePosition = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000000")
+	staminaPosition   = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 
 	blockchainAccount = accountWrapper{common.HexToAddress("0x00")}
 	staminaAccount    = accountWrapper{StaminaContractAddress}
@@ -144,6 +145,12 @@ func GetStaminaConfig(bc *BlockChain) *StaminaConfig {
 
 // '000000000000000000000000' + operator address + stamina state variable position
 func GetStaminaKey(operator common.Address) common.Hash {
-	operatorKey := append(common.LeftPadBytes(operator.Bytes(), 32), staminaPosition...)
-	return crypto.Keccak256Hash(operatorKey)
+	key := append(common.LeftPadBytes(operator.Bytes(), 32), staminaPosition...)
+	return crypto.Keccak256Hash(key)
+}
+
+// '000000000000000000000000' + operator address + delegatee state variable position
+func GetOperatorAsDelegatorKey(operator common.Address) common.Hash {
+	key := append(common.LeftPadBytes(operator.Bytes(), 32), delegateePosition...)
+	return crypto.Keccak256Hash(key)
 }
