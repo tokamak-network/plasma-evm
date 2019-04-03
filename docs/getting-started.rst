@@ -6,7 +6,7 @@ Getting Started
 | There is Dockerized section for quick start. You can go directly goto.
 
 ------------------------
-Installation
+Instruction
 ------------------------
 
 There are two essential steps.
@@ -176,6 +176,7 @@ If you consider to run in production level, Recommand raise `tx.interval` time, 
 Looks like stop, but It Just waiting Tx!
 In dev mode, Start block mine when transaction has on txpool.
 
+------------------------
 Quick Start with Docker
 ------------------------
 
@@ -198,4 +199,4 @@ Quick Start with Docker
   docker-compose up
 
 
-- `docker-compose down`
+- If you turn down containers `docker-compose down` on plasma-evm path.
