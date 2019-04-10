@@ -13,11 +13,12 @@ RootChain Manager Contract
 .. - Data Availability
 
 The Units (?)
-=========
+=============
 
 Plasma blocks are abstracted in many way depending on each contexts. ``Block`` is the smallest unit that operator commits to RootChain contract. ``Epoch`` includes many blocks. ``Cycle`` includes many epochs.
 
 .. _3_Types_of_Block:
+
 3 Types of Block
 ~~~~~~~~~~~~~~~~
 
@@ -27,6 +28,7 @@ NRB data can be withheld, but RB and EB cannot because anyone can get data from 
 
 
 .. _Epoch:
+
 Epoch
 ~~~~~
 
@@ -38,6 +40,7 @@ The length of epoch is the number of blocks in the epoch. So RE and EE can have 
   The length of NRE is a constant that is provided when RootChain contract is deployed.
 
 .. _Cycle:
+
 Cycle
 ~~~~~
 
@@ -48,6 +51,7 @@ Cycle
 
 
 .. _Block_Mining:
+
 Block Mining
 ============
 
@@ -62,6 +66,7 @@ In 1 cycle, child chain block is mined as below:
 
 
 .. _How_to_Handle_Request:
+
 How to Handle Request
 =====================
 
@@ -72,6 +77,7 @@ Addresses of Requestable Contracts in Both Chain
 
 :ref:`Reqeustable contracts<Requestable_Contract>` must be deployed in both chain and 2 addresses must be mapped in RootChain contract. Then user can make :ref:`requests<Request>` for requestable contracts.
 
+.. _Create_Enter_Request:
 
 Create Enter Request
 ~~~~~~~~~~~~~~~~~~~~
@@ -91,7 +97,9 @@ User can send transaction to RootChain contract to create enter request.
 ``to`` is the address of target reqeustable contract in root chain. ``trieKey`` and ``trieValue`` is parameters for the request.
 
 
-Create Enter Request
+.. _Create_Exit_Request:
+
+Create Exit Request
 ~~~~~~~~~~~~~~~~~~~~
 
 User also can send transaction to RootChain contract to create exit request.
@@ -109,6 +117,7 @@ Pamateres are same as ``startEnter``.
 
 
 .. _Apply_Request_in_Child_Chain:
+
 Apply Request in Child Chain
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
