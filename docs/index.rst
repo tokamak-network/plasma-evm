@@ -8,8 +8,6 @@ Plasma EVM
 
 Plasma EVM provides a EVM-compatitable plasma chain with scalability and security. `Plasma <http://plasma.io/>`_ is scalability solution for Ethereum, making layered blockchains that data in child chain is summarized and committed to root chain.
 
-
-
 Plasma EVM can reuse any solutions and framworks on Ethereum like Soldiity, Truffle, Metamask, and even MyEtherWallet.
 
 The major differences from other plasma proposals are as follows:
@@ -31,9 +29,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   introduction.rst
+   overview.rst
    getting-started.rst
    design.rst
-   rootchain-contract.rst
-   requestable-contract.rst
    requestable-contract-examples.rst

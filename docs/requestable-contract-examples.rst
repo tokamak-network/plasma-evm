@@ -1,9 +1,10 @@
-.. _Requestable_Contract_Examples:
-=============================
-Requestable Contract Examples
-=============================
+.. _requestable-contract-examples:
 
-You can see all the source code here `this repository <https://github.com/Onther-Tech/requestable-contract-examples>`_.
+#############################
+Requestable Contract Examples
+#############################
+
+You can see all the source codes in `this repository <https://github.com/Onther-Tech/requestable-contract-examples>`_.
 
 .. include:: examples/counter.rst
 

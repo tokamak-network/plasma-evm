@@ -1,5 +1,8 @@
+.. _example-counter:
+
+*******
 Counter
-=======
+*******
 
 `BaseCounter <https://github.com/Onther-Tech/requestable-contract-examples/blob/master/counter/solidity/BaseCounter.sol>`_
 ~~~~~~~~~~~~
@@ -132,7 +135,7 @@ Enter and exit can be applied after freezing the contracts in each chain. Freeza
   ...
 
 
-  /// @notice A request can decrease `n`. Is it right to decrease the count?
+  /// @notice Both contract may be frozen at the same time. Is it right?
   contract FreezableCounter is BaseCounter, RequestableI {
     ...
 
