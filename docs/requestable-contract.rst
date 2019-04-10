@@ -15,12 +15,13 @@ Request
 **Request** is an entity that makes users to interact with contracts. If user creates request, it is recorded in :ref:`RootChain<root-chain-manager-contract>` manager contract. A request is appiled in child chain as a **request transaction**. The sender of request transaction is ``0x00`` and it is included in **request block** to change the state of child chain. And it is enforced by RootChain contract to mine specific request block.
 
 
-------------
+---------------------
 
 Before go further, it is recommended to see how ``RootChain`` contract handle request :ref:`here<how-to-handle-request>`.
 
 
 .. _enter-and-exit:
+
 Enter and Exit
 ==============
 
@@ -31,8 +32,9 @@ Enter and Exit
 `Exit request` is applied in child chain through request transaction, then applied in root chain. If the request is invalid, anyone can challenge on the invalid exit **with transaction receipt as proof**. If exit request is not challenged, anyone can `finalize` the reqeust and apply it to the requestable contract in root chain.
 
 .. _apply-request-functions:
+
 ``ApplyRequestIn*Chain`` Functions
-==============================
+==================================
 
 If user wants to ``enter`` or ``exit``, he sends a transaction to ``RootChain`` contract to make  **enter request** or **exit request**. ``RootChain.startEnter()`` and ``RootChain.startExit()`` make user to create enter or exit request.
 

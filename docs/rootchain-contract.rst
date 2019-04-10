@@ -70,17 +70,17 @@ In 1 cycle, child chain block is mined as below:
 How to Handle Request
 =====================
 
+This explains how the request created and applied in child chain as request trasaction.
 
 Addresses of Requestable Contracts in Both Chain
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+------------------------------------------------
 
 :ref:`Reqeustable contracts<requestable-contract>` must be deployed in both chain and 2 addresses must be mapped in RootChain contract. Then user can make :ref:`requests<request>` for requestable contracts.
 
 .. _create-enter-request:
 
 Create Enter Request
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 User can send transaction to RootChain contract to create enter request.
 
@@ -100,7 +100,7 @@ User can send transaction to RootChain contract to create enter request.
 .. _create-exit-request:
 
 Create Exit Request
-~~~~~~~~~~~~~~~~~~~~
+-------------------
 
 User also can send transaction to RootChain contract to create exit request.
 
@@ -119,8 +119,7 @@ Pamateres are same as ``startEnter``.
 .. _apply-request-in-child-chain:
 
 Apply Request in Child Chain
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+----------------------------
 
 A request has four important fields, ``requestor`` is a address who made the request, ``to`` is a address of requestable contract deployed in root chain, ``trieKey`` is a identifier for request type, and ``trieValue`` is the value of request.
 
