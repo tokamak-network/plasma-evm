@@ -36,3 +36,4 @@ Contents
    design.rst
    rootchain-contract.rst
    requestable-contract.rst
+   requestable-contract-examples.rst
