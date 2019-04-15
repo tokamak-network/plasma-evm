@@ -3,11 +3,15 @@ Getting Started
 ===============================
 
 | If feels complexity yourself or Could have time to do step-by-step,
-| There is Dockerized section for quick start. You can go directly goto.
+| There is Dockerized section at the end of this document. You can go directly goto.
+|
+| Let considering Two environments. One is Private Environment, cannot connected outside of host, For plasma-chain test.
+| Another one is Publically opened Environment almost production level.
+| You can Mixing those two environments if fully used to.
 
-------------------------
-Instruction
-------------------------
+---------------------------------
+Setup Private Environment
+---------------------------------
 
 There are two essential steps.
 
@@ -17,65 +21,69 @@ There are two essential steps.
 Follow Instructions are tested on MacOSX.
 
 1. Run RootChain
-~~~~~~~~~~~~~~~~~~~~~
-Use go-ethereum v1.8.23 as RootChain.
+=================
+Use forked version of go-ethereum v1.8.20 as RootChain.
 
 Building geth requires both a GO (version 1.11 or later) and C compiler.
 
 
 1.1. Clone go-ethereum Repository
+----------------------------------
+
 ::
 
-    git clone -b v1.8.23 http://github.com/ethereum/go-ethereum
+    git clone http://github.com/onther-tech/go-ethereum
 
-You should generate genesis file via puppeth. Recommand consensus ethash, not Clique.
-
-| Or You can use forked go-ethereum by Onther, which is no need genesis file.
+| You dont need generate genesis file for eth balance allocation. It is going to use fake ethash as dev mode.
 | It forked from geth v1.8.20 then added some features pre-founded, other things via flags.
-| Checkout, http://github.com/onther-tech/go-ethereum
-| If you choose to use forked version, use `run.rootchain.sh` script instead geth run command like as below 1.3.
+| Use can use `run.rootchain.sh` running script instead geth run command like as below 1.3.
 
 1.2. Build the source
+----------------------------------
+
 ::
 
     make geth
 
+If you want do running script, can skip this command.
+
+
 1.3. Run ge-ethereum with flags.
+----------------------------------
 
-| If you want to run with Ropsten testnet in here, Add `--testnet` then this geth going to have chainId 3.
 | Plasma-evm subscribe RootChain Events via rootchain's websocket, must be open to ChildChain.
-| If you want to running on Ropsten network, use **--testnet** flag instead --dev flag.
-
-
-| geth initialize with genesis file
 
 ::
 
-  geth init --datadir data genesis.json
+    bash run.rootchain.sh
 
-then
+Or You can directly run with this commands
 
 ::
 
-    geth --datadir data --mine --miner.threads 2 --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 --miner.gastarget 7500000 --miner.gasprice "10" --rpc --rpcaddr 0.0.0.0 --rpcport 8545 --rpcapi web3,eth,personal,miner,net,txpool --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins="*" --unlock 0x71562b71999873DB5b286dF957af199Ec94617F7,0x5df7107c960320b90a3d7ed9a83203d1f98a811d,0x3cd9f729c8d882b851f8c70fb36d22b391a288cd --password ./signer.pass
+    build/bin/geth --dev --dev.period 1 --dev.faucetkey
+    "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291,78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a115,bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5,067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc,ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66" --miner.gastarget 7500000 --miner.gasprice "10" --rpc --rpcport 8545 --rpcapi eth,debug,net --ws --wsport 8546
 
 
-| In this case, Insert 3 Keyfiles already in `data` path.
-| Use `run.rootchain.sh` script, If you clone http://github.com/onther-tech/go-ethereum, instead http://github.com/ethereum/go-ethereum
+In this case, 5 privateKeys generate accounts files under datadir path.
 
-2. ChildChain
-~~~~~~~~~~~~~~~~~~~~~
+
+2. Run ChildChain
+==================
 We currently working on Plasma-evm running stable.
-Suggest, Clone master branch instead develop which is default this repo.
+Suggest, Clone master branch instead develop which is default.
 
 
 2.1. Clone Plamsa-evm Repository
+----------------------------------
+
 ::
 
     git clone http://github.com/onther-tech/plasma-evm
 
 
 2.2. Build the source
+----------------------------------
 
 Do as same as go-ethereum
 
@@ -83,7 +91,8 @@ Do as same as go-ethereum
 
     make geth
 
-2.3. run Plasma-evm with flags
+2.3. Run Plasma-evm with flags
+----------------------------------
 
 | There are additional params to run Plasma-chain through flags. No need genesis file. It going to automatically generated.
 | We added some flags for get params to run plasma-evm.
@@ -124,6 +133,7 @@ If Does not have, Could not start ChildChain.
 ::
 
     geth --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 --dev --rpc --rpcaddr 0.0.0.0 --rpcport 8547 --port 30307 --dev.key b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --operator 0x71562b71999873DB5b286dF957af199Ec94617F7 --tx.interval "300ms" --rootchain.url "ws://127.0.0.1:8546"
+
 
 If you consider to run in production level, Recommand raise `tx.interval` time, at least 20s.
 
@@ -176,9 +186,156 @@ If you consider to run in production level, Recommand raise `tx.interval` time, 
 Looks like stop, but It Just waiting Tx!
 In dev mode, Start block mine when transaction has on txpool.
 
+
+----------------------------
+Setup Public Environment
+----------------------------
+
+1. Run RootChain
+=================
+Recommand to use go-ethereum v1.8.23 as RootChain.
+
+Building geth requires both a GO (version 1.11 or later) and C compiler.
+
+
+1.1. Clone go-ethereum Repository
+----------------------------------
+
+
+::
+
+    git clone -b v1.8.23 http://github.com/ethereum/go-ethereum
+
+You should generate genesis file via puppeth. Recommand consensus ethash, not Clique.
+
+
+1.2. Build the source
+----------------------------------
+
+::
+
+    make geth
+
+1.3. Run ge-ethereum with flags.
+----------------------------------
+
+| If you want to run with Ropsten testnet in here, Add `--testnet` then this geth going to have chainId 3.
+| Plasma-evm subscribe RootChain Events via rootchain's websocket, must be open to ChildChain.
+| If you want to running on Ropsten network, use **--testnet** flag instead --dev flag.
+
+
+| geth initialize with genesis file
+
+::
+
+  geth init --datadir data genesis.json
+
+then
+
+::
+
+    geth --datadir data --mine --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 --miner.gastarget 7500000 --miner.gasprice "10" --rpc --rpcaddr 0.0.0.0 --rpcport 8545 --rpcapi web3,eth,personal,miner,net,txpool --ws --wsaddr 0.0.0.0 --wsport 8546 --wsorigins="*" --unlock 0x71562b71999873DB5b286dF957af199Ec94617F7,0x5df7107c960320b90a3d7ed9a83203d1f98a811d,0x3cd9f729c8d882b851f8c70fb36d22b391a288cd --password ./signer.pass
+
+
+| In this case, Inserted 3 Keyfiles already in `data` path.
+
+2. Run ChildChain
+==================
+We currently working on Plasma-evm running stable.
+Suggest, Clone master branch instead develop which is Default.
+
+Important Notice, Every User has own node in plasma-evm which syncing operator's one.
+If user does not, It is securely vulnerable by Data Availability.
+
+And also, Operator's node has own private key for commit transactions to RootChain.
+Have to properly secure action via firewall etc.
+
+
+2.1. Clone Plamsa-evm Repository
+----------------------------------
+
+::
+
+    git clone -b master http://github.com/onther-tech/plasma-evm
+
+
+2.2. Build the source
+----------------------------------
+
+Do as same as go-ethereum
+
+::
+
+    make geth
+
+2.3. Run Plasma-evm as Operator
+----------------------------------
+
+| If there is already deployed `rootchain` contract on RootChain Network,
+| you can use like ``--rootchain.contract 0x123456789aa`` instead ``--dev`` mode. Cannot use `--dev` and `--rootchain.contract` at the same time.
+| In plasma-evm `dev` mode has additional features, which automatically deploying `rootchain` contract if no have rootchain address via `--roothchain.contract`.
+
+| In this case for testing. use dev mode.
+
+[Important Notice] Operator Account must have some ether balance at RootChain.
+If Does not have, Could not start ChildChain.
+
+::
+
+    geth --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 --dev --port 30307 --dev.key b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --operator 0x71562b71999873DB5b286dF957af199Ec94617F7 --tx.interval "300ms" --rootchain.url "ws://127.0.0.1:8546"
+
+If you consider to run in production level, Recommand raise `tx.interval` time, at least 10s.
+
+| Remember deployed contract addresses! It can be use for later.
+
+2.4. Run Plasma-evm as User
+----------------------------------
+
+| There are different between Operator Node and User Node.
+| User Node Has no Own Private Key and No Mining.
+| But Need same networkId, genesis hash at start.
+
+| There is two way to connect Operator Node and User Node Each other.
+| One is that Using bootnode, It is simpler than other way. run bootnode then insert bootnode address on flag `--bootnodes`.
+
+| The Other is that add peer, Operator Node, manually at User Node.
+|
+| Important thing is that Exactly Match networkid, genesis block hash between User and Operator Node.
+| If does not, Cannot find each other forever.
+
+| There is one Problem, has different genesis block hash when run plasma-evm everytime. Must fix one of Two.
+| So, If you want to run User node, use other plasma-evm branch, p2p-in-dev-mode, still not merged soon.
+
+
+::
+
+    git clone -b p2p-in-dev-mode http://github.com/onther-tech/plasma-evm
+
+
+
+then you should check `rootchain`, `operator` addresses as same as Operator's.
+
+
+::
+
+    geth --dev --dev.p2p --networkid 1337 --rpc --rpcaddr 0.0.0.0 --rpcport 8549 --port 30307 --rootchain.url "ws://127.0.0.1:8546"  --dev.key b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --dev.rootchain 0x880EC53Af800b5Cd051531672EF4fc4De233bD5d --operator 0x71562b71999873DB5b286dF957af199Ec94617F7
+
+
+In here, `--dev.p2p` mode make turn on p2p networking. so Please do not forgot.
+And others, `dev.rootchain`, `dev.operator`, are need to generate same genesis block hash.
+
+Add `--bootnode [bootnode key@ip:port]` flag if you using Bootnode. or Add peer using geth console.
+
+
+Remember, have to same Networkid and Genesis hash between User & Operator Node.
+
+
 ------------------------
 Quick Start with Docker
 ------------------------
+
+It is Private Environment for test.
+
 
 1. Clone dockerize branch Plasma-evm
 
