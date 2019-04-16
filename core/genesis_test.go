@@ -34,7 +34,7 @@ var RootChainAddress = common.HexToAddress("0xdead")
 
 // TODO: use correct genesis hash for PlasmaEVM
 func TestDefaultGenesisBlock(t *testing.T) {
-	block := DefaultGenesisBlock(RootChainAddress, DefaultStaminaConfig).ToBlock(nil)
+	block := DefaultGenesisBlock(RootChainAddress, common.Address{1}, DefaultStaminaConfig).ToBlock(nil)
 	if block.Hash() != params.MainnetGenesisHash {
 		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash(), params.MainnetGenesisHash)
 	}
@@ -82,7 +82,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "mainnet block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				DefaultGenesisBlock(RootChainAddress, DefaultStaminaConfig).MustCommit(db)
+				DefaultGenesisBlock(RootChainAddress, common.Address{1}, DefaultStaminaConfig).MustCommit(db)
 				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig)
 			},
 			wantHash:   params.MainnetGenesisHash,

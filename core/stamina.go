@@ -9,6 +9,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/stamina/contract"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
+	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
@@ -16,6 +17,8 @@ const (
 	Minute = 60 * 1
 	Day    = 60 * 60 * 24
 )
+
+var DefaultStamina = big.NewInt(1 * params.Ether)
 
 var (
 	errUpdateStamina = errors.New("failed to update stamina")
@@ -29,6 +32,9 @@ var (
 	MinDepositKey         = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000009")
 	RecoverEpochLengthKey = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000a")
 	WithdrawalDelayKey    = common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000b")
+
+	delegateePosition = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000000")
+	staminaPosition   = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 
 	blockchainAccount = accountWrapper{common.HexToAddress("0x00")}
 	staminaAccount    = accountWrapper{StaminaContractAddress}
@@ -135,4 +141,16 @@ func GetStaminaConfig(bc *BlockChain) *StaminaConfig {
 		RecoverEpochLength: recoverEpochLength.Big(),
 		WithdrawalDelay:    withdrawalDelay.Big(),
 	}
+}
+
+// '000000000000000000000000' + operator address + stamina state variable position
+func GetStaminaKey(operator common.Address) common.Hash {
+	key := append(common.LeftPadBytes(operator.Bytes(), 32), staminaPosition...)
+	return crypto.Keccak256Hash(key)
+}
+
+// '000000000000000000000000' + operator address + delegatee state variable position
+func GetOperatorAsDelegatorKey(operator common.Address) common.Hash {
+	key := append(common.LeftPadBytes(operator.Bytes(), 32), delegateePosition...)
+	return crypto.Keccak256Hash(key)
 }

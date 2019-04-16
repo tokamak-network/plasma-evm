@@ -18,6 +18,8 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,8 +31,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
@@ -52,6 +59,8 @@ func (w *wizard) makeGenesis() {
 			ConstantinopleBlock: big.NewInt(5),
 		},
 	}
+	var operator common.Address
+
 	// Figure out which consensus engine to choose
 	fmt.Println()
 	fmt.Println("Which consensus engine to use? (default = clique)")
@@ -61,19 +70,44 @@ func (w *wizard) makeGenesis() {
 	choice := w.read()
 	switch {
 	case choice == "1":
+		fmt.Println()
+		fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
+		if w.readDefaultYesNo(true) {
+			// Add a batch of precompile balances to avoid them getting deleted
+			for i := int64(0); i < 256; i++ {
+				genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
+			}
+		}
+
 		// In case of ethash, we're pretty much done
 		genesis.Config.Ethash = new(params.EthashConfig)
 		genesis.ExtraData = make([]byte, 20)
 		genesis.Difficulty = big.NewInt(1)
 
+		fmt.Println()
+		fmt.Println("What is the rootchain URL?")
+		rootchainBackend, err := ethclient.Dial(w.readString())
+		if err != nil {
+			utils.Fatalf("Failed to connect rootchain: %v", err)
+		}
+
 		// Query for the rootchain contract
 		fmt.Println()
 		fmt.Println("What is the rootchain contract address?")
-		var rootchain []common.Address
+		var rootchainAddress common.Address
 		if address := w.readAddress(); address != nil {
-			rootchain = append(rootchain, *address)
+			rootchainAddress = *address
 		}
-		copy(genesis.ExtraData[:common.AddressLength], rootchain[0][:])
+		genesis.ExtraData = rootchainAddress.Bytes()
+
+		rootchainContract, err := rootchain.NewRootChain(rootchainAddress, rootchainBackend)
+		if err != nil {
+			utils.Fatalf("Failed to get rootchain contract: %v", err)
+		}
+		operator, err = rootchainContract.Operator(&bind.CallOpts{Pending: false, Context: context.Background()})
+		if err != nil {
+			utils.Fatalf("Failed to get operator address: %v", err)
+		}
 
 	case choice == "" || choice == "2":
 		// In the case of clique, configure the consensus parameters
@@ -116,26 +150,66 @@ func (w *wizard) makeGenesis() {
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
-	// Consensus all set, just ask for initial funds and go
+
+	var (
+		stamina             int64
+		minDeposit          int64
+		recoveryEpochLength int64
+		withdrawalDelay     int64
+	)
+
 	fmt.Println()
-	fmt.Println("Which accounts should be pre-funded? (advisable at least one)")
+	fmt.Println("Specify your default stamina amount")
+	stamina = int64(w.readInt())
+
 	for {
-		// Read the address of the account to fund
-		if address := w.readAddress(); address != nil {
-			genesis.Alloc[*address] = core.GenesisAccount{
-				Balance: new(big.Int).Lsh(big.NewInt(1), 256-7), // 2^256 / 128 (allow many pre-funds without balance overflows)
-			}
+		fmt.Println()
+		fmt.Println("Specify your minimum deposit amount")
+		minDeposit = int64(w.readInt())
+		if minDeposit <= 0 {
+			log.Error("Must be greater than 0")
 			continue
 		}
 		break
 	}
-	fmt.Println()
-	fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
-	if w.readDefaultYesNo(true) {
-		// Add a batch of precompile balances to avoid them getting deleted
-		for i := int64(0); i < 256; i++ {
-			genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
+
+	for {
+		fmt.Println()
+		fmt.Println("Specify epoch length for stamina recovery")
+		recoveryEpochLength = int64(w.readInt())
+		if recoveryEpochLength <= 0 {
+			log.Error("Must be greater than 0")
+			continue
 		}
+		break
+	}
+
+	for {
+		fmt.Println()
+		fmt.Println("Specify delay duration for withdrawal (must greater than recovery epoch * 2)")
+		withdrawalDelay = int64(w.readInt())
+		if withdrawalDelay <= 0 {
+			log.Error("Must be greater than 0")
+			continue
+		} else if recoveryEpochLength*2 >= withdrawalDelay {
+			log.Error("Must be greater than recovery epoch length * 2")
+			continue
+		}
+		break
+	}
+
+	staminaKey := core.GetStaminaKey(operator)
+	staminaBinBytes, _ := hex.DecodeString(core.StaminaContractDeployedBin[2:])
+	genesis.Alloc[core.StaminaContractAddress] = core.GenesisAccount{
+		Code:    staminaBinBytes,
+		Balance: big.NewInt(0),
+		Storage: map[common.Hash]common.Hash{
+			core.InitializedKey:        common.BytesToHash([]byte{1}),
+			core.MinDepositKey:         common.HexToHash(hexutil.EncodeBig(big.NewInt(minDeposit))),
+			core.RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(big.NewInt(recoveryEpochLength))),
+			core.WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(big.NewInt(withdrawalDelay))),
+			staminaKey:                 common.HexToHash(hexutil.EncodeBig(big.NewInt(stamina))),
+		},
 	}
 
 	// Query the user for some custom extras

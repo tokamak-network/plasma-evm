@@ -1859,6 +1859,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		0,
 		common.HexToAddress("0xdead"),
 		operator,
+		core.DefaultStaminaConfig,
 	).ToBlock(dummyDB)
 
 	var tx *types.Transaction
@@ -2003,7 +2004,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 }
 
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
-	gspec := core.DeveloperGenesisBlock(0, common.Address{}, operator)
+	gspec := core.DeveloperGenesisBlock(0, common.Address{}, operator, core.DefaultStaminaConfig)
 	// Initialize a fresh chain with only a genesis block
 	db := ethdb.NewMemDatabase()
 	genesis := gspec.MustCommit(db)

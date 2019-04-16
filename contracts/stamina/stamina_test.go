@@ -10,9 +10,12 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind/backends"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
@@ -186,9 +189,27 @@ func TestStamina(t *testing.T) {
 	}
 }
 
+func TestGetDefaultStaminaFromStorageKey(t *testing.T) {
+	var (
+		defaultStaminaConfig = core.DefaultStaminaConfig
+		operator             = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
+	)
+
+	gspec := core.DefaultGenesisBlock(common.Address{}, operator, defaultStaminaConfig)
+	db := ethdb.NewMemDatabase()
+	gspec.MustCommit(db)
+	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, ethash.NewFaker(), vm.Config{EnablePreimageRecording: true}, nil)
+
+	statedb, _ := blockchain.State()
+	stamina := statedb.GetState(core.StaminaContractAddress, core.GetStaminaKey(operator))
+	if common.BytesToHash(core.DefaultStamina.Bytes()) != common.BytesToHash(stamina.Bytes()) {
+		t.Fatalf("unexpected value: want %x, got %x", core.DefaultStamina, stamina)
+	}
+}
+
 func TestStaminaGenesisConfig(t *testing.T) {
 	defaultStaminaConfig := core.DefaultStaminaConfig
-	g := core.DefaultGenesisBlock(common.Address{}, defaultStaminaConfig)
+	g := core.DefaultGenesisBlock(common.Address{}, common.Address{1}, defaultStaminaConfig)
 	gNumber := big.NewInt(0)
 	ctx := context.Background()
 	contractBackend := backends.NewSimulatedBackend(g.Alloc, 10000000000)
