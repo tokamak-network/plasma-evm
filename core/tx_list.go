@@ -56,10 +56,11 @@ type txSortedMap struct {
 }
 
 // newTxSortedMap creates a new nonce-sorted transaction map.
-func newTxSortedMap() *txSortedMap {
+func newTxSortedMap(cap int) *txSortedMap {
+	index := make(nonceHeap, 0, cap)
 	return &txSortedMap{
 		items: make(map[uint64]*types.Transaction),
-		index: new(nonceHeap),
+		index: &index,
 	}
 }
 
@@ -229,10 +230,10 @@ type txList struct {
 
 // newTxList create a new transaction list for maintaining nonce-indexable fast,
 // gapped, sortable transaction lists.
-func newTxList(strict bool) *txList {
+func newTxList(strict bool, cap int) *txList {
 	return &txList{
 		strict:  strict,
-		txs:     newTxSortedMap(),
+		txs:     newTxSortedMap(cap),
 		costcap: new(big.Int),
 	}
 }
@@ -404,9 +405,10 @@ type txPricedList struct {
 
 // newTxPricedList creates a new price-sorted transaction heap.
 func newTxPricedList(all *txLookup) *txPricedList {
+	items := make(priceHeap, 0, txPoolInitCap)
 	return &txPricedList{
 		all:   all,
-		items: new(priceHeap),
+		items: &items,
 	}
 }
 
