@@ -338,7 +338,9 @@ func (pool *TxPool) loop() {
 				}
 				// Any non-locals old enough should be removed
 				if time.Since(pool.beats[addr]) > pool.config.Lifetime {
-					for _, tx := range pool.queue[addr].Flatten() {
+					list := pool.queue[addr]
+					list.txs.ensureCache()
+					for _, tx := range list.txs.cache {
 						pool.removeTx(tx.Hash(), true)
 					}
 				}
@@ -570,9 +572,10 @@ func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pending := make(map[common.Address]types.Transactions)
+	pending := make(map[common.Address]types.Transactions, len(pool.pending))
 	for addr, list := range pool.pending {
-		pending[addr] = list.Flatten()
+		list.txs.ensureCache()
+		pending[addr] = list.txs.cache
 	}
 	return pending, nil
 }
@@ -592,10 +595,12 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 	txs := make(map[common.Address]types.Transactions)
 	for addr := range pool.locals.accounts {
 		if pending := pool.pending[addr]; pending != nil {
-			txs[addr] = append(txs[addr], pending.Flatten()...)
+			pending.txs.ensureCache()
+			txs[addr] = append(txs[addr], pending.txs.cache...)
 		}
 		if queued := pool.queue[addr]; queued != nil {
-			txs[addr] = append(txs[addr], queued.Flatten()...)
+			queued.txs.ensureCache()
+			txs[addr] = append(txs[addr], queued.txs.cache...)
 		}
 	}
 	return txs
@@ -1168,7 +1173,8 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 
 			// Drop all transactions if they are less than the overflow
 			if size := uint64(list.Len()); size <= drop {
-				for _, tx := range list.Flatten() {
+				list.txs.ensureCache()
+				for _, tx := range list.txs.cache {
 					pool.removeTx(tx.Hash(), true)
 				}
 				drop -= size
