@@ -226,6 +226,8 @@ type TxPool struct {
 	homestead bool
 }
 
+const txPoolInitCap = 20000
+
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
 func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
@@ -241,7 +243,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
-		all:         newTxLookup(),
+		all:         newTxLookup(txPoolInitCap),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 	}
@@ -757,7 +759,7 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	// Try to insert the transaction into the future queue
 	from, _ := types.Sender(pool.signer, tx) // already validated
 	if pool.queue[from] == nil {
-		pool.queue[from] = newTxList(false)
+		pool.queue[from] = newTxList(false, 5000)
 	}
 	inserted, old := pool.queue[from].Add(tx, pool.config.PriceBump)
 	if !inserted {
@@ -813,7 +815,7 @@ func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
 func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.Transaction) bool {
 	// Try to insert the transaction into the pending queue
 	if pool.pending[addr] == nil {
-		pool.pending[addr] = newTxList(true)
+		pool.pending[addr] = newTxList(true, 5000)
 	}
 	list := pool.pending[addr]
 
@@ -1341,9 +1343,9 @@ type txLookup struct {
 }
 
 // newTxLookup returns a new txLookup structure.
-func newTxLookup() *txLookup {
+func newTxLookup(cap int) *txLookup {
 	return &txLookup{
-		all: make(map[common.Hash]*types.Transaction),
+		all: make(map[common.Hash]*types.Transaction, cap),
 	}
 }
 
