@@ -1502,6 +1502,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 				uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)),
 				common.HexToAddress("0xdead"),
 				operatorAddr,
+				cfg.StaminaConfig,
 			).ToBlock(dummyDB)
 
 			// contract parameters
@@ -1576,7 +1577,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			log.Info("Initialize EtherToken", "hash", tx.Hash())
 			wait(tx.Hash())
 
-			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr)
+			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr, cfg.StaminaConfig)
 			cfg.RootChainContract = rootchainContract
 		} else {
 			// TODO: set genesis in case of user node

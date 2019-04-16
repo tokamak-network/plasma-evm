@@ -29,9 +29,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/internal/jsre"
 	"github.com/Onther-Tech/plasma-evm/node"
+	"github.com/Onther-Tech/plasma-evm/pls"
 )
 
 const (
@@ -75,7 +75,7 @@ func (p *hookedPrompter) SetWordCompleter(completer WordCompleter) {}
 type tester struct {
 	workspace string
 	stack     *node.Node
-	ethereum  *pls.Ethereum
+	ethereum  *pls.Plasma
 	console   *Console
 	input     *hookedPrompter
 	output    *bytes.Buffer
@@ -96,7 +96,7 @@ func newTester(t *testing.T, confOverride func(*pls.Config)) *tester {
 		t.Fatalf("failed to create node: %v", err)
 	}
 	ethConf := &pls.Config{
-		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
+		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}, common.HexToAddress(testAddress), core.DefaultStaminaConfig),
 		Etherbase: common.HexToAddress(testAddress),
 		Ethash: ethash.Config{
 			PowMode: ethash.ModeTest,
@@ -131,7 +131,7 @@ func newTester(t *testing.T, confOverride func(*pls.Config)) *tester {
 		t.Fatalf("failed to create JavaScript console: %v", err)
 	}
 	// Create the final tester and return
-	var ethereum *pls.Ethereum
+	var ethereum *pls.Plasma
 	stack.Service(&ethereum)
 
 	return &tester{

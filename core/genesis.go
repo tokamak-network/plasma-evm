@@ -370,11 +370,14 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 }
 
 // DeveloperGenesisBlock returns the Plasma genesis block
-func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, operator common.Address) *Genesis {
+func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig) *Genesis {
 	staminaBinBytes, err := hex.DecodeString(StaminaContractDeployedBin[2:])
 	if err != nil {
 		panic(err)
 	}
+	initialized := common.BoolToBytes(staminaConfig.Initialized)
+	StaminaKey := GetStaminaKey(operator)
+	OperatorAsDelegatorKey := GetOperatorAsDelegatorKey(operator)
 
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
@@ -393,6 +396,14 @@ func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, oper
 			StaminaContractAddress: {
 				Code:    staminaBinBytes,
 				Balance: big.NewInt(0),
+				Storage: map[common.Hash]common.Hash{
+					InitializedKey:         common.BytesToHash(initialized),
+					MinDepositKey:          common.HexToHash(hexutil.EncodeBig(staminaConfig.MinDeposit)),
+					RecoverEpochLengthKey:  common.HexToHash(hexutil.EncodeBig(staminaConfig.RecoverEpochLength)),
+					WithdrawalDelayKey:     common.HexToHash(hexutil.EncodeBig(staminaConfig.WithdrawalDelay)),
+					StaminaKey:             common.HexToHash(hexutil.EncodeBig(DefaultStamina)),
+					OperatorAsDelegatorKey: operator.Hash(),
+				},
 			},
 			operator: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
