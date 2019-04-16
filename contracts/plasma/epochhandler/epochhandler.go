@@ -353,7 +353,7 @@ func (_BMT *BMTTransactorRaw) Transact(opts *bind.TransactOpts, method string, p
 const DataABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"NA_TX_GAS_PRICE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NA_TX_GAS_LIMIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"APPLY_IN_ROOTCHAIN_SIGNATURE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes4\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"APPLY_IN_CHILDCHAIN_SIGNATURE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes4\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NA\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // DataBin is the compiled bytecode used for deploying new contracts.
-const DataBin = `0x610208610030600b82828239805160001a6073146000811461002057610022565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600436106100835763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631927ac58811461008857806390e84f56146100a6578063a7b6ae28146100ae578063a89ca766146100c3578063ab73ff05146100cb575b600080fd5b6100906100e0565b60405161009d919061017f565b60405180910390f35b6100906100e8565b6100b66100ef565b60405161009d9190610171565b6100b6610113565b6100d3610137565b60405161009d919061015d565b633b9aca0081565b620186a081565b7fd9afd3a90000000000000000000000000000000000000000000000000000000081565b7fe904e3d90000000000000000000000000000000000000000000000000000000081565b600081565b6101458161018d565b82525050565b610145816101a6565b610145816101cb565b6020810161016b828461013c565b92915050565b6020810161016b828461014b565b6020810161016b8284610154565b73ffffffffffffffffffffffffffffffffffffffff1690565b7fffffffff000000000000000000000000000000000000000000000000000000001690565b905600a265627a7a72305820b7117610d676d162a4175afcaf2c31a3c6c277e0fb43052ad5f3ccf2f9b7b0b96c6578706572696d656e74616cf50037`
+const DataBin = `0x610208610030600b82828239805160001a6073146000811461002057610022565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600436106100835763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631927ac58811461008857806390e84f56146100a6578063a7b6ae28146100ae578063a89ca766146100c3578063ab73ff05146100cb575b600080fd5b6100906100e0565b60405161009d919061017f565b60405180910390f35b6100906100e8565b6100b66100ef565b60405161009d9190610171565b6100b6610113565b6100d3610137565b60405161009d919061015d565b633b9aca0081565b620186a081565b7fa9f793080000000000000000000000000000000000000000000000000000000081565b7f141ecf460000000000000000000000000000000000000000000000000000000081565b600081565b6101458161018d565b82525050565b610145816101a6565b610145816101cb565b6020810161016b828461013c565b92915050565b6020810161016b828461014b565b6020810161016b8284610154565b73ffffffffffffffffffffffffffffffffffffffff1690565b7fffffffff000000000000000000000000000000000000000000000000000000001690565b905600a265627a7a72305820f7a6a5179edd292f483b20ca1f555b367be32fc7d8e80fb0ee1138d544a756ea6c6578706572696d656e74616cf50037`
 
 // DeployData deploys a new Ethereum contract, binding an instance of Data to it.
 func DeployData(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Data, error) {
@@ -641,10 +641,10 @@ func (_Data *DataCallerSession) NATXGASPRICE() (*big.Int, error) {
 }
 
 // EpochHandlerABI is the input ABI used to generate the binding from.
-const EpochHandlerABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitORB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareNREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareOREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareToSubmitURB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitNRB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
+const EpochHandlerABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitORB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareNREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareOREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareToSubmitURB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitNRB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
 
 // EpochHandlerBin is the compiled bytecode used for deploying new contracts.
-const EpochHandlerBin = `0x608060405234801561001057600080fd5b5060018054600160a060020a031916301790556127ea806100326000396000f3006080604052600436106101b65763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed81146101bb57806308c4fff0146101e2578063164bc2ae146101f7578063183d2d1c1461020c578063192adc5b146102215780631f261d5914610236578063236915661461024b5780634ba3a126146102605780634dd594b5146102e65780635656225b146102f0578063570ca735146102f85780635e9ef4f31461032957806365d724bc1461033157806372ecb9a8146103465780637b929c271461035e5780638155717d146103875780638b5172d01461039c5780638eb288ca146103b157806394be3aa5146101bb578063ab96da2d146103c6578063b17fa6e9146103db578063b2ae9ba8146101bb578063b443f3cc146103f0578063b8066bcb14610485578063c0e860641461049a578063c2bc88fa146104fd578063d691acd8146101bb578063da0185f814610512578063de0ce17d14610533578063e6925d0814610548578063e7b88b8014610550578063ea7f22a814610565578063f25fff571461057d578063f4f31de414610585578063fb788a271461059d575b600080fd5b3480156101c757600080fd5b506101d06105b2565b60408051918252519081900360200190f35b3480156101ee57600080fd5b506101d06105bc565b34801561020357600080fd5b506101d06105c1565b34801561021857600080fd5b506101d06105c7565b34801561022d57600080fd5b506101d06105cd565b34801561024257600080fd5b506101d06105d7565b34801561025757600080fd5b506101d06105dd565b34801561026c57600080fd5b506102786004356105e3565b604080516001604060020a039c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b6102ee610655565b005b6102ee610d5d565b34801561030457600080fd5b5061030d610f4e565b60408051600160a060020a039092168252519081900360200190f35b6102ee610f62565b34801561033d57600080fd5b506101d061116d565b34801561035257600080fd5b506101d0600435611173565b34801561036a57600080fd5b50610373611185565b604080519115158252519081900360200190f35b34801561039357600080fd5b506101d061118e565b3480156103a857600080fd5b506101d0611193565b3480156103bd57600080fd5b506101d061119d565b3480156103d257600080fd5b506101d06111a4565b3480156103e757600080fd5b506101d06111aa565b3480156103fc57600080fd5b506104086004356111af565b604080516001604060020a03909c168c5299151560208c01529715158a8a015295151560608a015293151560808901526fffffffffffffffffffffffffffffffff90921660a0880152600160a060020a0390811660c08801521660e086015261010085015261012084015261014083015251908190036101600190f35b34801561049157600080fd5b5061030d611271565b3480156104a657600080fd5b506104b2600435611280565b6040805196151587526001604060020a0395861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b34801561050957600080fd5b506101d06112fc565b34801561051e57600080fd5b5061030d600160a060020a0360043516611301565b34801561053f57600080fd5b5061030d61131c565b6102ee611321565b34801561055c57600080fd5b5061030d6119b6565b34801561057157600080fd5b506104b26004356119c5565b6102ee6119d3565b34801561059157600080fd5b50610408600435611b6b565b3480156105a957600080fd5b506101d0611b79565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b6006602052600090815260409020805460018201546002909201546001604060020a0380831693604060020a808504831694608060020a80820485169560c060020a9283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b600454600081815260066020526040812091819081908190158061068457506002850154608060020a900460ff165b151561068f57600080fd5b8454608060020a90046001604060020a03908116600181810180841660009081526003808b01602052604080832091909501861682529381206002808601805461010061ff00199091161790558585018054600160c060020a031660c060020a428a160217815590820180546201000062ff000019909116179055600b805495830180546fffffffffffffffff00000000000000001916604060020a978a168802179055839055549299509397509295500490911611156107f257600185015460c060020a90046001604060020a0316151561078c57600185018054600160c060020a031660c060020a6001604060020a038716021790556107d3565b60028501546001604060020a03908116600090815260038701602052604090206001018054918616608060020a0260008051602061279f8339815191529092169190911790555b60028501805467ffffffffffffffff19166001604060020a0386161790555b6004546000908152600560205260409020541580156108165750600283015460ff16155b156108395760045460009081526005602052604090206001604060020a03851690555b600283015460ff1661087a578254610875906001604060020a03808216604060020a90920481169190910360010116610870611b7f565b611b84565b61087d565b60005b600284015490915060ff16156108f1576001604060020a036000198501811660009081526003870160205260409020548454608060020a60c060020a928390048416810260008051602061279f8339815191529092169190911790810490921602600160c060020a03909116178355610978565b6001604060020a0360001985018116600090815260038701602052604090205461092b9160c060020a90910416600163ffffffff611bbf16565b8354600019608060020a6001604060020a03938416810260008051602061279f83398151915290931692909217918204831684010190911660c060020a02600160c060020a039091161783555b60075415806109a057508254600754604060020a9091046001604060020a0316600019909101145b156109b55760028201805460ff191660011790555b600282015460ff161515610b46576004546000908152600560205260409020546001604060020a0385161480156109f857506002830154640100000000900460ff165b15610a4a578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154858201805491851690920190931692909116919091179055610b41565b6004546000908152600560205260409020541515610aa3578254825467ffffffffffffffff199081166001604060020a03604060020a909304831617845560018086015490850180549092169216919091179055610b41565b600283015460ff161515610af8578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154908501805491841685019093169116179055610b41565b8254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff19928316178555808601548582018054918516909201909316929091169190911790555b610bd6565b82548254604060020a9091046001604060020a031667ffffffffffffffff19909116178255600283015460ff161515610bae57600183810154908301805467ffffffffffffffff19166001604060020a03928316840160001901909216919091179055610bd6565b600180840154908301805467ffffffffffffffff19166001604060020a039092169190911790555b600282015460ff1615610c12578154604060020a6001604060020a038216026fffffffffffffffff000000000000000019909116178255610c81565b60075482546fffffffffffffffff00000000000000001916604060020a6000199092016001604060020a0316919091021782556009805460019190610c579083611bdd565b81548110610c6157fe5b60009182526020909120600290910201805460ff19169115159190911790555b60045483546002850154604080519384526001604060020a038089166020860152608060020a840481168583015260c060020a8404811660608601528084166080860152604060020a90930490921660a084015260ff808216151560c0850152600160e085015260006101008501526401000000009091041615156101208301525160008051602061277f833981519152918190036101400190a1600283015460ff1615610d5657845460008051602061279f83398151915216608060020a6001604060020a03861602178555610d566119d3565b5050505050565b60045460008181526006602081905260408220928291610da0918591908490610d8d90600163ffffffff611bdd16565b8152602001908152602001600020611bf4565b835460045460016001604060020a03608060020a9384900481168201808216600081815260038b0160209081526040808320548151988952918801939093529690960490921684830152606084018590526080840185905260a0840185905285151560c085015260e084018590526101008401949094526101208301919091525192945090925060008051602061277f83398151915291908190036101400190a18115610f49576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a80870260008051602061279f833981519152909216919091178c5560028c01805470ff000000000000000000000000000000001916821790556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c081019390935260e08301819052610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610f496119d3565b505050565b6000546101009004600160a060020a031681565b60045460008181526006602081905260408220928291610fa7918591908490610f9290600163ffffffff611bdd16565b81526020019081526020016000206009611fcb565b8354909250608060020a90046001604060020a03166001019050811515610fe65760045460009081526005602052604090206001604060020a03821690555b6004546001604060020a038083166000818152600387016020908152604080832054815196875291860193909352608060020a810484168584015260c060020a8104841660608601528084166080860152604060020a900490921660a084015284151560c0840152600160e084018190526101008401929092526101208301919091525160008051602061277f833981519152918190036101400190a18115610f49576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a80870260008051602061279f833981519152909216919091178c556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c0810184905260e0810193909352610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610f49610d5d565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b60078054829081106111bd57fe5b60009182526020909120600690910201805460018201546002830154600384015460048501546005909501546001604060020a0385169650604060020a850460ff90811696690100000000000000000087048216966a010000000000000000000081048316966b0100000000000000000000008204909316956c010000000000000000000000009091046fffffffffffffffffffffffffffffffff1694600160a060020a039384169493909116929091908b565b600254600160a060020a031681565b600a80548290811061128e57fe5b60009182526020909120600290910201805460019091015460ff821692506001604060020a0361010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03604060020a9091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b6000806000806000806006600060045481526020019081526020016000209550600660006004546001018152602001908152602001600020945060045460001493508560010160089054906101000a90046001604060020a03166001018660000160006101000a8154816001604060020a0302191690836001604060020a031602179055508560000160009054906101000a90046001604060020a03168560000160186101000a8154816001604060020a0302191690836001604060020a031602179055508560040160008660000160189054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03168560000160086101000a8154816001604060020a0302191690836001604060020a031602179055508460000160089054906101000a90046001604060020a03168560000160106101000a8154816001604060020a0302191690836001604060020a031602179055508560010160089054906101000a90046001604060020a03168560010160086101000a8154816001604060020a0302191690836001604060020a03160217905550428560010160106101000a8154816001604060020a0302191690836001604060020a031602179055508460030160008660000160089054906101000a90046001604060020a03166001604060020a03168152602001908152602001600020925060018360020160016101000a81548160ff021916908315150217905550428360010160186101000a8154816001604060020a0302191690836001604060020a0316021790555060018360020160026101000a81548160ff02191690831515021790555060018360020160036101000a81548160ff021916908315150217905550836115f15785546001604060020a03604060020a9182900481166000908152600389016020526040902054600192900416016115f4565b60005b835467ffffffffffffffff19166001604060020a03918216178085556008546fffffffffffffffff000000000000000019909116604060020a600019909201831682021780865590810482169116111561164a57fe5b8254611669906001604060020a0380821691604060020a900416612480565b8554845460008051602061279f8339815191521660c060020a9091046001604060020a03908116608060020a908102929092178087559294506116cb926001926116b69291041685611bbf565b6001604060020a03169063ffffffff6124ba16565b83546001604060020a039190911660c060020a02600160c060020a03909116178355836117935785546001604060020a03604060020a9091048116600090815260038801602052604090205461178e91611759916001916117449160c060020a8104821691608060020a9091041663ffffffff6124ba16565b6001604060020a03169063ffffffff611bbf16565b87546001604060020a03604060020a9091048116600090815260038a016020526040902060010154169063ffffffff611bbf16565b611796565b60005b60018401805467ffffffffffffffff19166001604060020a03929092169190911790555060005b816001604060020a0316816001604060020a031610156118f957825460019060048701906000906117fe90608060020a90046001604060020a031685611bbf565b6001604060020a03908116825260208201929092526040016000908120600501805460ff19169315159390931790925584546001926004890192909161184d91608060020a9091041685611bbf565b6001604060020a0390811682526020820192909252604001600090812060050180549315156101000261ff00199094169390931790925560018501548554908216840192600489019290916118b191608060020a909104168563ffffffff611bbf16565b6001604060020a039081168252602082019290925260400160002080546fffffffffffffffff00000000000000001916604060020a93909216929092021790556001016117bd565b60045485548454600286015460408051600190950185526001604060020a03604060020a9485900481166020870152608060020a840481168683015260c060020a84048116606087015283811660808701529390920490921660a0840152600060c084015260ff6201000083048116151560e0850152630100000083048116151561010085015264010000000090920490911615156101208301525160008051602061277f833981519152918190036101400190a1505050505050565b600154600160a060020a031681565b600980548290811061128e57fe5b600454600081815260066020526040812091819081901580611a0057506002840154608060020a900460ff165b1515611a0b57600080fd5b5050815460016001604060020a03608060020a90920482168101918216600081815260038601602052604090209293508114611a7557508254608060020a90046001604060020a03908116600090815260038501602052604090205460c060020a90048116600101165b60028201805461ff001916610100908117918290556001840180546001604060020a0342811660c060020a908102600160c060020a03938416179093558654868216608060020a90810260008051602061279f8339815191529092169190911780895560035488016000190183168502931692909217808855600454604080519182528a8416602083015293820483168185015293900416606083015260006080830181905260a0830181905260c0830181905260e083018190529282019290925264010000000090920460ff1615156101208301525160008051602061277f833981519152918190036101400190a150505050565b60088054829081106111bd57fe5b600d5481565b601490565b60008183811515611b9157fe5b0615611bab578183811515611ba257fe5b04600101611bb8565b8183811515611bb657fe5b045b9392505050565b60008282016001604060020a038085169082161015611bb857600080fd5b60008083831115611bed57600080fd5b5050900390565b60008060008060008660020160109054906101000a900460ff16151515611c1a57600080fd5b8654608060020a90046001604060020a0316600090815260038801602052604090206002810154909450640100000000900460ff168015611c655750600284015462010000900460ff165b8015611c7d575060028401546301000000900460ff16155b1515611c8857600080fd5b8660010160009054906101000a90046001604060020a03168760030160008960000160109054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160186101000a8154816001604060020a0302191690836001604060020a031602179055508660000160109054906101000a90046001604060020a031660010192508560040160008760000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a03169150866003016000846001604060020a03168152602001908152602001600020935060018460020160016101000a81548160ff02191690831515021790555060018460020160046101000a81548160ff021916908315150217905550428460010160186101000a8154816001604060020a0302191690836001604060020a0316021790555085600301600083815260200190815260200160002060020160029054906101000a900460ff1615611e275781600101611e29565b815b6000818152600388016020526040902060020154909150610100900460ff161515611ed15760018781018054865460008051602061279f833981519152166001604060020a03918216608060020a908102919091178089559254600160c060020a039093169290911660c060020a029190911786556002808701805460ff1916841790558901805470ff00000000000000000000000000000000191690911790559450611fc1565b600081815260038701602052604090206002015462010000900460ff1615611ef557fe5b600187810154611f16916001604060020a039091169063ffffffff611bbf16565b84546001604060020a0391909116608060020a0260008051602061279f833981519152909116178455808214611f6c576000818152600387016020526040902054608060020a90046001604060020a0316611f78565b85546001604060020a03165b6002880180546fffffffffffffffff00000000000000001916604060020a6001604060020a03938416810291909117918290558854831691049091161015611fbc57fe5b600094505b5050505092915050565b6000806000806000806000808a60020160109054906101000a900460ff16151515611ff557600080fd5b8a54608060020a90046001604060020a0316600090815260038c0160205260409020600281015490975062010000900460ff16801561203f575060028701546301000000900460ff165b151561204a57600080fd5b8a60000160109054906101000a90046001604060020a031660010195508960040160008b60000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a031694508a6003016000876001604060020a03168152602001908152602001600020965060018760020160016101000a81548160ff02191690831515021790555060018760020160026101000a81548160ff02191690831515021790555060018760020160046101000a81548160ff021916908315150217905550428760010160186101000a8154816001604060020a0302191690836001604060020a0316021790555089600301600086815260200190815260200160002060020160029054906101000a900460ff166121915784600101612193565b845b935061219d6124d6565b89546fffffffffffffffff00000000000000001916604060020a6001604060020a03928316021767ffffffffffffffff19908116928216929092178a5560018a0180549092169216919091179055600084815260038b016020526040902060020154610100900460ff16151561226b57600287018054600160ff1990911681179091558b81018054895460008051602061279f833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612472565b600084815260038b01602052604090206002015462010000900460ff16151561229057fe5b6002808b0154908801805460ff19166001604060020a039092168711919091179081905560ff16156123095760018b81018054895460008051602061279f833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612472565b8392505b600084815260038b016020526040902060010154604060020a90046001604060020a031615156123425760028301925061230d565b60018b810154612363916001604060020a039091169063ffffffff611bbf16565b875460008051602061279f83398151915216608060020a6001604060020a039283168102919091178955600085815260038d01602090815260408083205493909304841680835260048f01909152919020548b549194508b92604060020a909104169081106123ce57fe5b906000526020600020906002020190505b805461010090046001604060020a0316151561244157600191909101600081815260048b01602052604090205489549192918a91604060020a90046001604060020a031690811061242c57fe5b906000526020600020906002020190506123df565b60028b0180546fffffffffffffffff00000000000000001916604060020a6001604060020a03851602179055600097505b505050505050509392505050565b6000611bb861248d611b7f565b6124ae60016124a2868863ffffffff611bdd16565b9063ffffffff61272e16565b9063ffffffff611b8416565b6000806001604060020a038085169084161115611bed57600080fd5b6000806000806000806000806000806124fb6001600454611bdd90919063ffffffff16565b96505b6000878152600660205260409020955061251786612740565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff1661256c578554608060020a90046001604060020a0316612582565b8554608060020a90046001604060020a03166001015b6001604060020a031693505b8385111561263e576125a787600163ffffffff611bdd16565b600081815260066020526040902090975095506125c386612740565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff16612618578554608060020a90046001604060020a031661262e565b8554608060020a90046001604060020a03166001015b6001604060020a0316935061258e565b6000848152600387016020526040902060020154610100900460ff161561270a5785546001604060020a03908116600090815260048801602090815260408083205490931680835260038a019091529190206002015490935062010000900460ff1615156126ad576001830192505b50506000818152600385016020908152604080832085845281842080546001604060020a03608060020a82048116875260048b0190955292909420548154604060020a9182900485169d5084169b50909104909116975090612722565b61271b87600163ffffffff611bdd16565b96506124fe565b50505050505050909192565b600082820183811015611bb857600080fd5b80546000906001604060020a0316151561275957600080fd5b5080546001604060020a0390811660009081526004830160205260409020541691905056001a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3ffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffa165627a7a72305820fd0266555c74b1042d2431b20ce7426fb99864b2fbd2223bad72f75bcdff733f0029`
+const EpochHandlerBin = `0x608060405234801561001057600080fd5b5060018054600160a060020a031916301790556128ef806100326000396000f3006080604052600436106101b65763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed81146101bb57806308c4fff0146101e2578063164bc2ae146101f7578063183d2d1c1461020c578063192adc5b146102215780631f261d5914610236578063236915661461024b5780634ba3a126146102605780634dd594b5146102e65780635656225b146102f0578063570ca735146102f85780635e9ef4f31461032957806365d724bc1461033157806372ecb9a8146103465780637b929c271461035e5780638155717d146103875780638b5172d01461039c5780638eb288ca146103b157806394be3aa5146101bb578063ab96da2d146103c6578063b17fa6e9146103db578063b2ae9ba8146101bb578063b443f3cc146103f0578063b8066bcb14610503578063c0e8606414610518578063c2bc88fa1461057b578063d691acd8146101bb578063da0185f814610590578063de0ce17d146105b1578063e6925d08146105c6578063e7b88b80146105ce578063ea7f22a8146105e3578063f25fff57146105fb578063f4f31de414610603578063fb788a271461061b575b600080fd5b3480156101c757600080fd5b506101d0610630565b60408051918252519081900360200190f35b3480156101ee57600080fd5b506101d061063a565b34801561020357600080fd5b506101d061063f565b34801561021857600080fd5b506101d0610645565b34801561022d57600080fd5b506101d061064b565b34801561024257600080fd5b506101d0610655565b34801561025757600080fd5b506101d061065b565b34801561026c57600080fd5b50610278600435610661565b604080516001604060020a039c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b6102ee6106d3565b005b6102ee610ddb565b34801561030457600080fd5b5061030d610fcc565b60408051600160a060020a039092168252519081900360200190f35b6102ee610fe0565b34801561033d57600080fd5b506101d06111eb565b34801561035257600080fd5b506101d06004356111f1565b34801561036a57600080fd5b50610373611203565b604080519115158252519081900360200190f35b34801561039357600080fd5b506101d061120c565b3480156103a857600080fd5b506101d0611211565b3480156103bd57600080fd5b506101d061121b565b3480156103d257600080fd5b506101d0611222565b3480156103e757600080fd5b506101d0611228565b3480156103fc57600080fd5b5061040860043561122d565b604080516001604060020a038d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526fffffffffffffffffffffffffffffffff881660a0820152600160a060020a0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b838110156104be5781810151838201526020016104a6565b50505050905090810190601f1680156104eb5780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b34801561050f57600080fd5b5061030d611376565b34801561052457600080fd5b50610530600435611385565b6040805196151587526001604060020a0395861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b34801561058757600080fd5b506101d0611401565b34801561059c57600080fd5b5061030d600160a060020a0360043516611406565b3480156105bd57600080fd5b5061030d611421565b6102ee611426565b3480156105da57600080fd5b5061030d611abb565b3480156105ef57600080fd5b50610530600435611aca565b6102ee611ad8565b34801561060f57600080fd5b50610408600435611c70565b34801561062757600080fd5b506101d0611c7e565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b6006602052600090815260409020805460018201546002909201546001604060020a0380831693604060020a808504831694608060020a80820485169560c060020a9283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b600454600081815260066020526040812091819081908190158061070257506002850154608060020a900460ff165b151561070d57600080fd5b8454608060020a90046001604060020a03908116600181810180841660009081526003808b01602052604080832091909501861682529381206002808601805461010061ff00199091161790558585018054600160c060020a031660c060020a428a160217815590820180546201000062ff000019909116179055600b805495830180546fffffffffffffffff00000000000000001916604060020a978a1688021790558390555492995093975092955004909116111561087057600185015460c060020a90046001604060020a0316151561080a57600185018054600160c060020a031660c060020a6001604060020a03871602179055610851565b60028501546001604060020a03908116600090815260038701602052604090206001018054918616608060020a026000805160206128a48339815191529092169190911790555b60028501805467ffffffffffffffff19166001604060020a0386161790555b6004546000908152600560205260409020541580156108945750600283015460ff16155b156108b75760045460009081526005602052604090206001604060020a03851690555b600283015460ff166108f85782546108f3906001604060020a03808216604060020a909204811691909103600101166108ee611c84565b611c89565b6108fb565b60005b600284015490915060ff161561096f576001604060020a036000198501811660009081526003870160205260409020548454608060020a60c060020a92839004841681026000805160206128a48339815191529092169190911790810490921602600160c060020a039091161783556109f6565b6001604060020a036000198501811660009081526003870160205260409020546109a99160c060020a90910416600163ffffffff611cc416565b8354600019608060020a6001604060020a0393841681026000805160206128a483398151915290931692909217918204831684010190911660c060020a02600160c060020a039091161783555b6007541580610a1e57508254600754604060020a9091046001604060020a0316600019909101145b15610a335760028201805460ff191660011790555b600282015460ff161515610bc4576004546000908152600560205260409020546001604060020a038516148015610a7657506002830154640100000000900460ff165b15610ac8578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154858201805491851690920190931692909116919091179055610bbf565b6004546000908152600560205260409020541515610b21578254825467ffffffffffffffff199081166001604060020a03604060020a909304831617845560018086015490850180549092169216919091179055610bbf565b600283015460ff161515610b76578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154908501805491841685019093169116179055610bbf565b8254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff19928316178555808601548582018054918516909201909316929091169190911790555b610c54565b82548254604060020a9091046001604060020a031667ffffffffffffffff19909116178255600283015460ff161515610c2c57600183810154908301805467ffffffffffffffff19166001604060020a03928316840160001901909216919091179055610c54565b600180840154908301805467ffffffffffffffff19166001604060020a039092169190911790555b600282015460ff1615610c90578154604060020a6001604060020a038216026fffffffffffffffff000000000000000019909116178255610cff565b60075482546fffffffffffffffff00000000000000001916604060020a6000199092016001604060020a0316919091021782556009805460019190610cd59083611ce2565b81548110610cdf57fe5b60009182526020909120600290910201805460ff19169115159190911790555b60045483546002850154604080519384526001604060020a038089166020860152608060020a840481168583015260c060020a8404811660608601528084166080860152604060020a90930490921660a084015260ff808216151560c0850152600160e0850152600061010085015264010000000090910416151561012083015251600080516020612884833981519152918190036101400190a1600283015460ff1615610dd45784546000805160206128a483398151915216608060020a6001604060020a03861602178555610dd4611ad8565b5050505050565b60045460008181526006602081905260408220928291610e1e918591908490610e0b90600163ffffffff611ce216565b8152602001908152602001600020611cf9565b835460045460016001604060020a03608060020a9384900481168201808216600081815260038b0160209081526040808320548151988952918801939093529690960490921684830152606084018590526080840185905260a0840185905285151560c085015260e084018590526101008401949094526101208301919091525192945090925060008051602061288483398151915291908190036101400190a18115610fc7576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a8087026000805160206128a4833981519152909216919091178c5560028c01805470ff000000000000000000000000000000001916821790556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c081019390935260e08301819052610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610fc7611ad8565b505050565b6000546101009004600160a060020a031681565b6004546000818152600660208190526040822092829161102591859190849061101090600163ffffffff611ce216565b815260200190815260200160002060096120d0565b8354909250608060020a90046001604060020a031660010190508115156110645760045460009081526005602052604090206001604060020a03821690555b6004546001604060020a038083166000818152600387016020908152604080832054815196875291860193909352608060020a810484168584015260c060020a8104841660608601528084166080860152604060020a900490921660a084015284151560c0840152600160e0840181905261010084019290925261012083019190915251600080516020612884833981519152918190036101400190a18115610fc7576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a8087026000805160206128a4833981519152909216919091178c556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c0810184905260e0810193909352610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610fc7610ddb565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b600780548290811061123b57fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b019095528487526001604060020a0388169a50604060020a880460ff9081169a69010000000000000000008a0482169a6a01000000000000000000008b0483169a6b0100000000000000000000008104909316996c010000000000000000000000009093046fffffffffffffffffffffffffffffffff1698600160a060020a039081169897169690939183018282801561136c5780601f106113415761010080835404028352916020019161136c565b820191906000526020600020905b81548152906001019060200180831161134f57829003601f168201915b505050505090508b565b600254600160a060020a031681565b600a80548290811061139357fe5b60009182526020909120600290910201805460019091015460ff821692506001604060020a0361010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03604060020a9091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b6000806000806000806006600060045481526020019081526020016000209550600660006004546001018152602001908152602001600020945060045460001493508560010160089054906101000a90046001604060020a03166001018660000160006101000a8154816001604060020a0302191690836001604060020a031602179055508560000160009054906101000a90046001604060020a03168560000160186101000a8154816001604060020a0302191690836001604060020a031602179055508560040160008660000160189054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03168560000160086101000a8154816001604060020a0302191690836001604060020a031602179055508460000160089054906101000a90046001604060020a03168560000160106101000a8154816001604060020a0302191690836001604060020a031602179055508560010160089054906101000a90046001604060020a03168560010160086101000a8154816001604060020a0302191690836001604060020a03160217905550428560010160106101000a8154816001604060020a0302191690836001604060020a031602179055508460030160008660000160089054906101000a90046001604060020a03166001604060020a03168152602001908152602001600020925060018360020160016101000a81548160ff021916908315150217905550428360010160186101000a8154816001604060020a0302191690836001604060020a0316021790555060018360020160026101000a81548160ff02191690831515021790555060018360020160036101000a81548160ff021916908315150217905550836116f65785546001604060020a03604060020a9182900481166000908152600389016020526040902054600192900416016116f9565b60005b835467ffffffffffffffff19166001604060020a03918216178085556008546fffffffffffffffff000000000000000019909116604060020a600019909201831682021780865590810482169116111561174f57fe5b825461176e906001604060020a0380821691604060020a900416612585565b855484546000805160206128a48339815191521660c060020a9091046001604060020a03908116608060020a908102929092178087559294506117d0926001926117bb9291041685611cc4565b6001604060020a03169063ffffffff6125bf16565b83546001604060020a039190911660c060020a02600160c060020a03909116178355836118985785546001604060020a03604060020a909104811660009081526003880160205260409020546118939161185e916001916118499160c060020a8104821691608060020a9091041663ffffffff6125bf16565b6001604060020a03169063ffffffff611cc416565b87546001604060020a03604060020a9091048116600090815260038a016020526040902060010154169063ffffffff611cc416565b61189b565b60005b60018401805467ffffffffffffffff19166001604060020a03929092169190911790555060005b816001604060020a0316816001604060020a031610156119fe578254600190600487019060009061190390608060020a90046001604060020a031685611cc4565b6001604060020a03908116825260208201929092526040016000908120600501805460ff19169315159390931790925584546001926004890192909161195291608060020a9091041685611cc4565b6001604060020a0390811682526020820192909252604001600090812060050180549315156101000261ff00199094169390931790925560018501548554908216840192600489019290916119b691608060020a909104168563ffffffff611cc416565b6001604060020a039081168252602082019290925260400160002080546fffffffffffffffff00000000000000001916604060020a93909216929092021790556001016118c2565b60045485548454600286015460408051600190950185526001604060020a03604060020a9485900481166020870152608060020a840481168683015260c060020a84048116606087015283811660808701529390920490921660a0840152600060c084015260ff6201000083048116151560e08501526301000000830481161515610100850152640100000000909204909116151561012083015251600080516020612884833981519152918190036101400190a1505050505050565b600154600160a060020a031681565b600980548290811061139357fe5b600454600081815260066020526040812091819081901580611b0557506002840154608060020a900460ff165b1515611b1057600080fd5b5050815460016001604060020a03608060020a90920482168101918216600081815260038601602052604090209293508114611b7a57508254608060020a90046001604060020a03908116600090815260038501602052604090205460c060020a90048116600101165b60028201805461ff001916610100908117918290556001840180546001604060020a0342811660c060020a908102600160c060020a03938416179093558654868216608060020a9081026000805160206128a48339815191529092169190911780895560035488016000190183168502931692909217808855600454604080519182528a8416602083015293820483168185015293900416606083015260006080830181905260a0830181905260c0830181905260e083018190529282019290925264010000000090920460ff16151561012083015251600080516020612884833981519152918190036101400190a150505050565b600880548290811061123b57fe5b600d5481565b601490565b60008183811515611c9657fe5b0615611cb0578183811515611ca757fe5b04600101611cbd565b8183811515611cbb57fe5b045b9392505050565b60008282016001604060020a038085169082161015611cbd57600080fd5b60008083831115611cf257600080fd5b5050900390565b60008060008060008660020160109054906101000a900460ff16151515611d1f57600080fd5b8654608060020a90046001604060020a0316600090815260038801602052604090206002810154909450640100000000900460ff168015611d6a5750600284015462010000900460ff165b8015611d82575060028401546301000000900460ff16155b1515611d8d57600080fd5b8660010160009054906101000a90046001604060020a03168760030160008960000160109054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160186101000a8154816001604060020a0302191690836001604060020a031602179055508660000160109054906101000a90046001604060020a031660010192508560040160008760000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a03169150866003016000846001604060020a03168152602001908152602001600020935060018460020160016101000a81548160ff02191690831515021790555060018460020160046101000a81548160ff021916908315150217905550428460010160186101000a8154816001604060020a0302191690836001604060020a0316021790555085600301600083815260200190815260200160002060020160029054906101000a900460ff1615611f2c5781600101611f2e565b815b6000818152600388016020526040902060020154909150610100900460ff161515611fd6576001878101805486546000805160206128a4833981519152166001604060020a03918216608060020a908102919091178089559254600160c060020a039093169290911660c060020a029190911786556002808701805460ff1916841790558901805470ff000000000000000000000000000000001916909117905594506120c6565b600081815260038701602052604090206002015462010000900460ff1615611ffa57fe5b60018781015461201b916001604060020a039091169063ffffffff611cc416565b84546001604060020a0391909116608060020a026000805160206128a4833981519152909116178455808214612071576000818152600387016020526040902054608060020a90046001604060020a031661207d565b85546001604060020a03165b6002880180546fffffffffffffffff00000000000000001916604060020a6001604060020a039384168102919091179182905588548316910490911610156120c157fe5b600094505b5050505092915050565b6000806000806000806000808a60020160109054906101000a900460ff161515156120fa57600080fd5b8a54608060020a90046001604060020a0316600090815260038c0160205260409020600281015490975062010000900460ff168015612144575060028701546301000000900460ff165b151561214f57600080fd5b8a60000160109054906101000a90046001604060020a031660010195508960040160008b60000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a031694508a6003016000876001604060020a03168152602001908152602001600020965060018760020160016101000a81548160ff02191690831515021790555060018760020160026101000a81548160ff02191690831515021790555060018760020160046101000a81548160ff021916908315150217905550428760010160186101000a8154816001604060020a0302191690836001604060020a0316021790555089600301600086815260200190815260200160002060020160029054906101000a900460ff166122965784600101612298565b845b93506122a26125db565b89546fffffffffffffffff00000000000000001916604060020a6001604060020a03928316021767ffffffffffffffff19908116928216929092178a5560018a0180549092169216919091179055600084815260038b016020526040902060020154610100900460ff16151561237057600287018054600160ff1990911681179091558b8101805489546000805160206128a4833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612577565b600084815260038b01602052604090206002015462010000900460ff16151561239557fe5b6002808b0154908801805460ff19166001604060020a039092168711919091179081905560ff161561240e5760018b8101805489546000805160206128a4833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612577565b8392505b600084815260038b016020526040902060010154604060020a90046001604060020a0316151561244757600283019250612412565b60018b810154612468916001604060020a039091169063ffffffff611cc416565b87546000805160206128a483398151915216608060020a6001604060020a039283168102919091178955600085815260038d01602090815260408083205493909304841680835260048f01909152919020548b549194508b92604060020a909104169081106124d357fe5b906000526020600020906002020190505b805461010090046001604060020a0316151561254657600191909101600081815260048b01602052604090205489549192918a91604060020a90046001604060020a031690811061253157fe5b906000526020600020906002020190506124e4565b60028b0180546fffffffffffffffff00000000000000001916604060020a6001604060020a03851602179055600097505b505050505050509392505050565b6000611cbd612592611c84565b6125b360016125a7868863ffffffff611ce216565b9063ffffffff61283316565b9063ffffffff611c8916565b6000806001604060020a038085169084161115611cf257600080fd5b6000806000806000806000806000806126006001600454611ce290919063ffffffff16565b96505b6000878152600660205260409020955061261c86612845565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff16612671578554608060020a90046001604060020a0316612687565b8554608060020a90046001604060020a03166001015b6001604060020a031693505b83851115612743576126ac87600163ffffffff611ce216565b600081815260066020526040902090975095506126c886612845565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff1661271d578554608060020a90046001604060020a0316612733565b8554608060020a90046001604060020a03166001015b6001604060020a03169350612693565b6000848152600387016020526040902060020154610100900460ff161561280f5785546001604060020a03908116600090815260048801602090815260408083205490931680835260038a019091529190206002015490935062010000900460ff1615156127b2576001830192505b50506000818152600385016020908152604080832085845281842080546001604060020a03608060020a82048116875260048b0190955292909420548154604060020a9182900485169d5084169b50909104909116975090612827565b61282087600163ffffffff611ce216565b9650612603565b50505050505050909192565b600082820183811015611cbd57600080fd5b80546000906001604060020a0316151561285e57600080fd5b5080546001604060020a0390811660009081526004830160205260409020541691905056001a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3ffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffa165627a7a723058205ff42212bf6751db389bf5f2f758d4d6b6096775e668e18817cb8e5f922649100029`
 
 // DeployEpochHandler deploys a new Ethereum contract, binding an instance of EpochHandler to it.
 func DeployEpochHandler(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *EpochHandler, error) {
@@ -1037,7 +1037,7 @@ func (_EpochHandler *EpochHandlerCallerSession) CPWITHHOLDING() (*big.Int, error
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerCaller) EROs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1048,8 +1048,8 @@ func (_EpochHandler *EpochHandlerCaller) EROs(opts *bind.CallOpts, arg0 *big.Int
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	ret := new(struct {
 		Timestamp  uint64
@@ -1061,8 +1061,8 @@ func (_EpochHandler *EpochHandlerCaller) EROs(opts *bind.CallOpts, arg0 *big.Int
 		Requestor  common.Address
 		To         common.Address
 		TrieKey    [32]byte
-		TrieValue  [32]byte
 		Hash       [32]byte
+		TrieValue  []byte
 	})
 	out := ret
 	err := _EpochHandler.contract.Call(opts, out, "EROs", arg0)
@@ -1071,7 +1071,7 @@ func (_EpochHandler *EpochHandlerCaller) EROs(opts *bind.CallOpts, arg0 *big.Int
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerSession) EROs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1082,15 +1082,15 @@ func (_EpochHandler *EpochHandlerSession) EROs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _EpochHandler.Contract.EROs(&_EpochHandler.CallOpts, arg0)
 }
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerCallerSession) EROs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1101,15 +1101,15 @@ func (_EpochHandler *EpochHandlerCallerSession) EROs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _EpochHandler.Contract.EROs(&_EpochHandler.CallOpts, arg0)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerCaller) ERUs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1120,8 +1120,8 @@ func (_EpochHandler *EpochHandlerCaller) ERUs(opts *bind.CallOpts, arg0 *big.Int
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	ret := new(struct {
 		Timestamp  uint64
@@ -1133,8 +1133,8 @@ func (_EpochHandler *EpochHandlerCaller) ERUs(opts *bind.CallOpts, arg0 *big.Int
 		Requestor  common.Address
 		To         common.Address
 		TrieKey    [32]byte
-		TrieValue  [32]byte
 		Hash       [32]byte
+		TrieValue  []byte
 	})
 	out := ret
 	err := _EpochHandler.contract.Call(opts, out, "ERUs", arg0)
@@ -1143,7 +1143,7 @@ func (_EpochHandler *EpochHandlerCaller) ERUs(opts *bind.CallOpts, arg0 *big.Int
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerSession) ERUs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1154,15 +1154,15 @@ func (_EpochHandler *EpochHandlerSession) ERUs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _EpochHandler.Contract.ERUs(&_EpochHandler.CallOpts, arg0)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_EpochHandler *EpochHandlerCallerSession) ERUs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -1173,8 +1173,8 @@ func (_EpochHandler *EpochHandlerCallerSession) ERUs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _EpochHandler.Contract.ERUs(&_EpochHandler.CallOpts, arg0)
 }
@@ -1233,7 +1233,7 @@ func (_EpochHandler *EpochHandlerCallerSession) NULLADDRESS() (common.Address, e
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerCaller) ORBs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1257,7 +1257,7 @@ func (_EpochHandler *EpochHandlerCaller) ORBs(opts *bind.CallOpts, arg0 *big.Int
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerSession) ORBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1271,7 +1271,7 @@ func (_EpochHandler *EpochHandlerSession) ORBs(arg0 *big.Int) (struct {
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerCallerSession) ORBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1337,7 +1337,7 @@ func (_EpochHandler *EpochHandlerCallerSession) REQUESTGAS() (*big.Int, error) {
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerCaller) URBs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1361,7 +1361,7 @@ func (_EpochHandler *EpochHandlerCaller) URBs(opts *bind.CallOpts, arg0 *big.Int
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerSession) URBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1375,7 +1375,7 @@ func (_EpochHandler *EpochHandlerSession) URBs(arg0 *big.Int) (struct {
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_EpochHandler *EpochHandlerCallerSession) URBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -1493,7 +1493,7 @@ func (_EpochHandler *EpochHandlerCallerSession) EtherToken() (common.Address, er
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_EpochHandler *EpochHandlerCaller) FirstFilledORENumber(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
@@ -1505,21 +1505,21 @@ func (_EpochHandler *EpochHandlerCaller) FirstFilledORENumber(opts *bind.CallOpt
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_EpochHandler *EpochHandlerSession) FirstFilledORENumber(arg0 *big.Int) (*big.Int, error) {
 	return _EpochHandler.Contract.FirstFilledORENumber(&_EpochHandler.CallOpts, arg0)
 }
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_EpochHandler *EpochHandlerCallerSession) FirstFilledORENumber(arg0 *big.Int) (*big.Int, error) {
 	return _EpochHandler.Contract.FirstFilledORENumber(&_EpochHandler.CallOpts, arg0)
 }
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerCaller) Forks(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -1553,7 +1553,7 @@ func (_EpochHandler *EpochHandlerCaller) Forks(opts *bind.CallOpts, arg0 *big.In
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -1572,7 +1572,7 @@ func (_EpochHandler *EpochHandlerSession) Forks(arg0 *big.Int) (struct {
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerCallerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -1747,7 +1747,7 @@ func (_EpochHandler *EpochHandlerCallerSession) Operator() (common.Address, erro
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_EpochHandler *EpochHandlerCaller) RequestableContracts(opts *bind.CallOpts, arg0 common.Address) (common.Address, error) {
 	var (
 		ret0 = new(common.Address)
@@ -1759,14 +1759,14 @@ func (_EpochHandler *EpochHandlerCaller) RequestableContracts(opts *bind.CallOpt
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_EpochHandler *EpochHandlerSession) RequestableContracts(arg0 common.Address) (common.Address, error) {
 	return _EpochHandler.Contract.RequestableContracts(&_EpochHandler.CallOpts, arg0)
 }
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_EpochHandler *EpochHandlerCallerSession) RequestableContracts(arg0 common.Address) (common.Address, error) {
 	return _EpochHandler.Contract.RequestableContracts(&_EpochHandler.CallOpts, arg0)
 }
@@ -1952,7 +1952,7 @@ type EpochHandlerBlockFinalized struct {
 
 // FilterBlockFinalized is a free log retrieval operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
 //
-// Solidity: e BlockFinalized(forkNumber uint256, blockNumber uint256)
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
 func (_EpochHandler *EpochHandlerFilterer) FilterBlockFinalized(opts *bind.FilterOpts) (*EpochHandlerBlockFinalizedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "BlockFinalized")
@@ -1964,7 +1964,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterBlockFinalized(opts *bind.Filte
 
 // WatchBlockFinalized is a free log subscription operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
 //
-// Solidity: e BlockFinalized(forkNumber uint256, blockNumber uint256)
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
 func (_EpochHandler *EpochHandlerFilterer) WatchBlockFinalized(opts *bind.WatchOpts, sink chan<- *EpochHandlerBlockFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "BlockFinalized")
@@ -2078,7 +2078,7 @@ type EpochHandlerBlockSubmitted struct {
 
 // FilterBlockSubmitted is a free log retrieval operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
 //
-// Solidity: e BlockSubmitted(fork uint256, epochNumber uint256, blockNumber uint256, isRequest bool, userActivated bool)
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterBlockSubmitted(opts *bind.FilterOpts) (*EpochHandlerBlockSubmittedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "BlockSubmitted")
@@ -2090,7 +2090,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterBlockSubmitted(opts *bind.Filte
 
 // WatchBlockSubmitted is a free log subscription operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
 //
-// Solidity: e BlockSubmitted(fork uint256, epochNumber uint256, blockNumber uint256, isRequest bool, userActivated bool)
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchBlockSubmitted(opts *bind.WatchOpts, sink chan<- *EpochHandlerBlockSubmitted) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "BlockSubmitted")
@@ -2197,14 +2197,14 @@ type EpochHandlerERUCreated struct {
 	RequestId *big.Int
 	Requestor common.Address
 	To        common.Address
-	TrieKey   [32]byte
+	TrieKey   []byte
 	TrieValue [32]byte
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterERUCreated is a free log retrieval operation binding the contract event 0xd89c6857ed5778107e858511cdc309642a48c9d1717e813a25156f535acc8d36.
+// FilterERUCreated is a free log retrieval operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
 //
-// Solidity: e ERUCreated(requestId uint256, requestor address, to address, trieKey bytes32, trieValue bytes32)
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
 func (_EpochHandler *EpochHandlerFilterer) FilterERUCreated(opts *bind.FilterOpts) (*EpochHandlerERUCreatedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "ERUCreated")
@@ -2214,9 +2214,9 @@ func (_EpochHandler *EpochHandlerFilterer) FilterERUCreated(opts *bind.FilterOpt
 	return &EpochHandlerERUCreatedIterator{contract: _EpochHandler.contract, event: "ERUCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchERUCreated is a free log subscription operation binding the contract event 0xd89c6857ed5778107e858511cdc309642a48c9d1717e813a25156f535acc8d36.
+// WatchERUCreated is a free log subscription operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
 //
-// Solidity: e ERUCreated(requestId uint256, requestor address, to address, trieKey bytes32, trieValue bytes32)
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
 func (_EpochHandler *EpochHandlerFilterer) WatchERUCreated(opts *bind.WatchOpts, sink chan<- *EpochHandlerERUCreated) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "ERUCreated")
@@ -2327,7 +2327,7 @@ type EpochHandlerEpochFilled struct {
 
 // FilterEpochFilled is a free log retrieval operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
 //
-// Solidity: e EpochFilled(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
 func (_EpochHandler *EpochHandlerFilterer) FilterEpochFilled(opts *bind.FilterOpts) (*EpochHandlerEpochFilledIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "EpochFilled")
@@ -2339,7 +2339,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterEpochFilled(opts *bind.FilterOp
 
 // WatchEpochFilled is a free log subscription operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
 //
-// Solidity: e EpochFilled(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
 func (_EpochHandler *EpochHandlerFilterer) WatchEpochFilled(opts *bind.WatchOpts, sink chan<- *EpochHandlerEpochFilled) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "EpochFilled")
@@ -2450,7 +2450,7 @@ type EpochHandlerEpochFilling struct {
 
 // FilterEpochFilling is a free log retrieval operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
 //
-// Solidity: e EpochFilling(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
 func (_EpochHandler *EpochHandlerFilterer) FilterEpochFilling(opts *bind.FilterOpts) (*EpochHandlerEpochFillingIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "EpochFilling")
@@ -2462,7 +2462,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterEpochFilling(opts *bind.FilterO
 
 // WatchEpochFilling is a free log subscription operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
 //
-// Solidity: e EpochFilling(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
 func (_EpochHandler *EpochHandlerFilterer) WatchEpochFilling(opts *bind.WatchOpts, sink chan<- *EpochHandlerEpochFilling) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "EpochFilling")
@@ -2575,7 +2575,7 @@ type EpochHandlerEpochFinalized struct {
 
 // FilterEpochFinalized is a free log retrieval operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
 //
-// Solidity: e EpochFinalized(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256)
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
 func (_EpochHandler *EpochHandlerFilterer) FilterEpochFinalized(opts *bind.FilterOpts) (*EpochHandlerEpochFinalizedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "EpochFinalized")
@@ -2587,7 +2587,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterEpochFinalized(opts *bind.Filte
 
 // WatchEpochFinalized is a free log subscription operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
 //
-// Solidity: e EpochFinalized(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256)
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
 func (_EpochHandler *EpochHandlerFilterer) WatchEpochFinalized(opts *bind.WatchOpts, sink chan<- *EpochHandlerEpochFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "EpochFinalized")
@@ -2706,7 +2706,7 @@ type EpochHandlerEpochPrepared struct {
 
 // FilterEpochPrepared is a free log retrieval operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
 //
-// Solidity: e EpochPrepared(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool, rebase bool)
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
 func (_EpochHandler *EpochHandlerFilterer) FilterEpochPrepared(opts *bind.FilterOpts) (*EpochHandlerEpochPreparedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "EpochPrepared")
@@ -2718,7 +2718,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterEpochPrepared(opts *bind.Filter
 
 // WatchEpochPrepared is a free log subscription operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
 //
-// Solidity: e EpochPrepared(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool, rebase bool)
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
 func (_EpochHandler *EpochHandlerFilterer) WatchEpochPrepared(opts *bind.WatchOpts, sink chan<- *EpochHandlerEpochPrepared) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "EpochPrepared")
@@ -2836,7 +2836,7 @@ type EpochHandlerEpochRebased struct {
 
 // FilterEpochRebased is a free log retrieval operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
 //
-// Solidity: e EpochRebased(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool)
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterEpochRebased(opts *bind.FilterOpts) (*EpochHandlerEpochRebasedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "EpochRebased")
@@ -2848,7 +2848,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterEpochRebased(opts *bind.FilterO
 
 // WatchEpochRebased is a free log subscription operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
 //
-// Solidity: e EpochRebased(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool)
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchEpochRebased(opts *bind.WatchOpts, sink chan<- *EpochHandlerEpochRebased) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "EpochRebased")
@@ -2960,7 +2960,7 @@ type EpochHandlerForked struct {
 
 // FilterForked is a free log retrieval operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
 //
-// Solidity: e Forked(newFork uint256, epochNumber uint256, forkedBlockNumber uint256)
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
 func (_EpochHandler *EpochHandlerFilterer) FilterForked(opts *bind.FilterOpts) (*EpochHandlerForkedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "Forked")
@@ -2972,7 +2972,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterForked(opts *bind.FilterOpts) (
 
 // WatchForked is a free log subscription operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
 //
-// Solidity: e Forked(newFork uint256, epochNumber uint256, forkedBlockNumber uint256)
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
 func (_EpochHandler *EpochHandlerFilterer) WatchForked(opts *bind.WatchOpts, sink chan<- *EpochHandlerForked) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "Forked")
@@ -3083,7 +3083,7 @@ type EpochHandlerRequestApplied struct {
 
 // FilterRequestApplied is a free log retrieval operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
 //
-// Solidity: e RequestApplied(requestId uint256, userActivated bool)
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterRequestApplied(opts *bind.FilterOpts) (*EpochHandlerRequestAppliedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "RequestApplied")
@@ -3095,7 +3095,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterRequestApplied(opts *bind.Filte
 
 // WatchRequestApplied is a free log subscription operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
 //
-// Solidity: e RequestApplied(requestId uint256, userActivated bool)
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchRequestApplied(opts *bind.WatchOpts, sink chan<- *EpochHandlerRequestApplied) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "RequestApplied")
@@ -3206,7 +3206,7 @@ type EpochHandlerRequestChallenged struct {
 
 // FilterRequestChallenged is a free log retrieval operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
 //
-// Solidity: e RequestChallenged(requestId uint256, userActivated bool)
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterRequestChallenged(opts *bind.FilterOpts) (*EpochHandlerRequestChallengedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "RequestChallenged")
@@ -3218,7 +3218,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterRequestChallenged(opts *bind.Fi
 
 // WatchRequestChallenged is a free log subscription operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
 //
-// Solidity: e RequestChallenged(requestId uint256, userActivated bool)
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchRequestChallenged(opts *bind.WatchOpts, sink chan<- *EpochHandlerRequestChallenged) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "RequestChallenged")
@@ -3327,15 +3327,15 @@ type EpochHandlerRequestCreated struct {
 	To            common.Address
 	WeiAmount     *big.Int
 	TrieKey       [32]byte
-	TrieValue     [32]byte
+	TrieValue     []byte
 	IsExit        bool
 	UserActivated bool
 	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterRequestCreated is a free log retrieval operation binding the contract event 0x3362048aaeec35587d767ff0979557a3eceaa0ec93ab377113afde2d2fc026f0.
+// FilterRequestCreated is a free log retrieval operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
 //
-// Solidity: e RequestCreated(requestId uint256, requestor address, to address, weiAmount uint256, trieKey bytes32, trieValue bytes32, isExit bool, userActivated bool)
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterRequestCreated(opts *bind.FilterOpts) (*EpochHandlerRequestCreatedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "RequestCreated")
@@ -3345,9 +3345,9 @@ func (_EpochHandler *EpochHandlerFilterer) FilterRequestCreated(opts *bind.Filte
 	return &EpochHandlerRequestCreatedIterator{contract: _EpochHandler.contract, event: "RequestCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchRequestCreated is a free log subscription operation binding the contract event 0x3362048aaeec35587d767ff0979557a3eceaa0ec93ab377113afde2d2fc026f0.
+// WatchRequestCreated is a free log subscription operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
 //
-// Solidity: e RequestCreated(requestId uint256, requestor address, to address, weiAmount uint256, trieKey bytes32, trieValue bytes32, isExit bool, userActivated bool)
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchRequestCreated(opts *bind.WatchOpts, sink chan<- *EpochHandlerRequestCreated) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "RequestCreated")
@@ -3458,7 +3458,7 @@ type EpochHandlerRequestFinalized struct {
 
 // FilterRequestFinalized is a free log retrieval operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
 //
-// Solidity: e RequestFinalized(requestId uint256, userActivated bool)
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterRequestFinalized(opts *bind.FilterOpts) (*EpochHandlerRequestFinalizedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "RequestFinalized")
@@ -3470,7 +3470,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterRequestFinalized(opts *bind.Fil
 
 // WatchRequestFinalized is a free log subscription operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
 //
-// Solidity: e RequestFinalized(requestId uint256, userActivated bool)
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchRequestFinalized(opts *bind.WatchOpts, sink chan<- *EpochHandlerRequestFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "RequestFinalized")
@@ -3581,7 +3581,7 @@ type EpochHandlerRequestableContractMapped struct {
 
 // FilterRequestableContractMapped is a free log retrieval operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
 //
-// Solidity: e RequestableContractMapped(contractInRootchain address, contractInChildchain address)
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
 func (_EpochHandler *EpochHandlerFilterer) FilterRequestableContractMapped(opts *bind.FilterOpts) (*EpochHandlerRequestableContractMappedIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "RequestableContractMapped")
@@ -3593,7 +3593,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterRequestableContractMapped(opts 
 
 // WatchRequestableContractMapped is a free log subscription operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
 //
-// Solidity: e RequestableContractMapped(contractInRootchain address, contractInChildchain address)
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
 func (_EpochHandler *EpochHandlerFilterer) WatchRequestableContractMapped(opts *bind.WatchOpts, sink chan<- *EpochHandlerRequestableContractMapped) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "RequestableContractMapped")
@@ -3703,7 +3703,7 @@ type EpochHandlerSessionTimeout struct {
 
 // FilterSessionTimeout is a free log retrieval operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
 //
-// Solidity: e SessionTimeout(userActivated bool)
+// Solidity: event SessionTimeout(bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) FilterSessionTimeout(opts *bind.FilterOpts) (*EpochHandlerSessionTimeoutIterator, error) {
 
 	logs, sub, err := _EpochHandler.contract.FilterLogs(opts, "SessionTimeout")
@@ -3715,7 +3715,7 @@ func (_EpochHandler *EpochHandlerFilterer) FilterSessionTimeout(opts *bind.Filte
 
 // WatchSessionTimeout is a free log subscription operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
 //
-// Solidity: e SessionTimeout(userActivated bool)
+// Solidity: event SessionTimeout(bool userActivated)
 func (_EpochHandler *EpochHandlerFilterer) WatchSessionTimeout(opts *bind.WatchOpts, sink chan<- *EpochHandlerSessionTimeout) (event.Subscription, error) {
 
 	logs, sub, err := _EpochHandler.contract.WatchLogs(opts, "SessionTimeout")
@@ -4233,123 +4233,123 @@ func (_RLPEncode *RLPEncodeTransactorRaw) Transact(opts *bind.TransactOpts, meth
 	return _RLPEncode.Contract.contract.Transact(opts, method, params...)
 }
 
-// RequestableContractIABI is the input ABI used to generate the binding from.
-const RequestableContractIABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+// RequestableIABI is the input ABI used to generate the binding from.
+const RequestableIABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
-// RequestableContractIBin is the compiled bytecode used for deploying new contracts.
-const RequestableContractIBin = `0x`
+// RequestableIBin is the compiled bytecode used for deploying new contracts.
+const RequestableIBin = `0x`
 
-// DeployRequestableContractI deploys a new Ethereum contract, binding an instance of RequestableContractI to it.
-func DeployRequestableContractI(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableContractI, error) {
-	parsed, err := abi.JSON(strings.NewReader(RequestableContractIABI))
+// DeployRequestableI deploys a new Ethereum contract, binding an instance of RequestableI to it.
+func DeployRequestableI(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableI, error) {
+	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableContractIBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableIBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	return address, tx, &RequestableContractI{RequestableContractICaller: RequestableContractICaller{contract: contract}, RequestableContractITransactor: RequestableContractITransactor{contract: contract}, RequestableContractIFilterer: RequestableContractIFilterer{contract: contract}}, nil
+	return address, tx, &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
 }
 
-// RequestableContractI is an auto generated Go binding around an Ethereum contract.
-type RequestableContractI struct {
-	RequestableContractICaller     // Read-only binding to the contract
-	RequestableContractITransactor // Write-only binding to the contract
-	RequestableContractIFilterer   // Log filterer for contract events
+// RequestableI is an auto generated Go binding around an Ethereum contract.
+type RequestableI struct {
+	RequestableICaller     // Read-only binding to the contract
+	RequestableITransactor // Write-only binding to the contract
+	RequestableIFilterer   // Log filterer for contract events
 }
 
-// RequestableContractICaller is an auto generated read-only Go binding around an Ethereum contract.
-type RequestableContractICaller struct {
+// RequestableICaller is an auto generated read-only Go binding around an Ethereum contract.
+type RequestableICaller struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// RequestableContractITransactor is an auto generated write-only Go binding around an Ethereum contract.
-type RequestableContractITransactor struct {
+// RequestableITransactor is an auto generated write-only Go binding around an Ethereum contract.
+type RequestableITransactor struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// RequestableContractIFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type RequestableContractIFilterer struct {
+// RequestableIFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type RequestableIFilterer struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// RequestableContractISession is an auto generated Go binding around an Ethereum contract,
+// RequestableISession is an auto generated Go binding around an Ethereum contract,
 // with pre-set call and transact options.
-type RequestableContractISession struct {
-	Contract     *RequestableContractI // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts         // Call options to use throughout this session
-	TransactOpts bind.TransactOpts     // Transaction auth options to use throughout this session
+type RequestableISession struct {
+	Contract     *RequestableI     // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
 }
 
-// RequestableContractICallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// RequestableICallerSession is an auto generated read-only Go binding around an Ethereum contract,
 // with pre-set call options.
-type RequestableContractICallerSession struct {
-	Contract *RequestableContractICaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts               // Call options to use throughout this session
+type RequestableICallerSession struct {
+	Contract *RequestableICaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts       // Call options to use throughout this session
 }
 
-// RequestableContractITransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// RequestableITransactorSession is an auto generated write-only Go binding around an Ethereum contract,
 // with pre-set transact options.
-type RequestableContractITransactorSession struct {
-	Contract     *RequestableContractITransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts               // Transaction auth options to use throughout this session
+type RequestableITransactorSession struct {
+	Contract     *RequestableITransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts       // Transaction auth options to use throughout this session
 }
 
-// RequestableContractIRaw is an auto generated low-level Go binding around an Ethereum contract.
-type RequestableContractIRaw struct {
-	Contract *RequestableContractI // Generic contract binding to access the raw methods on
+// RequestableIRaw is an auto generated low-level Go binding around an Ethereum contract.
+type RequestableIRaw struct {
+	Contract *RequestableI // Generic contract binding to access the raw methods on
 }
 
-// RequestableContractICallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type RequestableContractICallerRaw struct {
-	Contract *RequestableContractICaller // Generic read-only contract binding to access the raw methods on
+// RequestableICallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type RequestableICallerRaw struct {
+	Contract *RequestableICaller // Generic read-only contract binding to access the raw methods on
 }
 
-// RequestableContractITransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type RequestableContractITransactorRaw struct {
-	Contract *RequestableContractITransactor // Generic write-only contract binding to access the raw methods on
+// RequestableITransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type RequestableITransactorRaw struct {
+	Contract *RequestableITransactor // Generic write-only contract binding to access the raw methods on
 }
 
-// NewRequestableContractI creates a new instance of RequestableContractI, bound to a specific deployed contract.
-func NewRequestableContractI(address common.Address, backend bind.ContractBackend) (*RequestableContractI, error) {
-	contract, err := bindRequestableContractI(address, backend, backend, backend)
+// NewRequestableI creates a new instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableI(address common.Address, backend bind.ContractBackend) (*RequestableI, error) {
+	contract, err := bindRequestableI(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
 	}
-	return &RequestableContractI{RequestableContractICaller: RequestableContractICaller{contract: contract}, RequestableContractITransactor: RequestableContractITransactor{contract: contract}, RequestableContractIFilterer: RequestableContractIFilterer{contract: contract}}, nil
+	return &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
 }
 
-// NewRequestableContractICaller creates a new read-only instance of RequestableContractI, bound to a specific deployed contract.
-func NewRequestableContractICaller(address common.Address, caller bind.ContractCaller) (*RequestableContractICaller, error) {
-	contract, err := bindRequestableContractI(address, caller, nil, nil)
+// NewRequestableICaller creates a new read-only instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableICaller(address common.Address, caller bind.ContractCaller) (*RequestableICaller, error) {
+	contract, err := bindRequestableI(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &RequestableContractICaller{contract: contract}, nil
+	return &RequestableICaller{contract: contract}, nil
 }
 
-// NewRequestableContractITransactor creates a new write-only instance of RequestableContractI, bound to a specific deployed contract.
-func NewRequestableContractITransactor(address common.Address, transactor bind.ContractTransactor) (*RequestableContractITransactor, error) {
-	contract, err := bindRequestableContractI(address, nil, transactor, nil)
+// NewRequestableITransactor creates a new write-only instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableITransactor(address common.Address, transactor bind.ContractTransactor) (*RequestableITransactor, error) {
+	contract, err := bindRequestableI(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &RequestableContractITransactor{contract: contract}, nil
+	return &RequestableITransactor{contract: contract}, nil
 }
 
-// NewRequestableContractIFilterer creates a new log filterer instance of RequestableContractI, bound to a specific deployed contract.
-func NewRequestableContractIFilterer(address common.Address, filterer bind.ContractFilterer) (*RequestableContractIFilterer, error) {
-	contract, err := bindRequestableContractI(address, nil, nil, filterer)
+// NewRequestableIFilterer creates a new log filterer instance of RequestableI, bound to a specific deployed contract.
+func NewRequestableIFilterer(address common.Address, filterer bind.ContractFilterer) (*RequestableIFilterer, error) {
+	contract, err := bindRequestableI(address, nil, nil, filterer)
 	if err != nil {
 		return nil, err
 	}
-	return &RequestableContractIFilterer{contract: contract}, nil
+	return &RequestableIFilterer{contract: contract}, nil
 }
 
-// bindRequestableContractI binds a generic wrapper to an already deployed contract.
-func bindRequestableContractI(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(RequestableContractIABI))
+// bindRequestableI binds a generic wrapper to an already deployed contract.
+func bindRequestableI(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
 	if err != nil {
 		return nil, err
 	}
@@ -4360,87 +4360,87 @@ func bindRequestableContractI(address common.Address, caller bind.ContractCaller
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_RequestableContractI *RequestableContractIRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _RequestableContractI.Contract.RequestableContractICaller.contract.Call(opts, result, method, params...)
+func (_RequestableI *RequestableIRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RequestableI.Contract.RequestableICaller.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_RequestableContractI *RequestableContractIRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.RequestableContractITransactor.contract.Transfer(opts)
+func (_RequestableI *RequestableIRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RequestableI.Contract.RequestableITransactor.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_RequestableContractI *RequestableContractIRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.RequestableContractITransactor.contract.Transact(opts, method, params...)
+func (_RequestableI *RequestableIRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RequestableI.Contract.RequestableITransactor.contract.Transact(opts, method, params...)
 }
 
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_RequestableContractI *RequestableContractICallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _RequestableContractI.Contract.contract.Call(opts, result, method, params...)
+func (_RequestableI *RequestableICallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RequestableI.Contract.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_RequestableContractI *RequestableContractITransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.contract.Transfer(opts)
+func (_RequestableI *RequestableITransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RequestableI.Contract.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_RequestableContractI *RequestableContractITransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.contract.Transact(opts, method, params...)
+func (_RequestableI *RequestableITransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RequestableI.Contract.contract.Transact(opts, method, params...)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractITransactor) ApplyRequestInChildChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.contract.Transact(opts, "applyRequestInChildChain", isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactor) ApplyRequestInChildChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.contract.Transact(opts, "applyRequestInChildChain", isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractISession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.ApplyRequestInChildChain(&_RequestableContractI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableISession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInChildChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0xe904e3d9.
+// ApplyRequestInChildChain is a paid mutator transaction binding the contract method 0x141ecf46.
 //
-// Solidity: function applyRequestInChildChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractITransactorSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.ApplyRequestInChildChain(&_RequestableContractI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInChildChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactorSession) ApplyRequestInChildChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInChildChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractITransactor) ApplyRequestInRootChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.contract.Transact(opts, "applyRequestInRootChain", isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactor) ApplyRequestInRootChain(opts *bind.TransactOpts, isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.contract.Transact(opts, "applyRequestInRootChain", isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractISession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.ApplyRequestInRootChain(&_RequestableContractI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableISession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInRootChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
-// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xd9afd3a9.
+// ApplyRequestInRootChain is a paid mutator transaction binding the contract method 0xa9f79308.
 //
-// Solidity: function applyRequestInRootChain(isExit bool, requestId uint256, requestor address, trieKey bytes32, trieValue bytes32) returns(success bool)
-func (_RequestableContractI *RequestableContractITransactorSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue [32]byte) (*types.Transaction, error) {
-	return _RequestableContractI.Contract.ApplyRequestInRootChain(&_RequestableContractI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
+// Solidity: function applyRequestInRootChain(bool isExit, uint256 requestId, address requestor, bytes32 trieKey, bytes trieValue) returns(bool success)
+func (_RequestableI *RequestableITransactorSession) ApplyRequestInRootChain(isExit bool, requestId *big.Int, requestor common.Address, trieKey [32]byte, trieValue []byte) (*types.Transaction, error) {
+	return _RequestableI.Contract.ApplyRequestInRootChain(&_RequestableI.TransactOpts, isExit, requestId, requestor, trieKey, trieValue)
 }
 
 // RootChainEventABI is the input ABI used to generate the binding from.
-const RootChainEventABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
+const RootChainEventABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
 
 // RootChainEventBin is the compiled bytecode used for deploying new contracts.
-const RootChainEventBin = `0x6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a723058203bd62df15586ff81e5589250eb46d1c658c3c9bcd0add2013004bc6688ab67df0029`
+const RootChainEventBin = `0x6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820a946d4df1370616d18bf1eabb1001b8f4b3a001e8cc51fb7503e3d6710dbdedc0029`
 
 // DeployRootChainEvent deploys a new Ethereum contract, binding an instance of RootChainEvent to it.
 func DeployRootChainEvent(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RootChainEvent, error) {
@@ -4673,7 +4673,7 @@ type RootChainEventBlockFinalized struct {
 
 // FilterBlockFinalized is a free log retrieval operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
 //
-// Solidity: e BlockFinalized(forkNumber uint256, blockNumber uint256)
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
 func (_RootChainEvent *RootChainEventFilterer) FilterBlockFinalized(opts *bind.FilterOpts) (*RootChainEventBlockFinalizedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "BlockFinalized")
@@ -4685,7 +4685,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterBlockFinalized(opts *bind.F
 
 // WatchBlockFinalized is a free log subscription operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
 //
-// Solidity: e BlockFinalized(forkNumber uint256, blockNumber uint256)
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
 func (_RootChainEvent *RootChainEventFilterer) WatchBlockFinalized(opts *bind.WatchOpts, sink chan<- *RootChainEventBlockFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "BlockFinalized")
@@ -4799,7 +4799,7 @@ type RootChainEventBlockSubmitted struct {
 
 // FilterBlockSubmitted is a free log retrieval operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
 //
-// Solidity: e BlockSubmitted(fork uint256, epochNumber uint256, blockNumber uint256, isRequest bool, userActivated bool)
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterBlockSubmitted(opts *bind.FilterOpts) (*RootChainEventBlockSubmittedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "BlockSubmitted")
@@ -4811,7 +4811,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterBlockSubmitted(opts *bind.F
 
 // WatchBlockSubmitted is a free log subscription operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
 //
-// Solidity: e BlockSubmitted(fork uint256, epochNumber uint256, blockNumber uint256, isRequest bool, userActivated bool)
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchBlockSubmitted(opts *bind.WatchOpts, sink chan<- *RootChainEventBlockSubmitted) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "BlockSubmitted")
@@ -4918,14 +4918,14 @@ type RootChainEventERUCreated struct {
 	RequestId *big.Int
 	Requestor common.Address
 	To        common.Address
-	TrieKey   [32]byte
+	TrieKey   []byte
 	TrieValue [32]byte
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterERUCreated is a free log retrieval operation binding the contract event 0xd89c6857ed5778107e858511cdc309642a48c9d1717e813a25156f535acc8d36.
+// FilterERUCreated is a free log retrieval operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
 //
-// Solidity: e ERUCreated(requestId uint256, requestor address, to address, trieKey bytes32, trieValue bytes32)
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
 func (_RootChainEvent *RootChainEventFilterer) FilterERUCreated(opts *bind.FilterOpts) (*RootChainEventERUCreatedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "ERUCreated")
@@ -4935,9 +4935,9 @@ func (_RootChainEvent *RootChainEventFilterer) FilterERUCreated(opts *bind.Filte
 	return &RootChainEventERUCreatedIterator{contract: _RootChainEvent.contract, event: "ERUCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchERUCreated is a free log subscription operation binding the contract event 0xd89c6857ed5778107e858511cdc309642a48c9d1717e813a25156f535acc8d36.
+// WatchERUCreated is a free log subscription operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
 //
-// Solidity: e ERUCreated(requestId uint256, requestor address, to address, trieKey bytes32, trieValue bytes32)
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
 func (_RootChainEvent *RootChainEventFilterer) WatchERUCreated(opts *bind.WatchOpts, sink chan<- *RootChainEventERUCreated) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "ERUCreated")
@@ -5048,7 +5048,7 @@ type RootChainEventEpochFilled struct {
 
 // FilterEpochFilled is a free log retrieval operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
 //
-// Solidity: e EpochFilled(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
 func (_RootChainEvent *RootChainEventFilterer) FilterEpochFilled(opts *bind.FilterOpts) (*RootChainEventEpochFilledIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "EpochFilled")
@@ -5060,7 +5060,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterEpochFilled(opts *bind.Filt
 
 // WatchEpochFilled is a free log subscription operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
 //
-// Solidity: e EpochFilled(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
 func (_RootChainEvent *RootChainEventFilterer) WatchEpochFilled(opts *bind.WatchOpts, sink chan<- *RootChainEventEpochFilled) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "EpochFilled")
@@ -5171,7 +5171,7 @@ type RootChainEventEpochFilling struct {
 
 // FilterEpochFilling is a free log retrieval operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
 //
-// Solidity: e EpochFilling(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
 func (_RootChainEvent *RootChainEventFilterer) FilterEpochFilling(opts *bind.FilterOpts) (*RootChainEventEpochFillingIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "EpochFilling")
@@ -5183,7 +5183,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterEpochFilling(opts *bind.Fil
 
 // WatchEpochFilling is a free log subscription operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
 //
-// Solidity: e EpochFilling(forkNumber uint256, epochNumber uint256)
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
 func (_RootChainEvent *RootChainEventFilterer) WatchEpochFilling(opts *bind.WatchOpts, sink chan<- *RootChainEventEpochFilling) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "EpochFilling")
@@ -5296,7 +5296,7 @@ type RootChainEventEpochFinalized struct {
 
 // FilterEpochFinalized is a free log retrieval operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
 //
-// Solidity: e EpochFinalized(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256)
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
 func (_RootChainEvent *RootChainEventFilterer) FilterEpochFinalized(opts *bind.FilterOpts) (*RootChainEventEpochFinalizedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "EpochFinalized")
@@ -5308,7 +5308,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterEpochFinalized(opts *bind.F
 
 // WatchEpochFinalized is a free log subscription operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
 //
-// Solidity: e EpochFinalized(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256)
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
 func (_RootChainEvent *RootChainEventFilterer) WatchEpochFinalized(opts *bind.WatchOpts, sink chan<- *RootChainEventEpochFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "EpochFinalized")
@@ -5427,7 +5427,7 @@ type RootChainEventEpochPrepared struct {
 
 // FilterEpochPrepared is a free log retrieval operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
 //
-// Solidity: e EpochPrepared(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool, rebase bool)
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
 func (_RootChainEvent *RootChainEventFilterer) FilterEpochPrepared(opts *bind.FilterOpts) (*RootChainEventEpochPreparedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "EpochPrepared")
@@ -5439,7 +5439,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterEpochPrepared(opts *bind.Fi
 
 // WatchEpochPrepared is a free log subscription operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
 //
-// Solidity: e EpochPrepared(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool, rebase bool)
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
 func (_RootChainEvent *RootChainEventFilterer) WatchEpochPrepared(opts *bind.WatchOpts, sink chan<- *RootChainEventEpochPrepared) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "EpochPrepared")
@@ -5557,7 +5557,7 @@ type RootChainEventEpochRebased struct {
 
 // FilterEpochRebased is a free log retrieval operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
 //
-// Solidity: e EpochRebased(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool)
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterEpochRebased(opts *bind.FilterOpts) (*RootChainEventEpochRebasedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "EpochRebased")
@@ -5569,7 +5569,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterEpochRebased(opts *bind.Fil
 
 // WatchEpochRebased is a free log subscription operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
 //
-// Solidity: e EpochRebased(forkNumber uint256, epochNumber uint256, startBlockNumber uint256, endBlockNumber uint256, requestStart uint256, requestEnd uint256, epochIsEmpty bool, isRequest bool, userActivated bool)
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchEpochRebased(opts *bind.WatchOpts, sink chan<- *RootChainEventEpochRebased) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "EpochRebased")
@@ -5681,7 +5681,7 @@ type RootChainEventForked struct {
 
 // FilterForked is a free log retrieval operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
 //
-// Solidity: e Forked(newFork uint256, epochNumber uint256, forkedBlockNumber uint256)
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
 func (_RootChainEvent *RootChainEventFilterer) FilterForked(opts *bind.FilterOpts) (*RootChainEventForkedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "Forked")
@@ -5693,7 +5693,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterForked(opts *bind.FilterOpt
 
 // WatchForked is a free log subscription operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
 //
-// Solidity: e Forked(newFork uint256, epochNumber uint256, forkedBlockNumber uint256)
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
 func (_RootChainEvent *RootChainEventFilterer) WatchForked(opts *bind.WatchOpts, sink chan<- *RootChainEventForked) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "Forked")
@@ -5804,7 +5804,7 @@ type RootChainEventRequestApplied struct {
 
 // FilterRequestApplied is a free log retrieval operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
 //
-// Solidity: e RequestApplied(requestId uint256, userActivated bool)
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterRequestApplied(opts *bind.FilterOpts) (*RootChainEventRequestAppliedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "RequestApplied")
@@ -5816,7 +5816,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterRequestApplied(opts *bind.F
 
 // WatchRequestApplied is a free log subscription operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
 //
-// Solidity: e RequestApplied(requestId uint256, userActivated bool)
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchRequestApplied(opts *bind.WatchOpts, sink chan<- *RootChainEventRequestApplied) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "RequestApplied")
@@ -5927,7 +5927,7 @@ type RootChainEventRequestChallenged struct {
 
 // FilterRequestChallenged is a free log retrieval operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
 //
-// Solidity: e RequestChallenged(requestId uint256, userActivated bool)
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterRequestChallenged(opts *bind.FilterOpts) (*RootChainEventRequestChallengedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "RequestChallenged")
@@ -5939,7 +5939,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterRequestChallenged(opts *bin
 
 // WatchRequestChallenged is a free log subscription operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
 //
-// Solidity: e RequestChallenged(requestId uint256, userActivated bool)
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchRequestChallenged(opts *bind.WatchOpts, sink chan<- *RootChainEventRequestChallenged) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "RequestChallenged")
@@ -6048,15 +6048,15 @@ type RootChainEventRequestCreated struct {
 	To            common.Address
 	WeiAmount     *big.Int
 	TrieKey       [32]byte
-	TrieValue     [32]byte
+	TrieValue     []byte
 	IsExit        bool
 	UserActivated bool
 	Raw           types.Log // Blockchain specific contextual infos
 }
 
-// FilterRequestCreated is a free log retrieval operation binding the contract event 0x3362048aaeec35587d767ff0979557a3eceaa0ec93ab377113afde2d2fc026f0.
+// FilterRequestCreated is a free log retrieval operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
 //
-// Solidity: e RequestCreated(requestId uint256, requestor address, to address, weiAmount uint256, trieKey bytes32, trieValue bytes32, isExit bool, userActivated bool)
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterRequestCreated(opts *bind.FilterOpts) (*RootChainEventRequestCreatedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "RequestCreated")
@@ -6066,9 +6066,9 @@ func (_RootChainEvent *RootChainEventFilterer) FilterRequestCreated(opts *bind.F
 	return &RootChainEventRequestCreatedIterator{contract: _RootChainEvent.contract, event: "RequestCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchRequestCreated is a free log subscription operation binding the contract event 0x3362048aaeec35587d767ff0979557a3eceaa0ec93ab377113afde2d2fc026f0.
+// WatchRequestCreated is a free log subscription operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
 //
-// Solidity: e RequestCreated(requestId uint256, requestor address, to address, weiAmount uint256, trieKey bytes32, trieValue bytes32, isExit bool, userActivated bool)
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchRequestCreated(opts *bind.WatchOpts, sink chan<- *RootChainEventRequestCreated) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "RequestCreated")
@@ -6179,7 +6179,7 @@ type RootChainEventRequestFinalized struct {
 
 // FilterRequestFinalized is a free log retrieval operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
 //
-// Solidity: e RequestFinalized(requestId uint256, userActivated bool)
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterRequestFinalized(opts *bind.FilterOpts) (*RootChainEventRequestFinalizedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "RequestFinalized")
@@ -6191,7 +6191,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterRequestFinalized(opts *bind
 
 // WatchRequestFinalized is a free log subscription operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
 //
-// Solidity: e RequestFinalized(requestId uint256, userActivated bool)
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchRequestFinalized(opts *bind.WatchOpts, sink chan<- *RootChainEventRequestFinalized) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "RequestFinalized")
@@ -6302,7 +6302,7 @@ type RootChainEventRequestableContractMapped struct {
 
 // FilterRequestableContractMapped is a free log retrieval operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
 //
-// Solidity: e RequestableContractMapped(contractInRootchain address, contractInChildchain address)
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
 func (_RootChainEvent *RootChainEventFilterer) FilterRequestableContractMapped(opts *bind.FilterOpts) (*RootChainEventRequestableContractMappedIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "RequestableContractMapped")
@@ -6314,7 +6314,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterRequestableContractMapped(o
 
 // WatchRequestableContractMapped is a free log subscription operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
 //
-// Solidity: e RequestableContractMapped(contractInRootchain address, contractInChildchain address)
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
 func (_RootChainEvent *RootChainEventFilterer) WatchRequestableContractMapped(opts *bind.WatchOpts, sink chan<- *RootChainEventRequestableContractMapped) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "RequestableContractMapped")
@@ -6424,7 +6424,7 @@ type RootChainEventSessionTimeout struct {
 
 // FilterSessionTimeout is a free log retrieval operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
 //
-// Solidity: e SessionTimeout(userActivated bool)
+// Solidity: event SessionTimeout(bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) FilterSessionTimeout(opts *bind.FilterOpts) (*RootChainEventSessionTimeoutIterator, error) {
 
 	logs, sub, err := _RootChainEvent.contract.FilterLogs(opts, "SessionTimeout")
@@ -6436,7 +6436,7 @@ func (_RootChainEvent *RootChainEventFilterer) FilterSessionTimeout(opts *bind.F
 
 // WatchSessionTimeout is a free log subscription operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
 //
-// Solidity: e SessionTimeout(userActivated bool)
+// Solidity: event SessionTimeout(bool userActivated)
 func (_RootChainEvent *RootChainEventFilterer) WatchSessionTimeout(opts *bind.WatchOpts, sink chan<- *RootChainEventSessionTimeout) (event.Subscription, error) {
 
 	logs, sub, err := _RootChainEvent.contract.WatchLogs(opts, "SessionTimeout")
@@ -6472,10 +6472,10 @@ func (_RootChainEvent *RootChainEventFilterer) WatchSessionTimeout(opts *bind.Wa
 }
 
 // RootChainStorageABI is the input ABI used to generate the binding from.
-const RootChainStorageABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const RootChainStorageABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // RootChainStorageBin is the compiled bytecode used for deploying new contracts.
-const RootChainStorageBin = `0x608060405234801561001057600080fd5b50610850806100206000396000f30060806040526004361061017f5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed811461018457806308c4fff0146101ab578063164bc2ae146101c0578063183d2d1c146101d5578063192adc5b146101ea5780631f261d59146101ff57806323691566146102145780634ba3a12614610229578063570ca735146102b057806365d724bc146102e157806372ecb9a8146102f65780637b929c271461030e5780638155717d146103375780638b5172d01461034c5780638eb288ca1461036157806394be3aa514610184578063ab96da2d14610376578063b17fa6e91461038b578063b2ae9ba814610184578063b443f3cc146103a0578063b8066bcb14610436578063c0e860641461044b578063c2bc88fa146104af578063d691acd814610184578063da0185f8146104c4578063de0ce17d146104e5578063e7b88b80146104fa578063ea7f22a81461050f578063f4f31de414610527578063fb788a271461053f575b600080fd5b34801561019057600080fd5b50610199610554565b60408051918252519081900360200190f35b3480156101b757600080fd5b5061019961055e565b3480156101cc57600080fd5b50610199610563565b3480156101e157600080fd5b50610199610569565b3480156101f657600080fd5b5061019961056f565b34801561020b57600080fd5b50610199610579565b34801561022057600080fd5b5061019961057f565b34801561023557600080fd5b50610241600435610585565b6040805167ffffffffffffffff9c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b3480156102bc57600080fd5b506102c561061f565b60408051600160a060020a039092168252519081900360200190f35b3480156102ed57600080fd5b50610199610633565b34801561030257600080fd5b50610199600435610639565b34801561031a57600080fd5b5061032361064b565b604080519115158252519081900360200190f35b34801561034357600080fd5b50610199610654565b34801561035857600080fd5b50610199610659565b34801561036d57600080fd5b50610199610663565b34801561038257600080fd5b5061019961066a565b34801561039757600080fd5b50610199610670565b3480156103ac57600080fd5b506103b8600435610675565b6040805167ffffffffffffffff909c168c5299151560208c01529715158a8a015295151560608a015293151560808901526fffffffffffffffffffffffffffffffff90921660a0880152600160a060020a0390811660c08801521660e086015261010085015261012084015261014083015251908190036101600190f35b34801561044257600080fd5b506102c561073d565b34801561045757600080fd5b5061046360043561074c565b60408051961515875267ffffffffffffffff95861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b3480156104bb57600080fd5b506101996107ce565b3480156104d057600080fd5b506102c5600160a060020a03600435166107d3565b3480156104f157600080fd5b506102c56107ee565b34801561050657600080fd5b506102c56107f3565b34801561051b57600080fd5b50610463600435610802565b34801561053357600080fd5b506103b8600435610810565b34801561054b57600080fd5b5061019961081e565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b60066020526000908152604090208054600182015460029092015467ffffffffffffffff808316936801000000000000000080850483169470010000000000000000000000000000000080820485169578010000000000000000000000000000000000000000000000009283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b6000546101009004600160a060020a031681565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b600780548290811061068357fe5b600091825260209091206006909102018054600182015460028301546003840154600485015460059095015467ffffffffffffffff8516965068010000000000000000850460ff90811696690100000000000000000087048216966a010000000000000000000081048316966b0100000000000000000000008204909316956c010000000000000000000000009091046fffffffffffffffffffffffffffffffff1694600160a060020a039384169493909116929091908b565b600254600160a060020a031681565b600a80548290811061075a57fe5b60009182526020909120600290910201805460019091015460ff8216925067ffffffffffffffff61010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03680100000000000000009091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b600154600160a060020a031681565b600980548290811061075a57fe5b600880548290811061068357fe5b600d54815600a165627a7a72305820da8d5d714d8fe221ec96a5d3ee7fe1a7aacf264dbaf28c0ac1f3372a59c2df6e0029`
+const RootChainStorageBin = `0x608060405234801561001057600080fd5b50610955806100206000396000f30060806040526004361061017f5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed811461018457806308c4fff0146101ab578063164bc2ae146101c0578063183d2d1c146101d5578063192adc5b146101ea5780631f261d59146101ff57806323691566146102145780634ba3a12614610229578063570ca735146102b057806365d724bc146102e157806372ecb9a8146102f65780637b929c271461030e5780638155717d146103375780638b5172d01461034c5780638eb288ca1461036157806394be3aa514610184578063ab96da2d14610376578063b17fa6e91461038b578063b2ae9ba814610184578063b443f3cc146103a0578063b8066bcb146104b4578063c0e86064146104c9578063c2bc88fa1461052d578063d691acd814610184578063da0185f814610542578063de0ce17d14610563578063e7b88b8014610578578063ea7f22a81461058d578063f4f31de4146105a5578063fb788a27146105bd575b600080fd5b34801561019057600080fd5b506101996105d2565b60408051918252519081900360200190f35b3480156101b757600080fd5b506101996105dc565b3480156101cc57600080fd5b506101996105e1565b3480156101e157600080fd5b506101996105e7565b3480156101f657600080fd5b506101996105ed565b34801561020b57600080fd5b506101996105f7565b34801561022057600080fd5b506101996105fd565b34801561023557600080fd5b50610241600435610603565b6040805167ffffffffffffffff9c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b3480156102bc57600080fd5b506102c561069d565b60408051600160a060020a039092168252519081900360200190f35b3480156102ed57600080fd5b506101996106b1565b34801561030257600080fd5b506101996004356106b7565b34801561031a57600080fd5b506103236106c9565b604080519115158252519081900360200190f35b34801561034357600080fd5b506101996106d2565b34801561035857600080fd5b506101996106d7565b34801561036d57600080fd5b506101996106e1565b34801561038257600080fd5b506101996106e8565b34801561039757600080fd5b506101996106ee565b3480156103ac57600080fd5b506103b86004356106f3565b6040805167ffffffffffffffff8d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526fffffffffffffffffffffffffffffffff881660a0820152600160a060020a0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b8381101561046f578181015183820152602001610457565b50505050905090810190601f16801561049c5780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b3480156104c057600080fd5b506102c5610842565b3480156104d557600080fd5b506104e1600435610851565b60408051961515875267ffffffffffffffff95861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b34801561053957600080fd5b506101996108d3565b34801561054e57600080fd5b506102c5600160a060020a03600435166108d8565b34801561056f57600080fd5b506102c56108f3565b34801561058457600080fd5b506102c56108f8565b34801561059957600080fd5b506104e1600435610907565b3480156105b157600080fd5b506103b8600435610915565b3480156105c957600080fd5b50610199610923565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b60066020526000908152604090208054600182015460029092015467ffffffffffffffff808316936801000000000000000080850483169470010000000000000000000000000000000080820485169578010000000000000000000000000000000000000000000000009283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b6000546101009004600160a060020a031681565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b600780548290811061070157fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b0190955284875267ffffffffffffffff88169a5068010000000000000000880460ff9081169a69010000000000000000008a0482169a6a01000000000000000000008b0483169a6b0100000000000000000000008104909316996c010000000000000000000000009093046fffffffffffffffffffffffffffffffff1698600160a060020a03908116989716969093918301828280156108385780601f1061080d57610100808354040283529160200191610838565b820191906000526020600020905b81548152906001019060200180831161081b57829003601f168201915b505050505090508b565b600254600160a060020a031681565b600a80548290811061085f57fe5b60009182526020909120600290910201805460019091015460ff8216925067ffffffffffffffff61010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03680100000000000000009091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b600154600160a060020a031681565b600980548290811061085f57fe5b600880548290811061070157fe5b600d54815600a165627a7a723058204b9f4c672c65116cd5c0f5573240855dd95f385f94e5bb1a0ff15add4eb2d6170029`
 
 // DeployRootChainStorage deploys a new Ethereum contract, binding an instance of RootChainStorage to it.
 func DeployRootChainStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RootChainStorage, error) {
@@ -6868,7 +6868,7 @@ func (_RootChainStorage *RootChainStorageCallerSession) CPWITHHOLDING() (*big.In
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageCaller) EROs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -6879,8 +6879,8 @@ func (_RootChainStorage *RootChainStorageCaller) EROs(opts *bind.CallOpts, arg0 
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	ret := new(struct {
 		Timestamp  uint64
@@ -6892,8 +6892,8 @@ func (_RootChainStorage *RootChainStorageCaller) EROs(opts *bind.CallOpts, arg0 
 		Requestor  common.Address
 		To         common.Address
 		TrieKey    [32]byte
-		TrieValue  [32]byte
 		Hash       [32]byte
+		TrieValue  []byte
 	})
 	out := ret
 	err := _RootChainStorage.contract.Call(opts, out, "EROs", arg0)
@@ -6902,7 +6902,7 @@ func (_RootChainStorage *RootChainStorageCaller) EROs(opts *bind.CallOpts, arg0 
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageSession) EROs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -6913,15 +6913,15 @@ func (_RootChainStorage *RootChainStorageSession) EROs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _RootChainStorage.Contract.EROs(&_RootChainStorage.CallOpts, arg0)
 }
 
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
-// Solidity: function EROs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageCallerSession) EROs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -6932,15 +6932,15 @@ func (_RootChainStorage *RootChainStorageCallerSession) EROs(arg0 *big.Int) (str
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _RootChainStorage.Contract.EROs(&_RootChainStorage.CallOpts, arg0)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageCaller) ERUs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -6951,8 +6951,8 @@ func (_RootChainStorage *RootChainStorageCaller) ERUs(opts *bind.CallOpts, arg0 
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	ret := new(struct {
 		Timestamp  uint64
@@ -6964,8 +6964,8 @@ func (_RootChainStorage *RootChainStorageCaller) ERUs(opts *bind.CallOpts, arg0 
 		Requestor  common.Address
 		To         common.Address
 		TrieKey    [32]byte
-		TrieValue  [32]byte
 		Hash       [32]byte
+		TrieValue  []byte
 	})
 	out := ret
 	err := _RootChainStorage.contract.Call(opts, out, "ERUs", arg0)
@@ -6974,7 +6974,7 @@ func (_RootChainStorage *RootChainStorageCaller) ERUs(opts *bind.CallOpts, arg0 
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageSession) ERUs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -6985,15 +6985,15 @@ func (_RootChainStorage *RootChainStorageSession) ERUs(arg0 *big.Int) (struct {
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _RootChainStorage.Contract.ERUs(&_RootChainStorage.CallOpts, arg0)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
 //
-// Solidity: function ERUs( uint256) constant returns(timestamp uint64, isExit bool, isTransfer bool, finalized bool, challenged bool, value uint128, requestor address, to address, trieKey bytes32, trieValue bytes32, hash bytes32)
+// Solidity: function ERUs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
 func (_RootChainStorage *RootChainStorageCallerSession) ERUs(arg0 *big.Int) (struct {
 	Timestamp  uint64
 	IsExit     bool
@@ -7004,8 +7004,8 @@ func (_RootChainStorage *RootChainStorageCallerSession) ERUs(arg0 *big.Int) (str
 	Requestor  common.Address
 	To         common.Address
 	TrieKey    [32]byte
-	TrieValue  [32]byte
 	Hash       [32]byte
+	TrieValue  []byte
 }, error) {
 	return _RootChainStorage.Contract.ERUs(&_RootChainStorage.CallOpts, arg0)
 }
@@ -7064,7 +7064,7 @@ func (_RootChainStorage *RootChainStorageCallerSession) NULLADDRESS() (common.Ad
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageCaller) ORBs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7088,7 +7088,7 @@ func (_RootChainStorage *RootChainStorageCaller) ORBs(opts *bind.CallOpts, arg0 
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageSession) ORBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7102,7 +7102,7 @@ func (_RootChainStorage *RootChainStorageSession) ORBs(arg0 *big.Int) (struct {
 
 // ORBs is a free data retrieval call binding the contract method 0xea7f22a8.
 //
-// Solidity: function ORBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function ORBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageCallerSession) ORBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7168,7 +7168,7 @@ func (_RootChainStorage *RootChainStorageCallerSession) REQUESTGAS() (*big.Int, 
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageCaller) URBs(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7192,7 +7192,7 @@ func (_RootChainStorage *RootChainStorageCaller) URBs(opts *bind.CallOpts, arg0 
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageSession) URBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7206,7 +7206,7 @@ func (_RootChainStorage *RootChainStorageSession) URBs(arg0 *big.Int) (struct {
 
 // URBs is a free data retrieval call binding the contract method 0xc0e86064.
 //
-// Solidity: function URBs( uint256) constant returns(submitted bool, numEnter uint64, epochNumber uint64, requestStart uint64, requestEnd uint64, trie address)
+// Solidity: function URBs(uint256 ) constant returns(bool submitted, uint64 numEnter, uint64 epochNumber, uint64 requestStart, uint64 requestEnd, address trie)
 func (_RootChainStorage *RootChainStorageCallerSession) URBs(arg0 *big.Int) (struct {
 	Submitted    bool
 	NumEnter     uint64
@@ -7324,7 +7324,7 @@ func (_RootChainStorage *RootChainStorageCallerSession) EtherToken() (common.Add
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_RootChainStorage *RootChainStorageCaller) FirstFilledORENumber(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
@@ -7336,21 +7336,21 @@ func (_RootChainStorage *RootChainStorageCaller) FirstFilledORENumber(opts *bind
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_RootChainStorage *RootChainStorageSession) FirstFilledORENumber(arg0 *big.Int) (*big.Int, error) {
 	return _RootChainStorage.Contract.FirstFilledORENumber(&_RootChainStorage.CallOpts, arg0)
 }
 
 // FirstFilledORENumber is a free data retrieval call binding the contract method 0x72ecb9a8.
 //
-// Solidity: function firstFilledORENumber( uint256) constant returns(uint256)
+// Solidity: function firstFilledORENumber(uint256 ) constant returns(uint256)
 func (_RootChainStorage *RootChainStorageCallerSession) FirstFilledORENumber(arg0 *big.Int) (*big.Int, error) {
 	return _RootChainStorage.Contract.FirstFilledORENumber(&_RootChainStorage.CallOpts, arg0)
 }
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageCaller) Forks(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -7384,7 +7384,7 @@ func (_RootChainStorage *RootChainStorageCaller) Forks(opts *bind.CallOpts, arg0
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -7403,7 +7403,7 @@ func (_RootChainStorage *RootChainStorageSession) Forks(arg0 *big.Int) (struct {
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks( uint256) constant returns(forkedBlock uint64, firstEpoch uint64, lastEpoch uint64, firstBlock uint64, lastBlock uint64, lastFinalizedBlock uint64, timestamp uint64, firstEnterEpoch uint64, lastEnterEpoch uint64, nextBlockToRebase uint64, rebased bool)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageCallerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
@@ -7578,7 +7578,7 @@ func (_RootChainStorage *RootChainStorageCallerSession) Operator() (common.Addre
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_RootChainStorage *RootChainStorageCaller) RequestableContracts(opts *bind.CallOpts, arg0 common.Address) (common.Address, error) {
 	var (
 		ret0 = new(common.Address)
@@ -7590,14 +7590,14 @@ func (_RootChainStorage *RootChainStorageCaller) RequestableContracts(opts *bind
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_RootChainStorage *RootChainStorageSession) RequestableContracts(arg0 common.Address) (common.Address, error) {
 	return _RootChainStorage.Contract.RequestableContracts(&_RootChainStorage.CallOpts, arg0)
 }
 
 // RequestableContracts is a free data retrieval call binding the contract method 0xda0185f8.
 //
-// Solidity: function requestableContracts( address) constant returns(address)
+// Solidity: function requestableContracts(address ) constant returns(address)
 func (_RootChainStorage *RootChainStorageCallerSession) RequestableContracts(arg0 common.Address) (common.Address, error) {
 	return _RootChainStorage.Contract.RequestableContracts(&_RootChainStorage.CallOpts, arg0)
 }

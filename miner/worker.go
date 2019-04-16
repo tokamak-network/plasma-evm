@@ -435,44 +435,30 @@ func (w *worker) mainLoop() {
 				w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 			}
 
-		case ev := <-w.chainSideCh:
-			// Short circuit for duplicate side blocks
-			if _, exist := w.localUncles[ev.Block.Hash()]; exist {
-				continue
-			}
-			if _, exist := w.remoteUncles[ev.Block.Hash()]; exist {
-				continue
-			}
-			// Add side block to possible uncle block set depending on the author.
-			if w.isLocalBlock != nil && w.isLocalBlock(ev.Block) {
-				w.localUncles[ev.Block.Hash()] = ev.Block
-			} else {
-				w.remoteUncles[ev.Block.Hash()] = ev.Block
-			}
-			// If our mining block contains less than 2 uncle blocks,
-			// add the new uncle block if valid and regenerate a mining block.
-			if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 2 {
-				start := time.Now()
-				if err := w.commitUncle(w.current, ev.Block.Header()); err == nil {
-					var uncles []*types.Header
-					w.current.uncles.Each(func(item interface{}) bool {
-						hash, ok := item.(common.Hash)
-						if !ok {
-							return false
-						}
-						uncle, exist := w.localUncles[hash]
-						if !exist {
-							uncle, exist = w.remoteUncles[hash]
-						}
-						if !exist {
-							return false
-						}
-						uncles = append(uncles, uncle.Header())
-						return false
-					})
-					w.commit(uncles, nil, true, start)
-				}
-			}
+		case <-w.chainSideCh:
+			// moscow: ignore chain side event
+
+			//// Short circuit for duplicate side blocks
+			//if _, exist := w.localUncles[ev.Block.Hash()]; exist {
+			//	continue
+			//}
+			//if _, exist := w.remoteUncles[ev.Block.Hash()]; exist {
+			//	continue
+			//}
+			//// Add side block to possible uncle block set depending on the author.
+			//if w.isLocalBlock != nil && w.isLocalBlock(ev.Block) {
+			//	w.localUncles[ev.Block.Hash()] = ev.Block
+			//} else {
+			//	w.remoteUncles[ev.Block.Hash()] = ev.Block
+			//}
+			//// If our mining block contains less than 2 uncle blocks,
+			//// add the new uncle block if valid and regenerate a mining block.
+			//if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 2 {
+			//	start := time.Now()
+			//	// moscow: dsiable uncle blocks
+			//	var uncles []*types.Header
+			//	w.commit(uncles, nil, true, start)
+			//}
 
 		case ev := <-w.txsCh:
 			// Apply transactions to the pending state if we're not mining.
@@ -997,36 +983,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(env.state)
 	}
-	// Accumulate the uncles for the current block
-	uncles := make([]*types.Header, 0, 2)
-	commitUncles := func(blocks map[common.Hash]*types.Block) {
-		// Clean up stale uncle blocks first
-		for hash, uncle := range blocks {
-			if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
-				delete(blocks, hash)
-			}
-		}
-		for hash, uncle := range blocks {
-			if len(uncles) == 2 {
-				break
-			}
-			if err := w.commitUncle(env, uncle.Header()); err != nil {
-				log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
-			} else {
-				log.Debug("Committing new uncle to block", "hash", hash)
-				uncles = append(uncles, uncle.Header())
-			}
-		}
-	}
-	// Prefer to locally generated uncle
-	commitUncles(w.localUncles)
-	commitUncles(w.remoteUncles)
 
-	if !noempty {
-		// Create an empty block based on temporary copied state for sealing in advance without waiting block
-		// execution finished.
-		w.commit(uncles, nil, false, tstart)
-	}
+	// moscow: disable uncle blocks
+	uncles := make([]*types.Header, 0, 2)
 
 	// Fill the block with all available pending transactions.
 	pending, err := w.pls.TxPool().Pending()
@@ -1131,35 +1090,9 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(env.state)
 	}
-	uncles := make([]*types.Header, 0, 2)
-	commitUncles := func(blocks map[common.Hash]*types.Block) {
-		// Clean up stale uncle blocks first
-		for hash, uncle := range blocks {
-			if uncle.NumberU64()+staleThreshold <= header.Number.Uint64() {
-				delete(blocks, hash)
-			}
-		}
-		for hash, uncle := range blocks {
-			if len(uncles) == 2 {
-				break
-			}
-			if err := w.commitUncle(env, uncle.Header()); err != nil {
-				log.Trace("Possible uncle rejected", "hash", hash, "reason", err)
-			} else {
-				log.Debug("Committing new uncle to block", "hash", hash)
-				uncles = append(uncles, uncle.Header())
-			}
-		}
-	}
-	// Prefer to locally generated uncle
-	commitUncles(w.localUncles)
-	commitUncles(w.remoteUncles)
 
-	if !noempty {
-		// Create an empty block based on temporary copied state for sealing in advance without waiting block
-		// execution finished.
-		w.commit(uncles, nil, false, tstart)
-	}
+	// moscow: disable uncle blocks
+	uncles := make([]*types.Header, 0, 2)
 
 	requestTxs, _ := w.pls.TxPool().PendingRequests()
 	if len(requestTxs) == 0 {

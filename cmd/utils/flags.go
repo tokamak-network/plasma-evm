@@ -1381,6 +1381,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		Fatalf("Failed to read rootchain network id: %v", err)
 	}
 	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
+	cfg.TxConfig.ChainId = rootchainNetworkId
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)
@@ -1530,6 +1531,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			log.Info("Deploying contracts for development mode")
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
+			opt.GasLimit = 7000000
+			opt.GasPrice = big.NewInt(10 * params.GWei)
 
 			// 1. deploy MintableToken in root chain
 			mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
@@ -1585,7 +1588,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	default:
 		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.Operator.Address, cfg.StaminaConfig)
 	}
-	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
+
+  if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
 		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
 			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
 			maxGasPrice := GlobalBig(ctx, TxMaxGasPriceFlag.Name)

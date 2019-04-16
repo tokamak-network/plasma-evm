@@ -21,10 +21,6 @@ type rootchainState struct {
 	lastEpoch      uint64
 	currentFork    uint64
 
-	// operator tx parameters
-	nonce    uint64
-	gasPrice *big.Int
-
 	lastUpdateTime time.Time
 
 	lock sync.Mutex
@@ -44,8 +40,6 @@ func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs.requestGas = rs.getRequestGas()
 	rs.lastEpoch = rs.getLastEpoch()
 	rs.currentFork = rs.getCurrentFork()
-
-	rs.initGasPrice()
 
 	return rs
 }
@@ -89,9 +83,4 @@ func (rs *rootchainState) getLastEpoch() uint64 {
 func (rs *rootchainState) getCurrentFork() uint64 {
 	fork, _ := rs.rcm.rootchainContract.CurrentFork(baseCallOpt)
 	return fork.Uint64()
-}
-func (rs *rootchainState) initGasPrice() {
-	minGasPrice := rs.rcm.config.TxConfig.MinGasPrice
-	maxGasPrice := rs.rcm.config.TxConfig.MaxGasPrice
-	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }

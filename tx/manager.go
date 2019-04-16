@@ -205,6 +205,8 @@ func (tm *TransactionManager) Add(account accounts.Account, raw *RawTransaction)
 
 	WriteRawTx(tm.db, addr, *raw)
 
+	log.Info("Raw transaction added", "caption", raw.Caption, "from", raw.From)
+
 	return nil
 }
 
@@ -314,6 +316,10 @@ func (tm *TransactionManager) Start() {
 			}
 
 			log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.Caption, "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash)
+
+			if raw.Reverted {
+				log.Error("Transaction is reverted", "caption", raw.Caption)
+			}
 			adjust(raw, true)
 
 			lastMinedRaw = raw
@@ -418,7 +424,7 @@ func (tm *TransactionManager) Start() {
 			}
 
 			// resubmit transaction with nonce increased.
-			if strings.Contains(errMessage, "nonce too low") {
+			if strings.Contains(errMessage, "nonce too low") || strings.Contains(errMessage, "nonce is too low") {
 				// increase nonce immediately if only 1 transaction is pending.
 				if len(raw.PendingTxs) == 1 {
 					tm.nonces[addr], err = tm.backend.NonceAt(context.Background(), addr, nil)

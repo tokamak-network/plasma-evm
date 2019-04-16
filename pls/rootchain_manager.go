@@ -26,14 +26,12 @@ import (
 )
 
 const (
-	MAX_EPOCH_EVENTS  = 0
-	MAX_NUM_NOT_FOUND = 2
-	MAX_NUM_KNOWN_TX  = 5
+	MAX_EPOCH_EVENTS = 0
 )
 
 var (
 	baseCallOpt               = &bind.CallOpts{Pending: false, Context: context.Background()}
-	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableContractIABI))
+	requestableContractABI, _ = abi.JSON(strings.NewReader(rootchain.RequestableIABI))
 	rootchainContractABI, _   = abi.JSON(strings.NewReader(rootchain.RootChainABI))
 
 	ErrKnownTransaction = errors.New("known transaction")
@@ -253,12 +251,47 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
+func (rcm *RootChainManager) addSubmitTransaction(block *types.Block) error {
+	if rcm.config.NodeMode != ModeOperator {
+		return errors.New("only operator node can add submit transaction")
+	}
+
+	operator := rcm.config.Operator
+
+	funcName := "submitNRB"
+	if block.IsRequest() {
+		funcName = "submitORB"
+	}
+
+	// td = (forkNumber + 1) * 2^128 + block number
+	td := rcm.blockchain.GetTdByHash(block.Hash())
+	forkNumberOffset := new(big.Int).Lsh(big.NewInt(1), 128)
+
+	// pos = forkNumber * 2^128 + block number = td - 2^128
+	pos := new(big.Int).Sub(td, forkNumberOffset)
+
+	input, err := rootchainContractABI.Pack(
+		funcName,
+		pos,
+		block.Header().Root,
+		block.Header().TxHash,
+		block.Header().ReceiptHash,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	caption := fmt.Sprintf("%s(%d)", funcName, block.NumberU64())
+	rawTx := tx.NewRawTransaction(operator.Address, params.SubmitBlockGasLimit, &rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), input, false, caption)
+
+	return rcm.txManager.Add(operator, rawTx)
+}
+
 func (rcm *RootChainManager) runSubmitter() {
 	if rcm.config.NodeMode != ModeOperator {
 		return
 	}
-
-	operator := rcm.config.Operator
 
 	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer plasmaBlockMinedEvents.Unsubscribe()
@@ -271,32 +304,15 @@ func (rcm *RootChainManager) runSubmitter() {
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
-	// submit sends transaction that submits ORB or NRB
-	submit := func(name string, block *types.Block) error {
-		input, err := rootchainContractABI.Pack(
-			name,
-			big.NewInt(int64(rcm.state.currentFork)),
-			block.Header().Root,
-			block.Header().TxHash,
-			block.Header().ReceiptHash,
-		)
-
-		if err != nil {
-			return err
-		}
-
-		caption := fmt.Sprintf("%s(%d)", name, block.NumberU64())
-		rawTx := tx.NewRawTransaction(operator.Address, params.SubmitBlockGasLimit, &rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), input, false, caption)
-
-		return rcm.txManager.Add(operator, rawTx)
-	}
-
 	for {
 		select {
 		case ev, ok := <-plasmaBlockMinedEvents.Chan():
 			if !ok {
+				log.Error("Failed to read plasmaBlockMinedEvents")
 				continue
 			}
+
+			log.Info("New block is mined")
 
 			// if the epoch is completed, stop mining operation and wait next epoch
 			rcm.minerEnv.Lock()
@@ -316,42 +332,60 @@ func (rcm *RootChainManager) runSubmitter() {
 
 			rcm.lock.Lock()
 
-			funcName := "submitNRB"
-			if rcm.minerEnv.IsRequest {
-				funcName = "submitORB"
-			}
-
 			blockInfo := ev.Data.(core.NewMinedBlockEvent)
 			block := blockInfo.Block
 
 			// send block submit transaction
-			if err := submit(funcName, block); err != nil {
-				log.Error("Failed to submit block", "funcName", funcName, "blocknumber", block.NumberU64(), "err", err)
-				break
-			}
+			err = rcm.addSubmitTransaction(block)
 
-			select {
-			// TODO: check URB is submitted
-			case b := <-blockSubmitEvents:
-				if b.BlockNumber.Cmp(block.Number()) != 0 {
-					log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
-					rcm.stopFn()
-				}
-
-				actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
-
-				if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
-					log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
-					rcm.stopFn()
-				}
-
-				log.Info("Block is submitted", "func", funcName, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
-				rcm.lock.Unlock()
-
-			case <-rcm.quit:
-				rcm.lock.Unlock()
+			if err == tx.ErrDuplicateRaw {
+				log.Error("Same block submit transaction was included.")
+				continue
+			} else if err != nil {
+				log.Error("Failed to submit block", "isRequest", block.IsRequest(), "blocknumber", block.NumberU64(), "err", err)
+				rcm.stopFn()
 				return
 			}
+
+		WaitLoop:
+			for {
+				select {
+				// TODO: check URB is submitted
+				case b := <-blockSubmitEvents:
+					if b.Raw.Removed {
+						log.Error("Previous submitted block is removed in root chain", "number", b.BlockNumber)
+						continue
+					}
+
+					if b.BlockNumber.Cmp(block.Number()) < 0 {
+						log.Error("Submit event has lower block number than local. It may be removed due to chain reorg", "local", block.Number(), "event", b.BlockNumber)
+						continue
+					}
+
+					if b.BlockNumber.Cmp(block.Number()) > 0 {
+						log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
+						rcm.stopFn()
+						return
+					}
+
+					actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
+
+					if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
+						log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
+						rcm.stopFn()
+						return
+					}
+
+					log.Info("Block is submitted", "isRequest", b.IsRequest, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
+					rcm.lock.Unlock()
+					break WaitLoop
+
+				case <-rcm.quit:
+					rcm.lock.Unlock()
+					return
+				}
+			}
+
 		case <-rcm.quit:
 			return
 		}
@@ -467,7 +501,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 						log.Error("Failed to pack applyRequestInChildChain", "err", err)
 					}
 
-					log.Debug("Request tx.data", "payload", input)
+					log.Debug("Request tx.data", "payload", common.Bytes2Hex(input))
 				}
 
 				requestTx := types.NewTransaction(0, to, value, params.RequestTxGasLimit, params.RequestTxGasPrice, input)
