@@ -316,7 +316,7 @@ func DefaultGenesisBlock(rootChainContract common.Address, staminaConfig *Stamin
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
-		GasLimit:   1e8,
+		GasLimit:   3e8,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
@@ -375,7 +375,7 @@ func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, oper
 	return &Genesis{
 		Config:     params.PlasmaChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
-		GasLimit:   1e8,
+		GasLimit:   3e8,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
