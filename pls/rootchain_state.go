@@ -1,12 +1,9 @@
 package pls
 
 import (
-	"context"
 	"math/big"
 	"sync"
 	"time"
-
-	"github.com/Onther-Tech/plasma-evm/params"
 )
 
 type rootchainState struct {
@@ -23,10 +20,6 @@ type rootchainState struct {
 	requestGas     uint64
 	lastEpoch      uint64
 	currentFork    uint64
-
-	// operator tx parameters
-	nonce    uint64
-	gasPrice *big.Int
 
 	lastUpdateTime time.Time
 
@@ -47,9 +40,6 @@ func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs.requestGas = rs.getRequestGas()
 	rs.lastEpoch = rs.getLastEpoch()
 	rs.currentFork = rs.getCurrentFork()
-
-	rs.getNonce()
-	rs.initGasPrice()
 
 	return rs
 }
@@ -93,36 +83,4 @@ func (rs *rootchainState) getLastEpoch() uint64 {
 func (rs *rootchainState) getCurrentFork() uint64 {
 	fork, _ := rs.rcm.rootchainContract.CurrentFork(baseCallOpt)
 	return fork.Uint64()
-}
-func (rs *rootchainState) getNonce() uint64 {
-	rs.lock.Lock()
-	defer rs.lock.Unlock()
-
-	lastUpdateTime := rs.lastUpdateTime
-	lastUpdateTime = lastUpdateTime.Add(2 * time.Second)
-
-	now := time.Now()
-	if now.Before(lastUpdateTime) {
-		timer := time.NewTimer(lastUpdateTime.Sub(now))
-		<-timer.C
-	}
-
-	rs.lastUpdateTime = time.Now()
-
-	nonce, _ := rs.rcm.backend.NonceAt(context.Background(), params.Operator, nil)
-	if rs.nonce < nonce {
-		rs.nonce = nonce
-	}
-	return rs.nonce
-}
-func (rs *rootchainState) incNonce() {
-	rs.lock.Lock()
-	defer rs.lock.Unlock()
-
-	rs.nonce += 1
-}
-func (rs *rootchainState) initGasPrice() {
-	minGasPrice := rs.rcm.config.MinGasPrice
-	maxGasPrice := rs.rcm.config.MaxGasPrice
-	rs.gasPrice = new(big.Int).Div(new(big.Int).Add(minGasPrice, maxGasPrice), big.NewInt(2))
 }

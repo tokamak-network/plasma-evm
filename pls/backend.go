@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus"
@@ -52,6 +53,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/rpc"
+	"github.com/Onther-Tech/plasma-evm/tx"
 )
 
 type LesServer interface {
@@ -122,7 +124,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract, config.Operator.Address, config.StaminaConfig)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
@@ -171,6 +173,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -212,7 +215,27 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
+	// check operator account
+	if config.NodeMode == ModeOperator {
+		addr, err := rootchainContract.Operator(baseCallOpt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if config.Operator.Address != addr {
+			return nil, errors.New("specified operator is not actual operator of RootChain contract")
+		}
+	}
+
 	stopFn := func() { pls.Stop() }
+
+	ks := ctx.AccountManager.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	txManager, err := tx.NewTransactionManager(ks, rootchainBackend, chainDb, &config.TxConfig)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if pls.rootchainManager, err = NewRootChainManager(
 		config,
@@ -223,6 +246,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		rootchainContract,
 		pls.eventMux,
 		pls.accountManager,
+		txManager,
 		pls.miner,
 		epochEnv,
 	); err != nil {

@@ -48,6 +48,7 @@ var (
 		ArgsUsage: "<genesisPath>",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
+			utils.RootChainUrlFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -192,7 +193,25 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
 	rootChainContract := common.BytesToAddress(genesis.ExtraData)
-	log.Info("Using rootchain contract", "rootChainContract", rootChainContract)
+
+	var (
+		operator      common.Address
+		staminaConfig *core.StaminaConfig
+	)
+
+	for address, account := range genesis.Alloc {
+		if address == core.StaminaContractAddress {
+			staminaConfig = &core.StaminaConfig{
+				Initialized:        true,
+				MinDeposit:         account.Storage[core.MinDepositKey].Big(),
+				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
+				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
+			}
+			break;
+		}
+	}
+	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {
@@ -200,7 +219,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract)
+		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract, operator, staminaConfig)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}

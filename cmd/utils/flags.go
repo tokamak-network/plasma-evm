@@ -140,11 +140,6 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: pls.DefaultConfig.NetworkId,
 	}
-	RootChainNetworkIdFlag = cli.Uint64Flag{
-		Name:  "rootchain.networkid",
-		Usage: "Rootchain network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
-		Value: pls.DefaultConfig.NetworkId,
-	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
@@ -638,6 +633,11 @@ var (
 		Value: "localhost",
 	}
 
+	DeveloperKeyFlag = cli.StringFlag{
+		Name:  "dev.key",
+		Usage: "Comma seperated developer account key as hex(for dev)",
+	}
+
 	// Operator flags
 	OperatorAddressFlag = cli.StringFlag{
 		Name:  "operator",
@@ -652,9 +652,11 @@ var (
 		Usage: "Plasma operator minimum balance (default = 0.5 ether)",
 		Value: "0.5",
 	}
-	DeveloperKeyFlag = cli.StringFlag{
-		Name:  "dev.key",
-		Usage: "Comma seperated developer account key as hex(for dev)",
+
+	// Challenger flags
+	PlasmaRootChainChallenger = cli.StringFlag{
+		Name:  "rootchain.challenger",
+		Usage: "Address of challenger account",
 	}
 
 	// Rootchain Flags
@@ -667,24 +669,44 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
-	PlasmaMinGasPriceFlag = BigFlag{
-		Name:  "rootchain.mingasprice",
+
+	// Transaction Flags
+	TxGasPriceFlag = BigFlag{
+		Name:  "tx.gasprice",
+		Usage: "Gas price for transaction (default = 10 Gwei)",
+		Value: big.NewInt(0),
+	}
+	TxMinGasPriceFlag = BigFlag{
+		Name:  "tx.mingasprice",
 		Usage: "Minimum gas price for submitting a block (default = 1 Gwei)",
-		Value: pls.DefaultConfig.MinGasPrice,
+		Value: pls.DefaultConfig.TxConfig.MinGasPrice,
 	}
-	PlasmaMaxGasPriceFlag = BigFlag{
-		Name:  "rootchain.maxgasprice",
-		Usage: "Maximum gas price for submitting a block (default = 300 Gwei)",
-		Value: pls.DefaultConfig.MaxGasPrice,
+	TxMaxGasPriceFlag = BigFlag{
+		Name:  "tx.maxgasprice",
+		Usage: "Maximum gas price for submitting a block (default = 100 Gwei)",
+		Value: pls.DefaultConfig.TxConfig.MaxGasPrice,
 	}
-	PlasmaPendingInterval = cli.DurationFlag{
-		Name:  "rootchain.interval",
+	TxResubmitFlag = cli.DurationFlag{
+		Name:  "tx.interval",
 		Usage: "Pending interval time after submitting a block (default = 10s). If block submit transaction is not mined in 2 intervals, gas price will be adjusted. See https://golang.org/pkg/time/#ParseDuration",
-		Value: pls.DefaultConfig.PendingInterval,
+		Value: pls.DefaultConfig.TxConfig.Interval,
 	}
-	PlasmaRootChainChallenger = cli.StringFlag{
-		Name:  "rootchain.challenger",
-		Usage: "Address of challenger account",
+
+	// Stamina Flags
+	StaminaMinDepositFlag = BigFlag{
+		Name:  "stamina.mindeposit",
+		Usage: "MinDeposit variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.MinDeposit,
+	}
+	StaminaRecoverEpochLengthFlag = BigFlag{
+		Name:  "stamina.recoverepochlength",
+		Usage: "RecoverEpochLength variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.RecoverEpochLength,
+	}
+	StaminaWithdrawalDelayFlag = BigFlag{
+		Name:  "stamina.withdrawaldelay",
+		Usage: "WithdrawalDelay variable state of stamina contract",
+		Value: pls.DefaultConfig.StaminaConfig.WithdrawalDelay,
 	}
 
 	EWASMInterpreterFlag = cli.StringFlag{
@@ -1253,9 +1275,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
-	if ctx.GlobalIsSet(RootChainNetworkIdFlag.Name) {
-		cfg.RootChainNetworkID = ctx.GlobalUint64(RootChainNetworkIdFlag.Name)
-	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
@@ -1357,6 +1376,13 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		Fatalf("Failed to connect rootchain: %v", err)
 	}
 
+	rootchainNetworkId, err := rootchainBackend.NetworkID(context.Background())
+	if err != nil {
+		Fatalf("Failed to read rootchain network id: %v", err)
+	}
+	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
+	cfg.TxConfig.ChainId = rootchainNetworkId
+
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)
 		operatorAddr = common.HexToAddress(hex)
@@ -1372,17 +1398,13 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		log.Info("Operator account is unlocked", "address", operatorAddr)
 		cfg.Operator = account
+		cfg.NodeMode = pls.ModeOperator
 	}
 
 	if ctx.GlobalIsSet(OperatorKeyFlag.Name) {
 		hex := ctx.GlobalString(OperatorKeyFlag.Name)
 		key, _ := crypto.HexToECDSA(hex)
 		operatorAddr = crypto.PubkeyToAddress(key.PublicKey)
-
-		// TODO: deactivate in dev mode
-		if operatorAddr != params.Operator {
-			Fatalf("Faild to convert operator account: %v is not operator %v", operatorAddr.Hex(), params.Operator.Hex())
-		}
 
 		if ks.HasAddress(operatorAddr) {
 			cfg.Operator, err = ks.Find(accounts.Account{Address: operatorAddr})
@@ -1402,6 +1424,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		if err = ks.Unlock(cfg.Operator, ""); err != nil {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
+		// set mode:operator
+		cfg.NodeMode = pls.ModeOperator
 	}
 
 	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
@@ -1433,11 +1457,29 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 		log.Info("Challenger account is unlocked", "address", challenger.Address)
 		cfg.Challenger = challenger
+
+		if cfg.NodeMode == pls.ModeUser {
+			cfg.NodeMode = pls.ModeChallenger
+		}
 	}
 
 	if ctx.GlobalIsSet(RootChainContractFlag.Name) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
+
+	if ctx.GlobalIsSet(StaminaMinDepositFlag.Name) {
+		cfg.StaminaConfig.MinDeposit = GlobalBig(ctx, StaminaMinDepositFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaRecoverEpochLengthFlag.Name) {
+		cfg.StaminaConfig.RecoverEpochLength = GlobalBig(ctx, StaminaRecoverEpochLengthFlag.Name)
+	}
+	if ctx.GlobalIsSet(StaminaWithdrawalDelayFlag.Name) {
+		cfg.StaminaConfig.WithdrawalDelay = GlobalBig(ctx, StaminaWithdrawalDelayFlag.Name)
+	}
+	if new(big.Int).Mul(cfg.StaminaConfig.RecoverEpochLength, big.NewInt(2)).Cmp(cfg.StaminaConfig.WithdrawalDelay) >= 0 {
+		Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", cfg.StaminaConfig.RecoverEpochLength, cfg.StaminaConfig.WithdrawalDelay)
+	}
+	cfg.StaminaConfig.Initialized = true
 
 	// TODO: set network id from params/config.go for each network
 	switch {
@@ -1454,117 +1496,121 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			cfg.NetworkId = 1337
 		}
 
-		dummyDB := ethdb.NewMemDatabase()
-		defer dummyDB.Close()
-		dummyBlock := core.DeveloperGenesisBlock(
-			uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)),
-			common.HexToAddress("0xdead"),
-			operatorAddr,
-		).ToBlock(dummyDB)
+		if ctx.GlobalIsSet(OperatorKeyFlag.Name) || ctx.GlobalIsSet(OperatorAddressFlag.Name) {
+			dummyDB := ethdb.NewMemDatabase()
+			defer dummyDB.Close()
+			dummyBlock := core.DeveloperGenesisBlock(
+				uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)),
+				common.HexToAddress("0xdead"),
+				operatorAddr,
+				cfg.StaminaConfig,
+			).ToBlock(dummyDB)
 
-		// contract parameters
-		var (
-			development = false
-			swapEnabled = false
-			NRELength   = big.NewInt(2)
-		)
+			// contract parameters
+			var (
+				development = false
+				swapEnabled = false
+				NRELength   = big.NewInt(2)
+			)
 
-		wait := func(hash common.Hash) {
-			<-time.NewTimer(1 * time.Second).C
-
-			for receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), hash); receipt == nil; {
-				//if err != nil {
-				//	Fatalf("Failed to get receipt: %v", err)
-				//}
-
+			wait := func(hash common.Hash) {
 				<-time.NewTimer(1 * time.Second).C
 
-				receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), hash)
+				for receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), hash); receipt == nil; {
+					//if err != nil {
+					//	Fatalf("Failed to get receipt: %v", err)
+					//}
+
+					<-time.NewTimer(1 * time.Second).C
+
+					receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), hash)
+				}
 			}
+
+			var tx *types.Transaction
+			log.Info("Deploying contracts for development mode")
+
+			opt := bind.NewAccountTransactor(ks, cfg.Operator)
+			opt.GasLimit = 7000000
+			opt.GasPrice = big.NewInt(10 * params.GWei)
+
+			// 1. deploy MintableToken in root chain
+			mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
+			if err != nil {
+				Fatalf("Failed to deploy MintableToken contract: %v", err)
+			}
+			log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
+
+			log.Info("Wait until deploy transaction is mined")
+			wait(tx.Hash())
+
+			// 2. deploy EtherToken in root chain
+			etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, rootchainBackend, development, mintableTokenContract, swapEnabled)
+			if err != nil {
+				Fatalf("Failed to deploy EtherToken contract: %v", err)
+			}
+			log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
+
+			log.Info("Wait until deploy transaction is mined")
+			wait(tx.Hash())
+
+			// 3. deploy EpochHandler in root chain
+			epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
+			if err != nil {
+				Fatalf("Failed to deploy EpochHandler contract: %v", err)
+			}
+			log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
+
+			log.Info("Wait until deploy transaction is mined")
+			wait(tx.Hash())
+
+			// 4. deploy RootChain in root chain
+			rootchainContract, tx, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+			if err != nil {
+				Fatalf("Failed to deploy RootChain contract: %v", err)
+			}
+			log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContract)
+			wait(tx.Hash())
+
+			// 5. initialize EtherToken
+			tx, err = etherToken.Init(opt, rootchainContract)
+			if err != nil {
+				Fatalf("Failed to initialize EtherToken: %v", err)
+			}
+			log.Info("Initialize EtherToken", "hash", tx.Hash())
+			wait(tx.Hash())
+
+			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr, cfg.StaminaConfig)
+			cfg.RootChainContract = rootchainContract
+		} else {
+			// TODO: set genesis in case of user node
 		}
-
-		var tx *types.Transaction
-		log.Info("Deploying contracts for development mode")
-
-		opt := bind.NewAccountTransactor(ks, cfg.Operator)
-
-		// 1. deploy MintableToken in root chain
-		mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
-		if err != nil {
-			Fatalf("Failed to deploy MintableToken contract: %v", err)
-		}
-		log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
-
-		log.Info("Wait until deploy transaction is mined")
-		wait(tx.Hash())
-
-		// 2. deploy EtherToken in root chain
-		etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, rootchainBackend, development, mintableTokenContract, swapEnabled)
-		if err != nil {
-			Fatalf("Failed to deploy EtherToken contract: %v", err)
-		}
-		log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
-
-		log.Info("Wait until deploy transaction is mined")
-		wait(tx.Hash())
-
-		// 3. deploy EpochHandler in root chain
-		epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
-		if err != nil {
-			Fatalf("Failed to deploy EpochHandler contract: %v", err)
-		}
-		log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
-
-		log.Info("Wait until deploy transaction is mined")
-		wait(tx.Hash())
-
-		// 4. deploy RootChain in root chain
-		rootchainContract, tx, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
-		if err != nil {
-			Fatalf("Failed to deploy RootChain contract: %v", err)
-		}
-		log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContract)
-		wait(tx.Hash())
-
-		// 5. initialize EtherToken
-		tx, err = etherToken.Init(opt, rootchainContract)
-		if err != nil {
-			Fatalf("Failed to initialize EtherToken: %v", err)
-		}
-		log.Info("Initialize EtherToken", "hash", tx.Hash())
-		wait(tx.Hash())
-
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr)
-		cfg.RootChainContract = rootchainContract
-
-		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-			cfg.MinerGasPrice = big.NewInt(1)
-		}
+	default:
+		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.Operator.Address, cfg.StaminaConfig)
 	}
-	if ctx.GlobalIsSet(PlasmaMinGasPriceFlag.Name) {
-		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
-			minGasPrice := GlobalBig(ctx, PlasmaMinGasPriceFlag.Name)
-			maxGasPrice := GlobalBig(ctx, PlasmaMaxGasPriceFlag.Name)
+
+  if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
+		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
+			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
+			maxGasPrice := GlobalBig(ctx, TxMaxGasPriceFlag.Name)
 
 			if minGasPrice.Cmp(maxGasPrice) >= 0 {
 				Fatalf("min gas price is equal to or greater than max gas price: min gas price: %v, max gas price: %v", minGasPrice, maxGasPrice)
 			}
-			cfg.MinGasPrice = minGasPrice
-			cfg.MaxGasPrice = maxGasPrice
+			cfg.TxConfig.MinGasPrice = minGasPrice
+			cfg.TxConfig.MaxGasPrice = maxGasPrice
 		} else {
-			Fatalf("--%s flag must use with --%s flag", PlasmaMinGasPriceFlag.Name, PlasmaMaxGasPriceFlag.Name)
+			Fatalf("--%s flag must use with --%s flag", TxMinGasPriceFlag.Name, TxMaxGasPriceFlag.Name)
 		}
 	} else {
-		if ctx.GlobalIsSet(PlasmaMaxGasPriceFlag.Name) {
-			Fatalf("--%s flag must use with --%s flag", PlasmaMaxGasPriceFlag.Name, PlasmaMinGasPriceFlag.Name)
+		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
+			Fatalf("--%s flag must use with --%s flag", TxMaxGasPriceFlag.Name, TxMinGasPriceFlag.Name)
 		}
 	}
 
-	cfg.PendingInterval = ctx.Duration(PlasmaPendingInterval.Name)
+	cfg.TxConfig.Interval = ctx.Duration(TxResubmitFlag.Name)
 
-	log.Info("Set options for submitting a block", "mingaspirce", cfg.MinGasPrice, "maxgasprice", cfg.MaxGasPrice, "interval", cfg.PendingInterval)
-
-	cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract)
+	log.Info("Set options for submitting a block", "mingaspirce", cfg.TxConfig.MinGasPrice, "maxgasprice", cfg.TxConfig.MaxGasPrice, "resubmit", cfg.TxConfig.Interval.String())
 
 	// default operator min ether = 1ether
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
@@ -1691,9 +1737,11 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 // MakeChain creates a chain manager from set command line flags.
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
+	operator := common.Address{1}
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract)
+	staminaConfig := core.DefaultStaminaConfig
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, operator, staminaConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}

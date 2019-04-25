@@ -32,11 +32,20 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
+	"github.com/Onther-Tech/plasma-evm/tx"
+)
+
+const (
+	ModeOperator = iota
+	ModeUser
+	ModeChallenger
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
+	NodeMode: ModeUser,
 	SyncMode: downloader.FastSync,
+	TxConfig: *tx.DefaultConfig,
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
 		CachesInMem:    2,
@@ -45,7 +54,7 @@ var DefaultConfig = Config{
 		DatasetsOnDisk: 2,
 	},
 	NetworkId:          16,
-	RootChainNetworkID: 1337,
+	RootChainNetworkID: 1,
 	LightPeers:         100,
 	DatabaseCache:      512,
 	TrieCleanCache:     256,
@@ -57,9 +66,8 @@ var DefaultConfig = Config{
 	MinerRecommit:      3 * time.Second,
 
 	OperatorMinEther: big.NewInt(0.5 * params.Ether),
-	MinGasPrice:      big.NewInt(1 * params.GWei),
-	MaxGasPrice:      big.NewInt(300 * params.GWei),
-	PendingInterval:  10 * time.Second,
+
+	StaminaConfig: core.DefaultStaminaConfig,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -89,19 +97,20 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
+	// Stamina config
+	StaminaConfig *core.StaminaConfig
+
+	TxConfig tx.Config
+
 	// Plasma options
 	Operator   accounts.Account
 	Challenger accounts.Account
+	NodeMode   int
 
 	OperatorMinEther   *big.Int
 	RootChainURL       string
 	RootChainContract  common.Address
 	RootChainNetworkID uint64
-
-	// Gas price options for submitting a block
-	MinGasPrice     *big.Int
-	MaxGasPrice     *big.Int
-	PendingInterval time.Duration
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
