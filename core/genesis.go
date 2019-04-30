@@ -22,7 +22,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/Onther-Tech/plasma-evm/common"
@@ -150,10 +153,10 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract, operator, staminaConfig)
+func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string) (*params.ChainConfig, common.Hash, error) {
+	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract, operator, staminaConfig, instanceDir)
 }
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -171,6 +174,32 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 			log.Info("Writing custom genesis block", "rootChainContract", rootChainContract)
 		}
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return nil, common.Hash{}, err
+		}
+
+		// Store genesis in DB
+		data, err := genesis.MarshalJSON()
+		if err != nil {
+			return nil, common.Hash{}, err
+		}
+		rawdb.WriteGenesis(db, data)
+
+		// Store genesis as file
+		if instanceDir != "" {
+			fn := path.Join(instanceDir, "genesis.json")
+			writer, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+			defer writer.Close()
+			if err != nil {
+				return genesis.Config, block.Hash(), err
+			}
+
+			if _, err := io.WriteString(writer, string(data)); err != nil {
+				return genesis.Config, block.Hash(), err
+			}
+			log.Info("Genesis stored", "file", fn)
+		}
+
 		return genesis.Config, block.Hash(), err
 	}
 

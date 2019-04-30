@@ -1589,7 +1589,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.Operator.Address, cfg.StaminaConfig)
 	}
 
-  if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
+	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
 		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
 			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
 			maxGasPrice := GlobalBig(ctx, TxMaxGasPriceFlag.Name)
@@ -1741,7 +1741,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	staminaConfig := core.DefaultStaminaConfig
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, operator, staminaConfig)
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, operator, staminaConfig, stack.InstanceDir())
 	if err != nil {
 		Fatalf("%v", err)
 	}
