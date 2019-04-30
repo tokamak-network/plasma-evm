@@ -1739,7 +1739,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	staminaConfig := core.DefaultStaminaConfig
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, staminaConfig)
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, staminaConfig, stack.InstanceDir())
 	if err != nil {
 		Fatalf("%v", err)
 	}

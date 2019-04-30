@@ -66,7 +66,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "genesis without ChainConfig",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return SetupGenesisBlock(db, new(Genesis), RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, new(Genesis), RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantErr:    errGenesisNoConfig,
 			wantConfig: params.AllEthashProtocolChanges,
@@ -74,7 +74,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "no block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantHash:   params.MainnetGenesisHash,
 			wantConfig: params.MainnetChainConfig,
@@ -83,7 +83,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "mainnet block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				DefaultGenesisBlock(RootChainAddress, DefaultStaminaConfig).MustCommit(db)
-				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantHash:   params.MainnetGenesisHash,
 			wantConfig: params.MainnetChainConfig,
@@ -92,7 +92,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, nil, RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
@@ -101,7 +101,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultTestnetGenesisBlock(), RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, DefaultTestnetGenesisBlock(), RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.TestnetGenesisHash},
 			wantHash:   params.TestnetGenesisHash,
@@ -111,7 +111,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "compatible config in DB",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				oldcustomg.MustCommit(db)
-				return SetupGenesisBlock(db, &customg, RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, &customg, RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
@@ -130,7 +130,7 @@ func TestSetupGenesis(t *testing.T) {
 				bc.InsertChain(blocks)
 				bc.CurrentBlock()
 				// This should return a compatibility error.
-				return SetupGenesisBlock(db, &customg, RootChainAddress, DefaultStaminaConfig)
+				return SetupGenesisBlock(db, &customg, RootChainAddress, DefaultStaminaConfig, "")
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
