@@ -357,3 +357,26 @@ It is Private Environment for test.
 
 
 - If you turn down containers `docker-compose down` on plasma-evm path.
+
+------------------------
+Quick Start with Truffle
+------------------------
+
+You can use the truffle framework to deploy contracts to the tokamak test net, faraday. To use the faraday network, you need to specify the network in truffle-config.js as follows.
+
+::
+
+  module.exports = {
+  networks: {
+    faraday: {
+      host: "112.169.69.41",
+      port: 48549,
+      network_id: "*" // Match any network id
+    }
+  }
+};
+
+To use the faraday network, you need the following: You must use stamina or peth, eth in tokamak network. More information on stamina can be found here.
+
+1. faucet peth: This site can faucet peth for using faraday network. Use faucet peth to use faraday network.
+2. stamina: The stamina allows you to use the faraday network without any fees. The delegatee will pay the fees if you are delegator. Request a delegator from the delegatee. A delegatee can specify a delegator here.
