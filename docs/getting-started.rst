@@ -374,7 +374,6 @@ You can use the truffle framework to deploy contracts to the tokamak test net, f
       network_id: "*" // Match any network id
     }
   }
-};
 
 To use the faraday network, you need the following: You must use stamina or peth, eth in tokamak network. More information on stamina can be found here.
 
