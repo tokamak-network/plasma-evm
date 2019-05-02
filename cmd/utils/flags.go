@@ -1585,8 +1585,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		} else {
 			// TODO: set genesis in case of user node
 		}
-	default:
-		cfg.Genesis = core.DefaultGenesisBlock(cfg.RootChainContract, cfg.Operator.Address, cfg.StaminaConfig)
 	}
 
 	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {

@@ -94,6 +94,11 @@ func NewRootChainManager(
 	miner *miner.Miner,
 	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
+	code, _ := backend.CodeAt(context.Background(), config.RootChainContract, nil)
+	if len(code) == 0 {
+		return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+	}
+
 	rcm := &RootChainManager{
 		config:            config,
 		stopFn:            stopFn,
