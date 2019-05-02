@@ -29,9 +29,8 @@ type rootchainState struct {
 func newRootchainState(rcm *RootChainManager) *rootchainState {
 	rs := &rootchainState{rcm: rcm}
 
-	// TODO: read rs from DB. if null, read from contract
-	rs.costERU = rs.getCostERO()
-	rs.costERO = rs.getCostERU()
+	rs.costERO = rs.getCostERO()
+	rs.costERU = rs.getCostERU()
 	rs.costURBPrepare = rs.getCostURBPrepare()
 	rs.costURB = rs.getCostURB()
 	rs.costORB = rs.getCostORB()
