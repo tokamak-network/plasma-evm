@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 
 	"github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/common"
@@ -326,6 +327,16 @@ func (ec *Client) NetworkID(ctx context.Context) (*big.Int, error) {
 		return nil, fmt.Errorf("invalid net_version result %q", ver)
 	}
 	return version, nil
+}
+
+// ChainID returns the chain ID for this chain.
+func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
+	var ver string
+	if err := ec.c.CallContext(ctx, &ver, "eth_chainId"); err != nil {
+		return nil, err
+	}
+	version, _ := strconv.ParseInt(ver, 0, 64)
+	return big.NewInt(version), nil
 }
 
 // BalanceAt returns the wei balance of the given account.
