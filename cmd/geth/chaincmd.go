@@ -19,9 +19,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -191,14 +194,25 @@ func initGenesis(ctx *cli.Context) error {
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
 	}
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
+
+	var r io.Reader
+
+	if strings.HasPrefix(genesisPath, "http") {
+		res, err := http.Get(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to get response: %v", err)
+		}
+		r = res.Body
+	} else {
+		r, err := os.Open(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to read genesis file: %v", err)
+		}
+		defer r.Close()
 	}
-	defer file.Close()
 
 	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	if err := json.NewDecoder(r).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 	if len(genesis.ExtraData) != 20 {
