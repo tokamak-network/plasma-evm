@@ -204,11 +204,12 @@ func initGenesis(ctx *cli.Context) error {
 		}
 		r = res.Body
 	} else {
-		r, err := os.Open(genesisPath)
+		f, err := os.Open(genesisPath)
 		if err != nil {
 			utils.Fatalf("Failed to read genesis file: %v", err)
 		}
-		defer r.Close()
+		defer f.Close()
+		r = f
 	}
 
 	genesis := new(core.Genesis)
