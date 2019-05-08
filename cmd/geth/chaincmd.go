@@ -19,9 +19,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -125,6 +128,18 @@ be gzipped.`,
 		Description: `
 The export-preimages command export hash preimages to an RLP encoded stream`,
 	}
+	exportGenesisCommand = cli.Command{
+		Action:    utils.MigrateFlags(exportGenesis),
+		Name:      "export-genesis",
+		Usage:     "Export the genesis block into json file",
+		ArgsUsage: "<dumpfile>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The export-preimages command export hash preimages to an RLP encoded stream`,
+	}
 	copydbCommand = cli.Command{
 		Action:    utils.MigrateFlags(copyDb),
 		Name:      "copydb",
@@ -179,38 +194,63 @@ func initGenesis(ctx *cli.Context) error {
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
 	}
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
+
+	var r io.Reader
+
+	if strings.HasPrefix(genesisPath, "http") {
+		res, err := http.Get(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to get response: %v", err)
+		}
+		r = res.Body
+	} else {
+		r, err := os.Open(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to read genesis file: %v", err)
+		}
+		defer r.Close()
 	}
-	defer file.Close()
 
 	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	if err := json.NewDecoder(r).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 	if len(genesis.ExtraData) != 20 {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
-	rootChainContract := common.BytesToAddress(genesis.ExtraData)
 
-	var (
-		operator      common.Address
-		staminaConfig *core.StaminaConfig
-	)
+	//rootchainAddr := common.BytesToAddress(genesis.ExtraData)
+	//
+	//rootchainUrl := ctx.GlobalString(utils.RootChainUrlFlag.Name)
+	//rootchainBackend, err := ethclient.Dial(rootchainUrl)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//rootchainContract, err := rootchain.NewRootChain(rootchainAddr, rootchainBackend)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//operator, err := rootchainContract.Operator(&bind.CallOpts{Context: context.Background()})
+	//if err != nil {
+	//	return err
+	//}
 
-	for address, account := range genesis.Alloc {
-		if address == core.StaminaContractAddress {
-			staminaConfig = &core.StaminaConfig{
-				Initialized:        true,
-				MinDeposit:         account.Storage[core.MinDepositKey].Big(),
-				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
-				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
-			}
-			break;
-		}
-	}
-	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
+	//var staminaConfig *core.StaminaConfig
+	//
+	//for address, account := range genesis.Alloc {
+	//	if address == core.StaminaContractAddress {
+	//		staminaConfig = &core.StaminaConfig{
+	//			Initialized:        true,
+	//			MinDeposit:         account.Storage[core.MinDepositKey].Big(),
+	//			RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
+	//			WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
+	//		}
+	//		break
+	//	}
+	//}
+	//log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -219,7 +259,8 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootChainContract, operator, staminaConfig)
+		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, common.Address{}, common.Address{}, nil, stack.InstanceDir())
+		//_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootchainAddr, operator, staminaConfig, stack.InstanceDir())
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
@@ -380,6 +421,22 @@ func exportPreimages(ctx *cli.Context) error {
 
 	start := time.Now()
 	if err := utils.ExportPreimages(diskdb, ctx.Args().First()); err != nil {
+		utils.Fatalf("Export error: %v\n", err)
+	}
+	fmt.Printf("Export done in %v\n", time.Since(start))
+	return nil
+}
+
+// exportGenesis dumps the genesis block to json file.
+func exportGenesis(ctx *cli.Context) error {
+	if len(ctx.Args()) < 1 {
+		utils.Fatalf("This command requires an argument.")
+	}
+	stack := makeFullNode(ctx)
+	diskdb := utils.MakeChainDatabase(ctx, stack).(*ethdb.LDBDatabase)
+
+	start := time.Now()
+	if err := utils.ExportGenesis(diskdb, ctx.Args().First()); err != nil {
 		utils.Fatalf("Export error: %v\n", err)
 	}
 	fmt.Printf("Export done in %v\n", time.Since(start))

@@ -94,6 +94,11 @@ func NewRootChainManager(
 	miner *miner.Miner,
 	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
+	code, _ := backend.CodeAt(context.Background(), config.RootChainContract, nil)
+	if len(code) == 0 {
+		return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+	}
+
 	rcm := &RootChainManager{
 		config:            config,
 		stopFn:            stopFn,
@@ -137,7 +142,6 @@ func (rcm *RootChainManager) Start() error {
 
 func (rcm *RootChainManager) Stop() error {
 	rcm.txManager.Stop()
-
 	rcm.backend.Close()
 	close(rcm.quit)
 	return nil
@@ -228,7 +232,10 @@ func (rcm *RootChainManager) watchEvents() error {
 				}
 
 			case err := <-epochPrepareSub.Err():
-				log.Error("Epoch prepared event subscription error", "err", err)
+				if err != nil {
+					log.Error("Epoch prepared event subscription error", "err", err)
+
+				}
 				rcm.stopFn()
 				return
 
@@ -238,7 +245,9 @@ func (rcm *RootChainManager) watchEvents() error {
 				}
 
 			case err := <-blockFinalizedSub.Err():
-				log.Error("Block finalized event subscription error", "err", err)
+				if err != nil {
+					log.Error("Block finalized event subscription error", "err", err)
+				}
 				rcm.stopFn()
 				return
 
@@ -308,7 +317,6 @@ func (rcm *RootChainManager) runSubmitter() {
 		select {
 		case ev, ok := <-plasmaBlockMinedEvents.Chan():
 			if !ok {
-				log.Error("Failed to read plasmaBlockMinedEvents")
 				continue
 			}
 

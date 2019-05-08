@@ -59,6 +59,8 @@ var (
 
 	epochEnvPrefix = []byte("e") // epochEnvPrefix -> epochEnvrionment
 
+	genesisPrefix = []byte("Genesis")
+
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
 

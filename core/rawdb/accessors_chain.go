@@ -430,3 +430,14 @@ func DeleteEpochEnv(db DatabaseDeleter) {
 		log.Crit("Failed to delete epoch environment", "err", err)
 	}
 }
+
+func WriteGenesis(db DatabaseWriter, data rlp.RawValue) {
+	if err := db.Put(genesisPrefix, data); err != nil {
+		log.Crit("Failed to store genesis", "err", err)
+	}
+}
+
+func ReadGenesis(db DatabaseReader) rlp.RawValue {
+	data, _ := db.Get(genesisPrefix)
+	return data
+}
