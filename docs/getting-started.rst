@@ -392,8 +392,7 @@ The scenario will work as follows:
 2. Alice get her trieKey by using ``RequestableSimpleTokenWithoutOwnership.getBalanceTrieKey()`` and trieValue.
 3. Alice call ``RootChain.startEnter()`` method to start entering process to Faraday.
 4. After entering process is finished, you can check entered token balance by using ``RequestableSimpleTokenWithoutOwnership.balances()`` at Faraday.
-5. Alice send her token balance token balance to Bob at Tokamak plasma chain.
-6. If Bob wants to use his token at rootchain, then start exit process to rootchain by using ``RootChain.startExit()``.
+5. If Alice wants to use his token at rootchain, then start exit process to rootchain by using ``RootChain.startExit()``.
 
 ::
 
