@@ -12,7 +12,7 @@ RootChain Manager Contract
 .. - Request Block
 .. - Data Availability
 
-The Units (?)
+The Units
 =============
 
 Plasma blocks are abstracted in many way depending on each contexts. ``Block`` is the smallest unit that operator commits to RootChain contract. ``Epoch`` includes many blocks. ``Cycle`` includes many epochs.
@@ -128,7 +128,7 @@ When a request is transformed into **request transaction**, the transaction has 
 - ``msg.sender``: it is always ``0x00``. It prevents other from creating request transaction because nobody know the private key of address ``0x00``. Due to this, signature of request transaction is zero , ``v = r = s = 0``.
 - ``msg.to``: requestable contract **deployed in child chain**. RootChain contract must know it.
 - ``msg.value``: it is always ``0``.
-- ``msg.data``: To invoke message-call in transaction, this field must contain function signature and parameters for ``applyRequestInChildChain`` function. RootChain contract always knows what bytes should be in this field. See also solidity code `here<https://github.com/Onther-Tech/plasma-evm-contracts/blob/d5deeadfc5264b8edbdf867506950cca5225efc7/contracts/lib/Data.sol#L445-L473>`_.
+- ``msg.data``: To invoke message-call in transaction, this field must contain function signature and parameters for ``applyRequestInChildChain`` function. RootChain contract always knows what bytes should be in this field. See also solidity code `here <https://github.com/Onther-Tech/plasma-evm-contracts/blob/d5deeadfc5264b8edbdf867506950cca5225efc7/contracts/lib/Data.sol#L445-L473>`_.
 
 When the current epoch is RE, operator mines request block with request transactions to transit state of child chian. RootChain contract enforces operator to include what request transactions should be in the request block by calculating transactions root of the block.
 
