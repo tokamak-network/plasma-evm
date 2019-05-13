@@ -360,7 +360,7 @@ It is Private Environment for test.
 Quick Start with Truffle
 ------------------------
 
-You can use the truffle framework to deploy contracts to the tokamak test net, faraday. To use the faraday network, you need to specify the network in truffle-config.js as follows.
+You can use the truffle framework to deploy contracts to the tokamak testnet, faraday. To use the faraday network, you need to specify the network in truffle-config.js as follows.
 
 ::
 
@@ -374,3 +374,56 @@ You can use the truffle framework to deploy contracts to the tokamak test net, f
   }
 
 If you want to test on the faraday network, you can use faucet at `here <http://faucet.tokamak.network:8080/#/>`_.
+
+.. note::
+  Faraday is the Tokamak network used as a testing environment. Faraday is connected to the ropsten network as a root chain.
+
+Enter and exit token at faraday network
+=======================================
+
+We will enter the :ref:`RequestableSimpleToken<requestable-simple-token>` without ownership, RequestableSimpleTokenWithoutOwnership. Anyone can mint the token because there is no ownership. 
+
+RequestableSimpleTokenWithoutOwnership contract and RootChain contract are already deployed, so you can use it to test enter and exit. RequestableSimpleTokenWithoutOwnership contract address at Ropsten is ``0x6B27C38e3376C4E8B29cFbB3986f00676267D489`` and contract address at Faraday is
+``0x1d93d7bd7d820ac7691109ace371e42d5004e1c1``. `RootChain` contract address at Ropsten is ``0x3122546c1544FD0F910A423A8c80fdCD48d742Fd``.
+
+The scenario will work as follows:
+
+1. Alice mint ``RequestableSimpleTokenWithoutOwnership`` at the Ropsten.
+2. Alice get her trieKey by using ``RequestableSimpleTokenWithoutOwnership.getBalanceTrieKey()`` and trieValue.
+3. Alice call ``RootChain.startEnter()`` method to start entering process to Faraday.
+4. After entering process is finished, you can check entered token balance by using ``RequestableSimpleTokenWithoutOwnership.balances()`` at Faraday.
+5. Alice send her token balance token balance to Bob at Tokamak plasma chain.
+6. If Bob wants to use his token at rootchain, then start exit process to rootchain by using ``RootChain.startExit()``.
+
+::
+
+    // truffle console --network ropsten
+    // plasma-evm-contracts repository: https://github.com/Onther-Tech/plasma-evm-contracts    
+
+    // enter
+    alice = '0xb60e8dd61c5d32be8058bb8eb970870f07233155' // any user can mint.
+    rootchain = RootChain.at('0x3122546c1544FD0F910A423A8c80fdCD48d742Fd')
+    token = RequestableSimpleTokenWithoutOwnership.at('0x6B27C38e3376C4E8B29cFbB3986f00676267D489')
+
+    token.mint(alice, 10000000)
+    key = token.getBalanceTrieKey(alice) // get alice's token balances trie key
+    value = '0x0000000000000000000000000000000000000000000000000000000000000010' // 16 token
+    rootchain.startEnter(alice, key, value)
+
+
+    // truffle console --network faraday
+    alice = '0xb60e8dd61c5d32be8058bb8eb970870f07233155'
+    token = RequestableSimpleTokenWithoutOwnership.at('0x1d93d7bd7d820ac7691109ace371e42d5004e1c1')
+
+    token.balances(alice) // you can check entered token amount
+
+
+    // truffle console --network ropsten
+    
+    // exit
+    alice = '0xb60e8dd61c5d32be8058bb8eb970870f07233155'
+    rootchain = RootChain.at('0x3122546c1544FD0F910A423A8c80fdCD48d742Fd')
+
+    key = token.getBalanceTrieKey(alice) // get alice's token balances trie key
+    value = '0x0000000000000000000000000000000000000000000000000000000000000010' // 16 token
+    rootchain.startExit(alice, key, value)
