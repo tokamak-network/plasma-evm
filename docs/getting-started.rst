@@ -64,9 +64,7 @@ Or You can directly run with this commands
     build/bin/geth --dev --dev.period 1 --dev.faucetkey
     "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291,78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a115,bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5,067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc,ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66" --miner.gastarget 7500000 --miner.gasprice "10" --rpc --rpcport 8545 --rpcapi eth,debug,net --ws --wsport 8546
 
-
 In this case, 5 privateKeys generate accounts files under datadir path.
-
 
 2. Run ChildChain
 ==================
@@ -357,3 +355,22 @@ It is Private Environment for test.
 
 
 - If you turn down containers `docker-compose down` on plasma-evm path.
+
+------------------------
+Quick Start with Truffle
+------------------------
+
+You can use the truffle framework to deploy contracts to the tokamak test net, faraday. To use the faraday network, you need to specify the network in truffle-config.js as follows.
+
+::
+
+  module.exports = {
+  networks: {
+    faraday: {
+      host: "112.169.69.41",
+      port: 48549,
+      network_id: "*" // Match any network id
+    }
+  }
+
+If you want to test on the faraday network, you can use faucet at `here <http://faucet.tokamak.network:8080/#/>`_.
