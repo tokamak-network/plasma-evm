@@ -381,7 +381,7 @@ If you want to test on the faraday network, you can use faucet at `here <http://
 Enter and exit token at faraday network
 =======================================
 
-We will enter and eixt token using the :ref:`RequestableSimpleToken<requestable-simple-token>` without ownership, `RequestableSimpleTokenWithoutOwnership <https://github.com/Onther-Tech/requestable-simple-token/blob/master/contracts/RequestableSimpleTokenWithoutOwnership.sol>`_. Anyone can mint the token because there is no ownership. 
+We will enter and exit token using the :ref:`RequestableSimpleToken<requestable-simple-token>` without ownership, `RequestableSimpleTokenWithoutOwnership <https://github.com/Onther-Tech/requestable-simple-token/blob/master/contracts/RequestableSimpleTokenWithoutOwnership.sol>`_. Anyone can mint the token because there is no ownership. 
 
 RequestableSimpleTokenWithoutOwnership contract and RootChain contract are already deployed, so you can use it to test enter and exit. RequestableSimpleTokenWithoutOwnership contract address at Ropsten is ``0x6B27C38e3376C4E8B29cFbB3986f00676267D489`` and contract address at Faraday is
 ``0x1d93d7bd7d820ac7691109ace371e42d5004e1c1``. `RootChain` contract address at Ropsten is ``0x3122546c1544FD0F910A423A8c80fdCD48d742Fd``.
