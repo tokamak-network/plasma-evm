@@ -6,7 +6,7 @@ Token
 
 .. _requestable-simple-token:
 
-RequestableSimpleToken
+`RequestableSimpleToken <https://github.com/Onther-Tech/requestable-simple-token/blob/master/contracts/RequestableSimpleToken.sol>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 RequestableSimpleToken contract is a requestable token contract. RequestableSimpleToken contract makes ``balances`` state variable requestable. Therefore, the ``balances`` state variable can enter and exit.
