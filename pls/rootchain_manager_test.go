@@ -603,11 +603,6 @@ func TestScenario3(t *testing.T) {
 
 	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
 
-	data1, err := pls.rootchainManager.rootchainContract.GetEROTxData(baseCallOpt, big.NewInt(4))
-	if err != nil {
-		t.Fatalf("Failed to get ero tx data: %v", err)
-	}
-
 	// NRE#3 / Block#3 (1/2)
 	makeSampleTx(pls.rootchainManager)
 
@@ -1271,7 +1266,7 @@ func TestStress(t *testing.T) {
 
 	for _, tx := range txs {
 		r, isPending, err := plsClient.TransactionByHash(context.Background(), tx.Hash())
-		signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
+		signer := types.NewEIP155Signer(params.MainnetChainConfig.ChainID)
 		msg, _ := r.AsMessage(signer)
 		from := msg.From()
 
@@ -1733,7 +1728,7 @@ func transferETH(key *ecdsa.PrivateKey, to common.Address, amount *big.Int, isRo
 
 	var err error
 
-	chainId := params.PlasmaChainConfig.ChainID
+	chainId := params.MainnetChainConfig.ChainID
 
 	if isRootChain {
 		chainId = testPlsConfig.TxConfig.ChainId
@@ -2009,7 +2004,7 @@ func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	db := ethdb.NewMemDatabase()
 	genesis := gspec.MustCommit(db)
 
-	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, engine, testVmConfg, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.MainnetChainConfig, engine, testVmConfg, nil)
 	// Create and inject the requested chain
 	if n == 0 {
 		return db, blockchain, nil
@@ -2036,14 +2031,14 @@ func makeHeaderChain(parent *types.Header, n int, engine consensus.Engine, db et
 }
 
 func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethdb.Database, seed int) []*types.Block {
-	blocks, _ := core.GenerateChain(params.PlasmaChainConfig, parent, engine, db, n, func(i int, b *core.BlockGen) {
+	blocks, _ := core.GenerateChain(params.MainnetChainConfig, parent, engine, db, n, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(seed), 19: byte(i)})
 	})
 	return blocks
 }
 
 func newTxPool(blockchain *core.BlockChain) *core.TxPool {
-	pool := core.NewTxPool(*testTxPoolConfig, params.PlasmaChainConfig, blockchain)
+	pool := core.NewTxPool(*testTxPoolConfig, params.MainnetChainConfig, blockchain)
 
 	return pool
 }
@@ -2079,7 +2074,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	}
 
 	config := testPlsConfig
-	chainConfig := params.PlasmaChainConfig
+	chainConfig := params.MainnetChainConfig
 
 	rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
 
@@ -2288,7 +2283,7 @@ func makeManager() (*RootChainManager, func(), error) {
 
 	mux := new(event.TypeMux)
 	epochEnv := epoch.New()
-	miner := miner.New(minerBackend, params.PlasmaChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
+	miner := miner.New(minerBackend, params.MainnetChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
 
 	account, err := ks.ImportECDSA(operatorKey, "")
 	if err != nil {
@@ -2393,7 +2388,7 @@ func makeSampleTx(rcm *RootChainManager) error {
 	tx := types.NewTransaction(operatorNonceChildChain, operator, nil, 21000, nil, []byte{})
 	operatorNonceChildChain++
 
-	signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
+	signer := types.NewEIP155Signer(params.MainnetChainConfig.ChainID)
 
 	tx, err = types.SignTx(tx, signer, operatorKey)
 	if err != nil {

@@ -345,7 +345,7 @@ func DefaultGenesisBlock(rootChainContract common.Address, operator common.Addre
 	StaminaKey := GetStaminaKey(operator)
 	OperatorAsDelegatorKey := GetOperatorAsDelegatorKey(operator)
 	return &Genesis{
-		Config:     params.PlasmaChainConfig,
+		Config:     params.MainnetChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   1e8,
 		Difficulty: big.NewInt(1),
@@ -409,7 +409,7 @@ func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, oper
 	OperatorAsDelegatorKey := GetOperatorAsDelegatorKey(operator)
 
 	return &Genesis{
-		Config:     params.PlasmaChainConfig,
+		Config:     params.MainnetChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
 		GasLimit:   1e8,
 		Difficulty: big.NewInt(1),

@@ -1484,16 +1484,16 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// TODO: set network id from params/config.go for each network
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		cfg.NetworkId = 3
+		cfg.NetworkId = params.TestnetChainId.Uint64()
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(RinkebyFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 4
+			cfg.NetworkId = params.RinkebyChainId.Uint64()
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
+			cfg.NetworkId = params.DevelopChainId.Uint64()
 		}
 
 		if ctx.GlobalIsSet(OperatorKeyFlag.Name) || ctx.GlobalIsSet(OperatorAddressFlag.Name) {
