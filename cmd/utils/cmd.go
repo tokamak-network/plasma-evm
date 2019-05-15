@@ -311,8 +311,8 @@ func ExportPreimages(db *ethdb.LDBDatabase, fn string) error {
 	return nil
 }
 
-// ExportGenesis exports the genesis block into the specified file.
-func ExportGenesis(db *ethdb.LDBDatabase, fn string) error {
+// ExportGenesisFromDB exports the genesis block into the specified file.
+func ExportGenesisFromDB(db *ethdb.LDBDatabase, fn string) error {
 	log.Info("Exporting genesis", "file", fn)
 
 	// Open the file handle and potentially wrap with a gzip stream
@@ -330,6 +330,37 @@ func ExportGenesis(db *ethdb.LDBDatabase, fn string) error {
 	}
 
 	data := rawdb.ReadGenesis(db)
+
+	if _, err := io.WriteString(writer, string(data)); err != nil {
+		return err
+	}
+
+	log.Info("Exported genesis", "file", fn)
+	return nil
+}
+
+// ExportGenesis exports the genesis block into the specified file.
+func ExportGenesis(genesis *core.Genesis, fn string) error {
+	log.Info("Exporting genesis", "file", fn)
+
+	data, err := genesis.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	// Open the file handle and potentially wrap with a gzip stream
+	fh, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	var writer io.Writer = fh
+
+	if strings.HasSuffix(fn, ".gz") {
+		writer = gzip.NewWriter(writer)
+		defer writer.(*gzip.Writer).Close()
+	}
 
 	if _, err := io.WriteString(writer, string(data)); err != nil {
 		return err
