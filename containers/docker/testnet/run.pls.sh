@@ -23,7 +23,9 @@ if [ ! -d "$DATADIR" ]; then
     --rootchain.url "ws://$ROOTCHAIN_IP:8546" \
     --operator.key $OPERATOR_KEY \
     --datadir $DATADIR \
-    deploy "./genesis.json" 1663 true 2 
+    deploy "./genesis.json" 1663 true 2
+
+  rm -rf $DATADIR
 fi
 
 if [ ! -d "$DATADIR" ]; then
@@ -32,7 +34,7 @@ if [ ! -d "$DATADIR" ]; then
   geth \
     --datadir $DATADIR \
     --operator.key $OPERATOR_KEY \
-    --rootchain.url "ws://ROOTCHAIN_IP:8546"\
+    --rootchain.url "ws://$ROOTCHAIN_IP:8546"\
     init genesis.json
 fi
 
