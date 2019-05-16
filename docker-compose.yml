@@ -1,12 +1,12 @@
 version: '2.3'
 services:
   root:
-    image: plasma-evm/root
+    image: plasma-testnet/root
     networks:
-      plasma:
-        ipv4_address: 172.30.0.3
+      plasma-testnet:
+        ipv4_address: 172.31.0.3
     build:
-      context: ./containers/docker/rootchain
+      context: containers/docker/rootchain
       dockerfile: Dockerfile
     ports:
       - "0.0.0.0:8545:8545"
@@ -14,10 +14,10 @@ services:
     command: sh run.rootchain.sh
 
   child:
-    image: plasma-evm/child
+    image: plasma-testnet/child
     networks:
-      plasma:
-        ipv4_address: 172.30.0.4
+      plasma-testnet:
+        ipv4_address: 172.31.0.4
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,15 +30,15 @@ services:
       root:
         condition: service_started
     ports:
-    - "0.0.0.0:8547:8547"
-    - "0.0.0.0:8548:8548"
-    command: sh docker.run.pls.sh
+      - "0.0.0.0:8547:8547"
+      - "0.0.0.0:8548:8548"
+    command: sh run.pls.sh 
 
 networks:
-  plasma:
+  plasma-testnet:
     driver: bridge
     ipam:
       config:
-      - subnet: 172.30.0.0/24
-        gateway: 172.30.0.1
+      - subnet: 172.31.0.0/24
+        gateway: 172.31.0.1
 
