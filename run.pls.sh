@@ -20,11 +20,14 @@ build/bin/geth \
   --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
   --dev \
   --rpc \
-  --rpcport 8547 \
+  --rpcaddr 0.0.0.0 \
+  --rpcport 8549 \
   --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5,$CHALLENGER_KEY \
   --operator $OPERATOR \
   --rootchain.challenger $CHALLENGER \
-  --tx.interval "300ms" \
+  --tx.interval "30s" \
   --txpool.globalslots 163840 \
   --cache 4096 \
-  --miner.recommit "10s"
+  --rpcapi "web3,eth" \
+  --miner.recommit "14s" \
+  --rpccorsdomain "http://127.0.0.1:8080"
