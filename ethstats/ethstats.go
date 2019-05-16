@@ -373,9 +373,9 @@ func (s *Service) login(conn *websocket.Conn) error {
 	infos := s.server.NodeInfo()
 
 	var network, protocol string
-	if info := infos.Protocols["eth"]; info != nil {
+	if info := infos.Protocols["pls"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*pls.NodeInfo).Network)
-		protocol = fmt.Sprintf("eth/%d", pls.ProtocolVersions[0])
+		protocol = fmt.Sprintf("pls/%d", pls.ProtocolVersions[0])
 	} else {
 		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
 		protocol = fmt.Sprintf("les/%d", les.ClientProtocolVersions[0])

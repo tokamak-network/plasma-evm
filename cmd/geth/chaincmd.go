@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"runtime"
@@ -28,15 +29,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -60,6 +66,31 @@ This is a destructive action and changes the network in which you will be
 participating.
 
 It expects the genesis file as argument.`,
+	}
+	deployCommand = cli.Command{
+		Action:    utils.MigrateFlags(deployContract),
+		Name:      "deploy",
+		Usage:     "Deploy RootChain contract and make genesis file",
+		ArgsUsage: "<genesisPath> <chainId> <withPETH> <NRELength>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.RootChainUrlFlag,
+			utils.OperatorAddressFlag,
+			utils.StaminaMinDepositFlag,
+			utils.StaminaRecoverEpochLengthFlag,
+			utils.StaminaWithdrawalDelayFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The deploy command deploy RootChain contract and make new genesis file.
+
+It expects arguments as below:
+ - genesisPath: path to write genesis.json
+ - chainId: chain id of the network
+ - withPETH: whether give PETH to operator or not. (true or false)
+ - NRELength: length of non-reqeust epoch.
+
+`,
 	}
 	importCommand = cli.Command{
 		Action:    utils.MigrateFlags(importChain),
@@ -270,6 +301,68 @@ func initGenesis(ctx *cli.Context) error {
 	return nil
 }
 
+func deployContract(ctx *cli.Context) error {
+	// Make sure we have a valid genesis JSON
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("Must supply path to genesis JSON file")
+	}
+
+	// contract parameters
+	var (
+		chainId     int
+		withPETH    bool
+		NRELength   *big.Int
+		development = false
+	)
+
+	chainId, err := strconv.Atoi(ctx.Args()[1])
+	if err != nil {
+		return err
+	}
+
+	if ctx.Args()[2] == "true" {
+		withPETH = true
+	}
+
+	NRELengthInt, err := strconv.Atoi(ctx.Args()[1])
+	if err != nil {
+		return err
+	}
+
+	NRELength = new(big.Int).SetInt64(int64(NRELengthInt))
+
+	stack, cfg := makeConfigNode(ctx)
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasLimit = 7000000
+	opt.GasPrice = big.NewInt(10 * params.GWei)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	rootchainContract, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, withPETH, development, NRELength)
+	if err != nil {
+		utils.Fatalf("Failed to deploy contracts %v", err)
+	}
+
+	var genesis *core.Genesis
+	if ctx.GlobalBool(utils.DeveloperFlag.Name) {
+		genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(utils.DeveloperPeriodFlag.Name)), rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
+	} else {
+		genesis = core.DefaultGenesisBlock(rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
+	}
+
+	genesis.Config.ChainID = big.NewInt(int64(chainId))
+
+	utils.ExportGenesis(genesis, genesisPath)
+
+	return nil
+}
+
 func importChain(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
@@ -437,7 +530,7 @@ func exportGenesis(ctx *cli.Context) error {
 	diskdb := utils.MakeChainDatabase(ctx, stack).(*ethdb.LDBDatabase)
 
 	start := time.Now()
-	if err := utils.ExportGenesis(diskdb, ctx.Args().First()); err != nil {
+	if err := utils.ExportGenesisFromDB(diskdb, ctx.Args().First()); err != nil {
 		utils.Fatalf("Export error: %v\n", err)
 	}
 	fmt.Printf("Export done in %v\n", time.Since(start))

@@ -37,13 +37,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/consensus/clique"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
-	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/dashboard"
@@ -1381,7 +1377,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		Fatalf("Failed to read rootchain network id: %v", err)
 	}
 	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
-	cfg.TxConfig.ChainId = rootchainNetworkId
+
+	rootchainChainId, err := rootchainBackend.ChainID(context.Background())
+	if err != nil {
+		Fatalf("Failed to read rootchain chain id: %v", err)
+	}
+	cfg.TxConfig.ChainId = rootchainChainId
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)
@@ -1484,106 +1485,39 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	// TODO: set network id from params/config.go for each network
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		cfg.NetworkId = 3
+		cfg.NetworkId = params.TestnetChainId.Uint64()
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(RinkebyFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 4
+			cfg.NetworkId = params.RinkebyChainId.Uint64()
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
+			cfg.NetworkId = params.DevelopChainId.Uint64()
 		}
 
 		if ctx.GlobalIsSet(OperatorKeyFlag.Name) || ctx.GlobalIsSet(OperatorAddressFlag.Name) {
-			dummyDB := ethdb.NewMemDatabase()
-			defer dummyDB.Close()
-			dummyBlock := core.DeveloperGenesisBlock(
-				uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)),
-				common.HexToAddress("0xdead"),
-				operatorAddr,
-				cfg.StaminaConfig,
-			).ToBlock(dummyDB)
-
 			// contract parameters
 			var (
+				withPETH    = true
 				development = false
-				swapEnabled = false
 				NRELength   = big.NewInt(2)
 			)
 
-			wait := func(hash common.Hash) {
-				<-time.NewTimer(1 * time.Second).C
-
-				for receipt, _ := rootchainBackend.TransactionReceipt(context.Background(), hash); receipt == nil; {
-					//if err != nil {
-					//	Fatalf("Failed to get receipt: %v", err)
-					//}
-
-					<-time.NewTimer(1 * time.Second).C
-
-					receipt, _ = rootchainBackend.TransactionReceipt(context.Background(), hash)
-				}
-			}
-
-			var tx *types.Transaction
 			log.Info("Deploying contracts for development mode")
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
 			opt.GasLimit = 7000000
 			opt.GasPrice = big.NewInt(10 * params.GWei)
 
-			// 1. deploy MintableToken in root chain
-			mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, rootchainBackend)
+			rootchainContract, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, cfg, withPETH, development, NRELength)
 			if err != nil {
-				Fatalf("Failed to deploy MintableToken contract: %v", err)
+				Fatalf("Failed to deploy contracts %v", err)
 			}
-			log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenContract)
-
-			log.Info("Wait until deploy transaction is mined")
-			wait(tx.Hash())
-
-			// 2. deploy EtherToken in root chain
-			etherTokenContract, tx, etherToken, err := ethertoken.DeployEtherToken(opt, rootchainBackend, development, mintableTokenContract, swapEnabled)
-			if err != nil {
-				Fatalf("Failed to deploy EtherToken contract: %v", err)
-			}
-			log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenContract)
-
-			log.Info("Wait until deploy transaction is mined")
-			wait(tx.Hash())
-
-			// 3. deploy EpochHandler in root chain
-			epochHandlerContract, tx, _, err := epochhandler.DeployEpochHandler(opt, rootchainBackend)
-			if err != nil {
-				Fatalf("Failed to deploy EpochHandler contract: %v", err)
-			}
-			log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerContract)
-
-			log.Info("Wait until deploy transaction is mined")
-			wait(tx.Hash())
-
-			// 4. deploy RootChain in root chain
-			rootchainContract, tx, _, err := rootchain.DeployRootChain(opt, rootchainBackend, epochHandlerContract, etherTokenContract, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
-			if err != nil {
-				Fatalf("Failed to deploy RootChain contract: %v", err)
-			}
-			log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainContract)
-			wait(tx.Hash())
-
-			// 5. initialize EtherToken
-			tx, err = etherToken.Init(opt, rootchainContract)
-			if err != nil {
-				Fatalf("Failed to initialize EtherToken: %v", err)
-			}
-			log.Info("Initialize EtherToken", "hash", tx.Hash())
-			wait(tx.Hash())
 
 			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr, cfg.StaminaConfig)
 			cfg.RootChainContract = rootchainContract
-		} else {
-			// TODO: set genesis in case of user node
 		}
 	}
 

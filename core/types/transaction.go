@@ -246,7 +246,7 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	// with null address signature
 	if len(sig) == 0 {
 		cpy := &Transaction{data: tx.data}
-		cpy.data.V = new(big.Int).Add(params.PlasmaChainConfig.ChainID, big.NewInt(27))
+		cpy.data.V = new(big.Int).Add(params.MainnetChainConfig.ChainID, big.NewInt(27))
 		return cpy, nil
 	}
 

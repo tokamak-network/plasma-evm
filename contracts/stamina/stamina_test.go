@@ -198,7 +198,7 @@ func TestGetDefaultStaminaFromStorageKey(t *testing.T) {
 	gspec := core.DefaultGenesisBlock(common.Address{}, operator, defaultStaminaConfig)
 	db := ethdb.NewMemDatabase()
 	gspec.MustCommit(db)
-	blockchain, _ := core.NewBlockChain(db, nil, params.PlasmaChainConfig, ethash.NewFaker(), vm.Config{EnablePreimageRecording: true}, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.MainnetChainConfig, ethash.NewFaker(), vm.Config{EnablePreimageRecording: true}, nil)
 
 	statedb, _ := blockchain.State()
 	stamina := statedb.GetState(core.StaminaContractAddress, core.GetStaminaKey(operator))

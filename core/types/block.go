@@ -400,7 +400,7 @@ func (b *Block) IsRequest() bool {
 	}
 
 	for i := 0; i < len(txs); i++ {
-		tx, _ := txs[i].AsMessage(NewEIP155Signer(params.PlasmaChainConfig.ChainID))
+		tx, _ := txs[i].AsMessage(NewEIP155Signer(params.MainnetChainConfig.ChainID))
 		if tx.From() != params.NullAddress {
 			return false
 		}
