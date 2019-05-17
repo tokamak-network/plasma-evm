@@ -18,6 +18,7 @@ make geth && \
 build/bin/geth \
   --datadir $DATADIR \
   --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
+  --rootchain.url ws://127.0.0.1:8546 \
   --dev \
   --rpc \
   --rpcport 8547 \
