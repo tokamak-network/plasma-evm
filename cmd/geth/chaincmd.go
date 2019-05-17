@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,6 +36,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
@@ -251,38 +253,43 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("invalid rootchain contract address length")
 	}
 
-	//rootchainAddr := common.BytesToAddress(genesis.ExtraData)
-	//
-	//rootchainUrl := ctx.GlobalString(utils.RootChainUrlFlag.Name)
-	//rootchainBackend, err := ethclient.Dial(rootchainUrl)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//rootchainContract, err := rootchain.NewRootChain(rootchainAddr, rootchainBackend)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//operator, err := rootchainContract.Operator(&bind.CallOpts{Context: context.Background()})
-	//if err != nil {
-	//	return err
-	//}
+	rootchainAddr := common.BytesToAddress(genesis.ExtraData)
+	if (rootchainAddr == common.Address{}) {
+		utils.Fatalf("RootChain address cannot be empty")
+	}
 
-	//var staminaConfig *core.StaminaConfig
-	//
-	//for address, account := range genesis.Alloc {
-	//	if address == core.StaminaContractAddress {
-	//		staminaConfig = &core.StaminaConfig{
-	//			Initialized:        true,
-	//			MinDeposit:         account.Storage[core.MinDepositKey].Big(),
-	//			RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
-	//			WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
-	//		}
-	//		break
-	//	}
-	//}
-	//log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
+	rootchainUrl := ctx.GlobalString(utils.RootChainUrlFlag.Name)
+	rootchainBackend, err := ethclient.Dial(rootchainUrl)
+	if err != nil {
+		utils.Fatalf("Failed to connect root chain backend: %v", err)
+
+	}
+	log.Info("Root chain backend connected", "url", rootchainUrl)
+
+	rootchainContract, err := rootchain.NewRootChain(rootchainAddr, rootchainBackend)
+	if err != nil {
+		utils.Fatalf("Failed to instantiate RootChain contract: %v", err)
+	}
+
+	operator, err := rootchainContract.Operator(&bind.CallOpts{Context: context.Background()})
+	if err != nil {
+		utils.Fatalf("Failed to get operator address: %v", err)
+	}
+
+	var staminaConfig *core.StaminaConfig
+
+	for address, account := range genesis.Alloc {
+		if address == core.StaminaContractAddress {
+			staminaConfig = &core.StaminaConfig{
+				Initialized:        true,
+				MinDeposit:         account.Storage[core.MinDepositKey].Big(),
+				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
+				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
+			}
+			break
+		}
+	}
+	log.Info("Stamina config is set", "mindeposit", staminaConfig.MinDeposit, "recoverepochlength", staminaConfig.RecoverEpochLength, "withdrawaldelay", staminaConfig.WithdrawalDelay)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -291,8 +298,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, common.Address{}, common.Address{}, nil, stack.InstanceDir())
-		//_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootchainAddr, operator, staminaConfig, stack.InstanceDir())
+		_, hash, err := core.SetupGenesisBlock(chaindb, genesis, rootchainAddr, operator, staminaConfig, stack.InstanceDir())
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
