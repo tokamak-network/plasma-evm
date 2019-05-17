@@ -356,7 +356,7 @@ func deployContract(ctx *cli.Context) error {
 	}
 
 	var genesis *core.Genesis
-	if ctx.GlobalBool(utils.DeveloperFlag.Name) {
+	if withPETH {
 		genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(utils.DeveloperPeriodFlag.Name)), rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
 	} else {
 		genesis = core.DefaultGenesisBlock(rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
