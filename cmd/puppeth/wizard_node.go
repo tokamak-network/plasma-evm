@@ -68,6 +68,10 @@ func (w *wizard) deployNode(boot bool) {
 	if w.readDefaultYesNo(false) {
 		fmt.Printf("Which TCP port to expose? (default=8545)\n")
 		infos.rpcPort = w.readDefaultInt(8545)
+
+		vhost := fmt.Sprintf("%s,localhost", client.server)
+		fmt.Printf("Which is virtual hostname? (default=%s)\n", vhost)
+		infos.vhost = w.readDefaultString(vhost)
 	}
 	fmt.Println()
 	fmt.Printf("Do you want expose WebSocket JSONRPC endpoint (y/n)? (default=no)\n")

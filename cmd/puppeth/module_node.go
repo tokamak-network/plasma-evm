@@ -42,7 +42,7 @@ ADD genesis.json /genesis.json
 RUN \
   echo $'geth --cache 512 init --rootchain.url {{.RootChainURL}} /genesis.json' > geth.sh && \{{if .Unlock}}
 	echo 'mkdir -p /root/.ethereum/keystore/ && cp /signer.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug --rpccorsdomain "*" {{if .VHOST}}--rpcvhosts={{.VHOST}}{{end}}{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -58,14 +58,17 @@ services:
     container_name: {{.Network}}_{{.Type}}_1
     ports:
       - "{{.Port}}:{{.Port}}"
-      - "{{.Port}}:{{.Port}}/udp"
-      {{if .RPCPort}}- "{{.RPCPort}}:{{.RPCPort}}"{{end}}
-      {{if .WSPort}}- "{{.WSPort}}:{{.WSPort}}"{{end}}
+      - "{{.Port}}:{{.Port}}/udp"{{if .RPCPort}}
+      - "{{.RPCPort}}:{{.RPCPort}}"{{end}}{{if .WSPort}}
+      - "{{.WSPort}}:{{.WSPort}}"{{end}}
     volumes:
       - {{.Datadir}}:/root/.ethereum{{if .Ethashdir}}
       - {{.Ethashdir}}:/root/.ethash{{end}}
     environment:
-      - PORT={{.Port}}/tcp
+      - PORT={{.Port}}/tcp{{if .RPCPort}}
+      - RPC_PORT={{.RPCPort}}{{end}}{{if .WSPort}}
+      - WS_PORT={{.WSPort}}{{end}}{{if .VHOST}}
+      - VIRTUAL_HOST={{.VHOST}}{{end}}
       - TOTAL_PEERS={{.TotalPeers}}
       - LIGHT_PEERS={{.LightPeers}}
       - STATS_NAME={{.Ethstats}}
@@ -103,6 +106,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"NetworkID":    config.network,
 		"RootChainURL": config.rootchainURL,
 		"Port":         config.port,
+		"VHOST":        config.vhost,
 		"RPCPort":      config.rpcPort,
 		"WSPort":       config.wsPort,
 		"IP":           client.address,
@@ -124,6 +128,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Datadir":    config.datadir,
 		"Ethashdir":  config.ethashdir,
 		"Network":    network,
+		"VHOST":      config.vhost,
 		"Port":       config.port,
 		"RPCPort":    config.rpcPort,
 		"WSPort":     config.wsPort,
@@ -165,6 +170,7 @@ type nodeInfos struct {
 	ethashdir    string
 	ethstats     string
 	rootchainURL string
+	vhost        string
 	rpcPort      int
 	wsPort       int
 	port         int
@@ -212,6 +218,18 @@ func (info *nodeInfos) Report() map[string]string {
 			}
 		}
 	}
+	if info.rootchainURL != "" {
+		report["Root chain JSONRPC URL"] = info.rootchainURL
+	}
+	if info.rpcPort != 0 {
+		report["JSONRPC HTTP port"] = strconv.Itoa(info.rpcPort)
+	}
+	if info.wsPort != 0 {
+		report["JSONRPC WebSocket port"] = strconv.Itoa(info.wsPort)
+	}
+	if info.vhost != "" {
+		report["JSONRPC VHOST"] = info.vhost
+	}
 	return report
 }
 
@@ -236,6 +254,8 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	gasTarget, _ := strconv.ParseFloat(infos.envvars["GAS_TARGET"], 64)
 	gasLimit, _ := strconv.ParseFloat(infos.envvars["GAS_LIMIT"], 64)
 	gasPrice, _ := strconv.ParseFloat(infos.envvars["GAS_PRICE"], 64)
+	rpcPort, _ := strconv.Atoi(infos.envvars["RPC_PORT"])
+	wsPort, _ := strconv.Atoi(infos.envvars["WS_PORT"])
 
 	// Container available, retrieve its node ID and its genesis json
 	var out []byte
@@ -267,6 +287,7 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 		datadir:    infos.volumes["/root/.ethereum"],
 		ethashdir:  infos.volumes["/root/.ethash"],
 		port:       port,
+		vhost:      infos.envvars["VIRTUAL_HOST"],
 		peersTotal: totalPeers,
 		peersLight: lightPeers,
 		ethstats:   infos.envvars["STATS_NAME"],
@@ -278,6 +299,21 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 		gasPrice:   gasPrice,
 	}
 	stats.enode = string(enode)
+
+	if rpcPort != 0 {
+		if err = checkPort(client.server, rpcPort); err != nil {
+			log.Warn(fmt.Sprintf("%s HTTP JSONRPC endpoint seems unreachable", strings.Title(kind)), "server", client.server, "port", rpcPort, "err", err)
+		} else {
+			stats.rpcPort = rpcPort
+		}
+	}
+	if wsPort != 0 {
+		if err = checkPort(client.server, wsPort); err != nil {
+			log.Warn(fmt.Sprintf("%s WebSocket JSONRPC endpoint seems unreachable", strings.Title(kind)), "server", client.server, "port", wsPort, "err", err)
+		} else {
+			stats.wsPort = wsPort
+		}
+	}
 
 	return stats, nil
 }
