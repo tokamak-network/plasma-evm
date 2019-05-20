@@ -46,15 +46,15 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, cf
 
 	if withPETH {
 		// give PETH to operator
-		dummyBlock = core.DefaultGenesisBlock(
+		dummyBlock = core.DeveloperGenesisBlock(
+			1,
 			common.HexToAddress("0xdead"),
 			opt.From,
 			cfg.StaminaConfig,
 		).ToBlock(dummyDB)
 	} else {
-		// give PETH to operator
-		dummyBlock = core.DeveloperGenesisBlock(
-			1,
+		// Nobody has PETH in genesis block
+		dummyBlock = core.DefaultGenesisBlock(
 			common.HexToAddress("0xdead"),
 			opt.From,
 			cfg.StaminaConfig,

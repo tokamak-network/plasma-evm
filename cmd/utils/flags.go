@@ -658,8 +658,7 @@ var (
 	// Rootchain Flags
 	RootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
-		Usage: "JSONRPC endpoint of rootchain provider",
-		Value: "ws://localhost:8546",
+		Usage: "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.",
 	}
 	RootChainContractFlag = cli.StringFlag{
 		Name:  "rootchain.contract",
@@ -1366,23 +1365,24 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		}
 	}
 
-	cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
-	rootchainBackend, err = ethclient.Dial(cfg.RootChainURL)
-	if err != nil {
-		Fatalf("Failed to connect rootchain: %v", err)
-	}
+	if ctx.GlobalIsSet(RootChainUrlFlag.Name) {
+		cfg.RootChainURL = ctx.GlobalString(RootChainUrlFlag.Name)
+		rootchainBackend, err = ethclient.Dial(cfg.RootChainURL)
+		if err != nil {
+			Fatalf("Failed to connect rootchain: %v", err)
+		}
 
-	rootchainNetworkId, err := rootchainBackend.NetworkID(context.Background())
-	if err != nil {
-		Fatalf("Failed to read rootchain network id: %v", err)
-	}
-	cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
+		rootchainNetworkId, err := rootchainBackend.NetworkID(context.Background())
+		if err != nil {
+			Fatalf("Failed to read rootchain network id: %v", err)
+		}
+		cfg.RootChainNetworkID = rootchainNetworkId.Uint64()
 
-	rootchainChainId, err := rootchainBackend.ChainID(context.Background())
-	if err != nil {
-		Fatalf("Failed to read rootchain chain id: %v", err)
+		cfg.TxConfig.ChainId, err = rootchainBackend.ChainID(context.Background())
+		if err != nil {
+			Fatalf("Failed to read rootchain chain id: %v", err)
+		}
 	}
-	cfg.TxConfig.ChainId = rootchainChainId
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
 		hex := ctx.GlobalString(OperatorAddressFlag.Name)

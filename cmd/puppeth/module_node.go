@@ -32,7 +32,7 @@ import (
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
-FROM ethereum/client-go:latest
+FROM onthertech/plasma-evm:latest
 
 ADD genesis.json /genesis.json
 {{if .Unlock}}
@@ -40,9 +40,9 @@ ADD genesis.json /genesis.json
 	ADD signer.pass /signer.pass
 {{end}}
 RUN \
-  echo 'geth --cache 512 init /genesis.json' > geth.sh && \{{if .Unlock}}
+  echo $'geth --cache 512 init --rootchain.url {{.RootChainURL}} /genesis.json' > geth.sh && \{{if .Unlock}}
 	echo 'mkdir -p /root/.ethereum/keystore/ && cp /signer.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -59,6 +59,8 @@ services:
     ports:
       - "{{.Port}}:{{.Port}}"
       - "{{.Port}}:{{.Port}}/udp"
+      {{if .RPCPort}}- "{{.RPCPort}}:{{.RPCPort}}"{{end}}
+      {{if .WSPort}}- "{{.WSPort}}:{{.WSPort}}"{{end}}
     volumes:
       - {{.Datadir}}:/root/.ethereum{{if .Ethashdir}}
       - {{.Ethashdir}}:/root/.ethash{{end}}
@@ -98,18 +100,21 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 	}
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(nodeDockerfile)).Execute(dockerfile, map[string]interface{}{
-		"NetworkID": config.network,
-		"Port":      config.port,
-		"IP":        client.address,
-		"Peers":     config.peersTotal,
-		"LightFlag": lightFlag,
-		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.ethstats,
-		"Etherbase": config.etherbase,
-		"GasTarget": uint64(1000000 * config.gasTarget),
-		"GasLimit":  uint64(1000000 * config.gasLimit),
-		"GasPrice":  uint64(1000000000 * config.gasPrice),
-		"Unlock":    config.keyJSON != "",
+		"NetworkID":    config.network,
+		"RootChainURL": config.rootchainURL,
+		"Port":         config.port,
+		"RPCPort":      config.rpcPort,
+		"WSPort":       config.wsPort,
+		"IP":           client.address,
+		"Peers":        config.peersTotal,
+		"LightFlag":    lightFlag,
+		"Bootnodes":    strings.Join(bootnodes, ","),
+		"Ethstats":     config.ethstats,
+		"Etherbase":    config.etherbase,
+		"GasTarget":    uint64(1000000 * config.gasTarget),
+		"GasLimit":     uint64(1000000 * config.gasLimit),
+		"GasPrice":     uint64(1000000000 * config.gasPrice),
+		"Unlock":       config.keyJSON != "",
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
@@ -120,6 +125,8 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Ethashdir":  config.ethashdir,
 		"Network":    network,
 		"Port":       config.port,
+		"RPCPort":    config.rpcPort,
+		"WSPort":     config.wsPort,
 		"TotalPeers": config.peersTotal,
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
@@ -152,21 +159,24 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 // nodeInfos is returned from a boot or seal node status check to allow reporting
 // various configuration parameters.
 type nodeInfos struct {
-	genesis    []byte
-	network    int64
-	datadir    string
-	ethashdir  string
-	ethstats   string
-	port       int
-	enode      string
-	peersTotal int
-	peersLight int
-	etherbase  string
-	keyJSON    string
-	keyPass    string
-	gasTarget  float64
-	gasLimit   float64
-	gasPrice   float64
+	genesis      []byte
+	network      int64
+	datadir      string
+	ethashdir    string
+	ethstats     string
+	rootchainURL string
+	rpcPort      int
+	wsPort       int
+	port         int
+	enode        string
+	peersTotal   int
+	peersLight   int
+	etherbase    string
+	keyJSON      string
+	keyPass      string
+	gasTarget    float64
+	gasLimit     float64
+	gasPrice     float64
 }
 
 // Report converts the typed struct into a plain string->string map, containing

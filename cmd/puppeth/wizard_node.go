@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
-	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/log"
 )
 
@@ -57,6 +56,25 @@ func (w *wizard) deployNode(boot bool) {
 
 	infos.genesis, _ = json.MarshalIndent(w.conf.Genesis, "", "  ")
 	infos.network = w.conf.Genesis.Config.ChainID.Int64()
+
+	// Figure out which URL to listen for root chain JSONRPC endpoint
+	fmt.Println()
+	fmt.Printf("What URL to listen on root chain JSONRPC?\n")
+	infos.rootchainURL = w.readURL().String()
+
+	// Figure out whether expose JSONRPC or not
+	fmt.Println()
+	fmt.Printf("Do you want expose HTTP JSONRPC endpoint (y/n)? (default=no)\n")
+	if w.readDefaultYesNo(false) {
+		fmt.Printf("Which TCP port to expose? (default=8545)\n")
+		infos.rpcPort = w.readDefaultInt(8545)
+	}
+	fmt.Println()
+	fmt.Printf("Do you want expose WebSocket JSONRPC endpoint (y/n)? (default=no)\n")
+	if w.readDefaultYesNo(false) {
+		fmt.Printf("Which TCP port to expose? (default=8546)\n")
+		infos.wsPort = w.readDefaultInt(8546)
+	}
 
 	// Figure out where the user wants to store the persistent data
 	fmt.Println()
@@ -101,24 +119,37 @@ func (w *wizard) deployNode(boot bool) {
 		fmt.Printf("What should the node be called on the stats page? (default = %s)\n", infos.ethstats)
 		infos.ethstats = w.readDefaultString(infos.ethstats) + ":" + w.conf.ethstats
 	}
-	// If the node is a miner/signer, load up needed credentials
+	// If the node is an operator, load up needed credentials
 	if !boot {
 		if w.conf.Genesis.Config.Ethash != nil {
-			// Ethash based miners only need an etherbase to mine against
-			fmt.Println()
-			if infos.etherbase == "" {
-				fmt.Printf("What address should the miner use?\n")
-				for {
-					if address := w.readAddress(); address != nil {
-						infos.etherbase = address.Hex()
-						break
+			// If a previous signer was already set, offer to reuse it
+			if infos.keyJSON != "" {
+				if key, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
+					infos.keyJSON, infos.keyPass = "", ""
+				} else {
+					fmt.Println()
+					fmt.Printf("Reuse previous (%s) signing account (y/n)? (default = yes)\n", key.Address.Hex())
+					if !w.readDefaultYesNo(true) {
+						infos.keyJSON, infos.keyPass = "", ""
 					}
 				}
-			} else {
-				fmt.Printf("What address should the miner use? (default = %s)\n", infos.etherbase)
-				infos.etherbase = w.readDefaultAddress(common.HexToAddress(infos.etherbase)).Hex()
 			}
-		} else if w.conf.Genesis.Config.Clique != nil {
+			// Ethash based miners only need an etherbase to mine against
+			if infos.keyJSON == "" {
+				fmt.Println()
+				fmt.Println("Please paste the operator's key JSON:")
+				infos.keyJSON = w.readJSON()
+
+				fmt.Println()
+				fmt.Println("What's the unlock password for the account? (won't be echoed)")
+				infos.keyPass = w.readPassword()
+
+				if _, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
+					log.Error("Failed to decrypt key with given passphrase")
+					return
+				}
+			}
+		} else if w.conf.Genesis.Config.Clique != nil { // TODO: disable clique
 			// If a previous signer was already set, offer to reuse it
 			if infos.keyJSON != "" {
 				if key, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
@@ -157,7 +188,7 @@ func (w *wizard) deployNode(boot bool) {
 		infos.gasLimit = w.readDefaultFloat(infos.gasLimit)
 
 		fmt.Println()
-		fmt.Printf("What gas price should the signer require (GWei)? (default = %0.3f)\n", infos.gasPrice)
+		fmt.Printf("What gas price should the operator require (GWei)? (default = %0.3f)\n", infos.gasPrice)
 		infos.gasPrice = w.readDefaultFloat(infos.gasPrice)
 	}
 	// Try to deploy the full node on the host
