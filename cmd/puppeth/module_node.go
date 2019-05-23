@@ -66,6 +66,7 @@ services:
       - {{.Ethashdir}}:/root/.ethash{{end}}
     environment:
       - PORT={{.Port}}/tcp{{if .RPCPort}}
+      - ROOTCHAIN_URL={{.RootChainURL}}
       - RPC_PORT={{.RPCPort}}{{end}}{{if .WSPort}}
       - WS_PORT={{.WSPort}}{{end}}{{if .VHOST}}
       - VIRTUAL_HOST={{.VHOST}}{{end}}
@@ -124,22 +125,23 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(nodeComposefile)).Execute(composefile, map[string]interface{}{
-		"Type":       kind,
-		"Datadir":    config.datadir,
-		"Ethashdir":  config.ethashdir,
-		"Network":    network,
-		"VHOST":      config.vhost,
-		"Port":       config.port,
-		"RPCPort":    config.rpcPort,
-		"WSPort":     config.wsPort,
-		"TotalPeers": config.peersTotal,
-		"Light":      config.peersLight > 0,
-		"LightPeers": config.peersLight,
-		"Ethstats":   config.ethstats[:strings.Index(config.ethstats, ":")],
-		"Etherbase":  config.etherbase,
-		"GasTarget":  config.gasTarget,
-		"GasLimit":   config.gasLimit,
-		"GasPrice":   config.gasPrice,
+		"Type":         kind,
+		"Datadir":      config.datadir,
+		"Ethashdir":    config.ethashdir,
+		"Network":      network,
+		"VHOST":        config.vhost,
+		"RootChainURL": config.rootchainURL,
+		"Port":         config.port,
+		"RPCPort":      config.rpcPort,
+		"WSPort":       config.wsPort,
+		"TotalPeers":   config.peersTotal,
+		"Light":        config.peersLight > 0,
+		"LightPeers":   config.peersLight,
+		"Ethstats":     config.ethstats[:strings.Index(config.ethstats, ":")],
+		"Etherbase":    config.etherbase,
+		"GasTarget":    config.gasTarget,
+		"GasLimit":     config.gasLimit,
+		"GasPrice":     config.gasPrice,
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
@@ -194,6 +196,7 @@ func (info *nodeInfos) Report() map[string]string {
 		"Peer count (all total)":   strconv.Itoa(info.peersTotal),
 		"Peer count (light nodes)": strconv.Itoa(info.peersLight),
 		"Ethstats username":        info.ethstats,
+		"Root chain JSONRPC URL":   info.rootchainURL,
 	}
 	if info.gasTarget > 0 {
 		// Miner or signer node
@@ -217,9 +220,6 @@ func (info *nodeInfos) Report() map[string]string {
 				log.Error("Failed to retrieve signer address", "err", err)
 			}
 		}
-	}
-	if info.rootchainURL != "" {
-		report["Root chain JSONRPC URL"] = info.rootchainURL
 	}
 	if info.rpcPort != 0 {
 		report["JSONRPC HTTP port"] = strconv.Itoa(info.rpcPort)
@@ -283,20 +283,21 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	}
 	// Assemble and return the useful infos
 	stats := &nodeInfos{
-		genesis:    genesis,
-		datadir:    infos.volumes["/root/.ethereum"],
-		ethashdir:  infos.volumes["/root/.ethash"],
-		port:       port,
-		vhost:      infos.envvars["VIRTUAL_HOST"],
-		peersTotal: totalPeers,
-		peersLight: lightPeers,
-		ethstats:   infos.envvars["STATS_NAME"],
-		etherbase:  infos.envvars["MINER_NAME"],
-		keyJSON:    keyJSON,
-		keyPass:    keyPass,
-		gasTarget:  gasTarget,
-		gasLimit:   gasLimit,
-		gasPrice:   gasPrice,
+		genesis:      genesis,
+		datadir:      infos.volumes["/root/.ethereum"],
+		ethashdir:    infos.volumes["/root/.ethash"],
+		rootchainURL: infos.envvars["ROOTCHAIN_URL"],
+		port:         port,
+		vhost:        infos.envvars["VIRTUAL_HOST"],
+		peersTotal:   totalPeers,
+		peersLight:   lightPeers,
+		ethstats:     infos.envvars["STATS_NAME"],
+		etherbase:    infos.envvars["MINER_NAME"],
+		keyJSON:      keyJSON,
+		keyPass:      keyPass,
+		gasTarget:    gasTarget,
+		gasLimit:     gasLimit,
+		gasPrice:     gasPrice,
 	}
 	stats.enode = string(enode)
 
