@@ -1430,19 +1430,23 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
-		addr := common.HexToAddress(ctx.GlobalString(PlasmaRootChainChallenger.Name))
-		if !ks.HasAddress(addr) {
-			Fatalf("Failed to get challenger address from keystore")
+		hex := ctx.GlobalString(OperatorAddressFlag.Name)
+		addr := common.HexToAddress(hex)
+		account, err := ks.Find(accounts.Account{Address: addr})
+
+		if err != nil {
+			Fatalf("Failed to find challenger account: %v", err)
 		}
+
+		if err = ks.Unlock(account, ""); err != nil {
+			Fatalf("Failed to unlock challenger account: %v", err)
+		}
+		log.Info("Challenger account is unlocked", "address", addr)
+
 		challenger := accounts.Account{Address: addr}
 
 		if cfg.Operator == challenger {
 			Fatalf("Cannot use same challenger account as operator")
-		}
-
-		log.Info("Unlocking challenger account", "address", challenger.Address)
-		if err := ks.Unlock(challenger, ""); err != nil {
-			Fatalf("Failed to unlock challenger account: %v", err)
 		}
 
 		if rootchainBackend == nil {
@@ -1456,7 +1460,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Expected challenger's balance to be more than %s wei, but is %v wei", cfg.OperatorMinEther.String(), balance)
 		}
 
-		log.Info("Challenger account is unlocked", "address", challenger.Address)
 		cfg.Challenger = challenger
 
 		if cfg.NodeMode == pls.ModeUser {
