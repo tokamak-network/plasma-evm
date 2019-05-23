@@ -30,12 +30,12 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-FROM puppeth/blockscout:latest
+FROM onthertech/blockscout:latest
 
 ADD genesis.json /genesis.json
 RUN \
-  echo 'geth --cache 512 init /genesis.json' > explorer.sh && \
-	echo $'exec geth --networkid {{.NetworkID}} --syncmode "full"  --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --rpc --rpccorsdomain "*" --rpcvhosts "*" --ws --wsorigins "*" &' >> explorer.sh && \
+  echo 'geth --cache 512 init --rootchain.url {{.RootChainURL}} /genesis.json' > explorer.sh && \
+	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} --syncmode "full"  --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --rpc --rpccorsdomain "*" --rpcvhosts "*" --ws --wsorigins "*" &' >> explorer.sh && \
 	echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
 	echo 'sleep 5' >> explorer.sh && \
   	echo 'mix do ecto.drop --force, ecto.create, ecto.migrate' >> explorer.sh && \
@@ -59,6 +59,7 @@ services:
             - "{{.WebPort}}:4000"{{end}}
         environment:
             - NETWORK={{.NetworkName}}{{if .VHost}}
+            - ROOTCHAIN_URL={{.RootChainURL}}
             - VIRTUAL_HOST={{.VHost}}
             - VIRTUAL_PORT=4000{{end}}
             - NODE_PORT={{.NodePort}}/tcp
@@ -84,23 +85,25 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerDockerfile)).Execute(dockerfile, map[string]interface{}{
-		"NetworkID": config.networkId,
-		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.ethstats,
-		"NodePort":  config.nodePort,
+		"NetworkID":    config.networkId,
+		"RootChainURL": config.rootchainURL,
+		"Bootnodes":    strings.Join(bootnodes, ","),
+		"Ethstats":     config.ethstats,
+		"NodePort":     config.nodePort,
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerComposefile)).Execute(composefile, map[string]interface{}{
-		"NetworkName": network,
-		"VHost":       config.webHost,
-		"Ethstats":    config.ethstats,
-		"Datadir":     config.datadir,
-		"DBDir":       config.dbdir,
-		"Network":     network,
-		"NodePort":    config.nodePort,
-		"WebPort":     config.webPort,
+		"NetworkName":  network,
+		"RootChainURL": config.rootchainURL,
+		"VHost":        config.webHost,
+		"Ethstats":     config.ethstats,
+		"Datadir":      config.datadir,
+		"DBDir":        config.dbdir,
+		"Network":      network,
+		"NodePort":     config.nodePort,
+		"WebPort":      config.webPort,
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
@@ -122,14 +125,15 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 // explorerInfos is returned from a block explorer status check to allow reporting
 // various configuration parameters.
 type explorerInfos struct {
-	genesis   []byte
-	datadir   string
-	dbdir     string
-	ethstats  string
-	nodePort  int
-	webHost   string
-	webPort   int
-	networkId int64
+	genesis      []byte
+	rootchainURL string
+	datadir      string
+	dbdir        string
+	ethstats     string
+	nodePort     int
+	webHost      string
+	webPort      int
+	networkId    int64
 }
 
 // Report converts the typed struct into a plain string->string map, containing
@@ -141,6 +145,7 @@ func (info *explorerInfos) Report() map[string]string {
 		"Ethstats username":      info.ethstats,
 		"Website address ":       info.webHost,
 		"Website listener port ": strconv.Itoa(info.webPort),
+		"Root chain JSONRPC URL": info.rootchainURL,
 	}
 	return report
 }
@@ -178,11 +183,12 @@ func checkExplorer(client *sshClient, network string) (*explorerInfos, error) {
 	}
 	// Assemble and return the useful infos
 	stats := &explorerInfos{
-		dbdir:    infos.volumes["/var/lib/postgresql/data"],
-		datadir:  infos.volumes["/root/.ethereum"],
-		webHost:  host,
-		webPort:  webPort,
-		ethstats: infos.envvars["STATS"],
+		rootchainURL: infos.envvars["ROOTCHAIN_URL"],
+		dbdir:        infos.volumes["/var/lib/postgresql/data"],
+		datadir:      infos.volumes["/root/.ethereum"],
+		webHost:      host,
+		webPort:      webPort,
+		ethstats:     infos.envvars["STATS"],
 	}
 	return stats, nil
 }
