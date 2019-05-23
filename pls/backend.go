@@ -44,7 +44,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/internal/plsapi"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner"
-	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -191,7 +190,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 		return nil, err
 	}
 
-	epochEnv := epoch.New()
+	epochEnv := rawdb.ReadEpochEnv(chainDb)
+
 	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, chainDb, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
 	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
@@ -459,6 +459,9 @@ func (s *Plasma) SetEtherbase(etherbase common.Address) {
 // is already running, this method adjust the number of threads allowed to use
 // and updates the minimum price required by the transaction pool.
 func (s *Plasma) StartMining(threads int) error {
+	if s.config.NodeMode != ModeOperator {
+		return errors.New("Only operator can start mining")
+	}
 	// Update the thread count within the consensus engine
 	type threaded interface {
 		SetThreads(threads int)
@@ -496,7 +499,8 @@ func (s *Plasma) StartMining(threads int) error {
 		// introduced to speed sync times.
 		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
 		// This should be used for restarting miner only
-		go s.miner.Start(eb, &rootchain.RootChainEpochPrepared{}, true)
+		// miner will be started in rootchain manager
+		// go s.miner.Start(eb, &rootchain.RootChainEpochPrepared{}, true)
 	}
 	return nil
 }
@@ -566,6 +570,10 @@ func (s *Plasma) Start(srvr *p2p.Server) error {
 	}
 
 	s.StartMining(runtime.NumCPU())
+	// TODO: only after operator node fully synced
+	if s.config.NodeMode == ModeOperator {
+		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
+	}
 
 	return nil
 }

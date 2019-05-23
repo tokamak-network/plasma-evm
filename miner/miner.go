@@ -131,8 +131,20 @@ func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPre
 		previousEnv := rawdb.ReadEpochEnv(self.db)
 		epoch.Copy(self.env, previousEnv)
 
-		self.worker.start()
-		log.Info("current epoch is resumed")
+		if self.env.EpochLength.Cmp(big.NewInt(0)) == 0 {
+			log.Info("NRB#1 is not initialized. stop mining")
+			self.Stop()
+			return
+		}
+
+		if !self.env.Completed {
+			self.worker.start()
+			log.Info("current epoch is resumed")
+			return
+		}
+
+		log.Info("current epoch is already completed. stop miner")
+		self.Stop()
 		return
 	}
 

@@ -139,6 +139,10 @@ func (rcm *RootChainManager) Start() error {
 	go rcm.pingBackend()
 	rcm.txManager.Start()
 
+	if rcm.config.NodeMode == ModeOperator {
+		go rcm.miner.Start(rcm.config.Operator.Address, new(rootchain.RootChainEpochPrepared), true)
+	}
+
 	return nil
 }
 
