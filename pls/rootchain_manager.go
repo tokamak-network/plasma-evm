@@ -124,7 +124,9 @@ func NewRootChainManager(
 		return nil, err
 	}
 
-	miner.SetNRBepochLength(epochLength)
+	if config.NodeMode == ModeOperator {
+		miner.SetNRBepochLength(epochLength)
+	}
 
 	return rcm, nil
 }
@@ -442,7 +444,9 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 	// start miner
 	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
-	go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
+	if rcm.config.NodeMode == ModeOperator {
+		go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
+	}
 
 	// prepare request tx for ORBs
 	if e.IsRequest && !e.EpochIsEmpty {
@@ -530,9 +534,13 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 
 		var numMinedORBs uint64 = 0
 
+		// TODO: handle ModeUser
+		if rcm.config.NodeMode != ModeOperator {
+			return nil
+		}
+
 		// Unlock mutex and make submit loop to process
 		rcm.lock.Unlock()
-
 		for numMinedORBs < numORBs.Uint64() {
 			if err := rcm.txPool.EnqueueReqeustTxs(bodies[numMinedORBs]); err != nil {
 				return err
