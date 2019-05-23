@@ -126,30 +126,30 @@ func (w *wizard) deployFaucet() {
 		infos.node.ethstats = w.readDefaultString(infos.node.ethstats) + ":" + w.conf.ethstats
 	}
 	// Load up the credential needed to release funds
-	if infos.node.keyJSON != "" {
-		if key, err := keystore.DecryptKey([]byte(infos.node.keyJSON), infos.node.keyPass); err != nil {
-			infos.node.keyJSON, infos.node.keyPass = "", ""
+	if infos.node.operatorKeyJSON != "" {
+		if key, err := keystore.DecryptKey([]byte(infos.node.operatorKeyJSON), infos.node.operatorKeyPass); err != nil {
+			infos.node.operatorKeyJSON, infos.node.operatorKeyPass = "", ""
 		} else {
 			fmt.Println()
 			fmt.Printf("Reuse previous (%s) funding account (y/n)? (default = yes)\n", key.Address.Hex())
 			if !w.readDefaultYesNo(true) {
-				infos.node.keyJSON, infos.node.keyPass = "", ""
+				infos.node.operatorKeyJSON, infos.node.operatorKeyPass = "", ""
 			}
 		}
 	}
-	for i := 0; i < 3 && infos.node.keyJSON == ""; i++ {
+	for i := 0; i < 3 && infos.node.operatorKeyJSON == ""; i++ {
 		fmt.Println()
 		fmt.Println("Please paste the faucet's funding account key JSON:")
-		infos.node.keyJSON = w.readJSON()
+		infos.node.operatorKeyJSON = w.readJSON()
 
 		fmt.Println()
 		fmt.Println("What's the unlock password for the account? (won't be echoed)")
-		infos.node.keyPass = w.readPassword()
+		infos.node.operatorKeyPass = w.readPassword()
 
-		if _, err := keystore.DecryptKey([]byte(infos.node.keyJSON), infos.node.keyPass); err != nil {
+		if _, err := keystore.DecryptKey([]byte(infos.node.operatorKeyJSON), infos.node.operatorKeyPass); err != nil {
 			log.Error("Failed to decrypt key with given passphrase")
-			infos.node.keyJSON = ""
-			infos.node.keyPass = ""
+			infos.node.operatorKeyJSON = ""
+			infos.node.operatorKeyPass = ""
 		}
 	}
 	// Check if the user wants to run the faucet in debug mode (noauth)

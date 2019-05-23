@@ -124,8 +124,8 @@ func deployFaucet(client *sshClient, network string, bootnodes []string, config 
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
 	files[filepath.Join(workdir, "genesis.json")] = config.node.genesis
-	files[filepath.Join(workdir, "account.json")] = []byte(config.node.keyJSON)
-	files[filepath.Join(workdir, "account.pass")] = []byte(config.node.keyPass)
+	files[filepath.Join(workdir, "account.json")] = []byte(config.node.operatorKeyJSON)
+	files[filepath.Join(workdir, "account.pass")] = []byte(config.node.operatorKeyPass)
 
 	// Upload the deployment files to the remote server (and clean up afterwards)
 	if out, err := client.Upload(files); err != nil {
@@ -170,11 +170,11 @@ func (info *faucetInfos) Report() map[string]string {
 	if info.noauth {
 		report["Debug mode (no auth)"] = "enabled"
 	}
-	if info.node.keyJSON != "" {
+	if info.node.operatorKeyJSON != "" {
 		var key struct {
 			Address string `json:"address"`
 		}
-		if err := json.Unmarshal([]byte(info.node.keyJSON), &key); err == nil {
+		if err := json.Unmarshal([]byte(info.node.operatorKeyJSON), &key); err == nil {
 			report["Funding account"] = common.HexToAddress(key.Address).Hex()
 		} else {
 			log.Error("Failed to retrieve signer address", "err", err)
@@ -229,11 +229,11 @@ func checkFaucet(client *sshClient, network string) (*faucetInfos, error) {
 	// Container available, assemble and return the useful infos
 	return &faucetInfos{
 		node: &nodeInfos{
-			datadir:  infos.volumes["/root/.faucet"],
-			port:     infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
-			ethstats: infos.envvars["ETH_NAME"],
-			keyJSON:  keyJSON,
-			keyPass:  keyPass,
+			datadir:         infos.volumes["/root/.faucet"],
+			port:            infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
+			ethstats:        infos.envvars["ETH_NAME"],
+			operatorKeyJSON: keyJSON,
+			operatorKeyPass: keyPass,
 		},
 		host:          host,
 		port:          port,

@@ -126,57 +126,90 @@ func (w *wizard) deployNode(boot bool) {
 	// If the node is an operator, load up needed credentials
 	if !boot {
 		if w.conf.Genesis.Config.Ethash != nil {
-			// If a previous signer was already set, offer to reuse it
-			if infos.keyJSON != "" {
-				if key, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
-					infos.keyJSON, infos.keyPass = "", ""
+			// If a previous operator was already set, offer to reuse it
+			if infos.operatorKeyJSON != "" {
+				if key, err := keystore.DecryptKey([]byte(infos.operatorKeyJSON), infos.operatorKeyPass); err != nil {
+					infos.operatorKeyJSON, infos.operatorKeyPass = "", ""
 				} else {
 					fmt.Println()
 					fmt.Printf("Reuse previous (%s) signing account (y/n)? (default = yes)\n", key.Address.Hex())
 					if !w.readDefaultYesNo(true) {
-						infos.keyJSON, infos.keyPass = "", ""
+						infos.operatorKeyJSON, infos.operatorKeyPass = "", ""
 					}
 				}
 			}
 			// Ethash based miners only need an etherbase to mine against
-			if infos.keyJSON == "" {
+			if infos.operatorKeyJSON == "" {
 				fmt.Println()
 				fmt.Println("Please paste the operator's key JSON:")
-				infos.keyJSON = w.readJSON()
+				infos.operatorKeyJSON = w.readJSON()
 
 				fmt.Println()
 				fmt.Println("What's the unlock password for the account? (won't be echoed)")
-				infos.keyPass = w.readPassword()
+				infos.operatorKeyPass = w.readPassword()
 
-				if _, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
+				if _, err := keystore.DecryptKey([]byte(infos.operatorKeyJSON), infos.operatorKeyPass); err != nil {
 					log.Error("Failed to decrypt key with given passphrase")
 					return
 				}
 			}
-		} else if w.conf.Genesis.Config.Clique != nil { // TODO: disable clique
-			// If a previous signer was already set, offer to reuse it
-			if infos.keyJSON != "" {
-				if key, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
-					infos.keyJSON, infos.keyPass = "", ""
+
+			// If a previous challenger was already set, offer to reuse it
+			if infos.challengerKeyJSON != "" {
+				if key, err := keystore.DecryptKey([]byte(infos.challengerKeyJSON), infos.challengerKeyPass); err != nil {
+					infos.challengerKeyJSON, infos.challengerKeyPass = "", ""
 				} else {
 					fmt.Println()
 					fmt.Printf("Reuse previous (%s) signing account (y/n)? (default = yes)\n", key.Address.Hex())
 					if !w.readDefaultYesNo(true) {
-						infos.keyJSON, infos.keyPass = "", ""
+						infos.challengerKeyJSON, infos.challengerKeyPass = "", ""
+					}
+				}
+			}
+			// Ethash based miners only need an etherbase to mine against
+			if infos.challengerKeyJSON == "" {
+				fmt.Println()
+				fmt.Println("Please paste the challenger's key JSON:")
+				infos.challengerKeyJSON = w.readJSON()
+
+				fmt.Println()
+				fmt.Println("What's the unlock password for the account? (won't be echoed)")
+				infos.challengerKeyPass = w.readPassword()
+
+				if _, err := keystore.DecryptKey([]byte(infos.challengerKeyJSON), infos.challengerKeyPass); err != nil {
+					log.Error("Failed to decrypt key with given passphrase")
+					return
+				}
+			}
+
+			if infos.challengerKeyJSON != "" && infos.challengerKeyJSON == infos.operatorKeyJSON {
+				log.Error("Cannot use same address as challenger and operator.")
+				return
+			}
+		} else if w.conf.Genesis.Config.Clique != nil { // TODO: disable clique
+			// If a previous signer was already set, offer to reuse it
+			if infos.operatorKeyJSON != "" {
+				if key, err := keystore.DecryptKey([]byte(infos.operatorKeyJSON), infos.operatorKeyPass); err != nil {
+					infos.operatorKeyJSON, infos.operatorKeyPass = "", ""
+				} else {
+					fmt.Println()
+					fmt.Printf("Reuse previous (%s) signing account (y/n)? (default = yes)\n", key.Address.Hex())
+					if !w.readDefaultYesNo(true) {
+						infos.operatorKeyJSON, infos.operatorKeyPass = "", ""
 					}
 				}
 			}
 			// Clique based signers need a keyfile and unlock password, ask if unavailable
-			if infos.keyJSON == "" {
+			if infos.operatorKeyJSON == "" {
 				fmt.Println()
 				fmt.Println("Please paste the signer's key JSON:")
-				infos.keyJSON = w.readJSON()
+				infos.operatorKeyJSON = w.readJSON()
 
 				fmt.Println()
 				fmt.Println("What's the unlock password for the account? (won't be echoed)")
-				infos.keyPass = w.readPassword()
+				infos.operatorKeyPass = w.readPassword()
 
-				if _, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {
+				if _, err := keystore.DecryptKey([]byte(infos.operatorKeyJSON), infos.operatorKeyPass); err != nil {
 					log.Error("Failed to decrypt key with given passphrase")
 					return
 				}

@@ -35,14 +35,21 @@ var nodeDockerfile = `
 FROM onthertech/plasma-evm:latest
 
 ADD genesis.json /genesis.json
+{{if .Operator}}
+  ADD operator.json /operator.json
+{{end}}
+{{if .Challenger}}
+  ADD challenger.json /challenger.json
+{{end}}
 {{if .Unlock}}
-	ADD signer.json /signer.json
 	ADD signer.pass /signer.pass
 {{end}}
 RUN \
   echo $'geth --cache 512 init --rootchain.url {{.RootChainURL}} /genesis.json' > geth.sh && \{{if .Unlock}}
-	echo 'mkdir -p /root/.ethereum/keystore/ && cp /signer.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug --rpccorsdomain "*" {{if .VHOST}}--rpcvhosts={{.VHOST}}{{end}}{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+	echo 'mkdir -p /root/.ethereum/keystore/' >> geth.sh && \{{end}}{{if .Operator}}
+  echo 'cp /operator.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}{{if .Challenger}}
+	echo 'cp /challenger.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
+	echo $'exec geth --syncmode="full" --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .Operator}}--operator {{.Operator}}{{end}} {{if .Challenger}}--rootchain.challenger {{.Challenger}}{{end}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug --rpccorsdomain "*" {{if .VHOST}}--rpcvhosts={{.VHOST}}{{end}}{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock {{.Unlock}} --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -65,8 +72,10 @@ services:
       - {{.Datadir}}:/root/.ethereum{{if .Ethashdir}}
       - {{.Ethashdir}}:/root/.ethash{{end}}
     environment:
+      - ROOTCHAIN_URL={{.RootChainURL}}{{if .Operator}}
+      - Operator={{.Operator}}{{end}}{{if .Challenger}}
+      - Challenger={{.Challenger}}{{end}}
       - PORT={{.Port}}/tcp{{if .RPCPort}}
-      - ROOTCHAIN_URL={{.RootChainURL}}
       - RPC_PORT={{.RPCPort}}{{end}}{{if .WSPort}}
       - WS_PORT={{.WSPort}}{{end}}{{if .VHOST}}
       - VIRTUAL_HOST={{.VHOST}}{{end}}
@@ -90,7 +99,7 @@ services:
 // already exists there, it will be overwritten!
 func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
-	if config.keyJSON == "" && config.etherbase == "" {
+	if config.operatorKeyJSON == "" && config.etherbase == "" {
 		kind = "bootnode"
 		bootnodes = make([]string, 0)
 	}
@@ -103,9 +112,50 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		lightFlag = fmt.Sprintf("--lightpeers=%d --lightserv=50", config.peersLight)
 	}
 	dockerfile := new(bytes.Buffer)
+
+	var key struct {
+		Address string `json:"address"`
+	}
+	var (
+		operator   string
+		challenger string
+		accounts   []string
+		passwords  []string
+	)
+
+	if config.operatorKeyJSON != "" {
+		if err := json.Unmarshal([]byte(config.operatorKeyJSON), &key); err == nil {
+			operator = common.HexToAddress(key.Address).Hex()
+		} else {
+			log.Error("Failed to retrieve operator address", "err", err)
+		}
+	}
+
+	if config.challengerKeyJSON != "" {
+		if err := json.Unmarshal([]byte(config.challengerKeyJSON), &key); err == nil {
+			challenger = common.HexToAddress(key.Address).Hex()
+		} else {
+			log.Error("Failed to retrieve operator address", "err", err)
+		}
+	}
+
+	if operator != "" {
+		accounts = append(accounts, operator)
+		passwords = append(passwords, config.operatorKeyPass)
+		files[filepath.Join(workdir, "operator.json")] = []byte(config.operatorKeyJSON)
+	}
+	if challenger != "" {
+		accounts = append(accounts, challenger)
+		passwords = append(passwords, config.challengerKeyPass)
+		files[filepath.Join(workdir, "challenger.json")] = []byte(config.challengerKeyJSON)
+	}
+	unlock := strings.Join(accounts, ",")
+
 	template.Must(template.New("").Parse(nodeDockerfile)).Execute(dockerfile, map[string]interface{}{
 		"NetworkID":    config.network,
 		"RootChainURL": config.rootchainURL,
+		"Operator":     operator,
+		"Challenger":   challenger,
 		"Port":         config.port,
 		"VHOST":        config.vhost,
 		"RPCPort":      config.rpcPort,
@@ -119,13 +169,15 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"GasTarget":    uint64(1000000 * config.gasTarget),
 		"GasLimit":     uint64(1000000 * config.gasLimit),
 		"GasPrice":     uint64(1000000000 * config.gasPrice),
-		"Unlock":       config.keyJSON != "",
+		"Unlock":       unlock,
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(nodeComposefile)).Execute(composefile, map[string]interface{}{
 		"Type":         kind,
+		"Operator":     operator,
+		"Challenger":   challenger,
 		"Datadir":      config.datadir,
 		"Ethashdir":    config.ethashdir,
 		"Network":      network,
@@ -146,9 +198,8 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
 	files[filepath.Join(workdir, "genesis.json")] = config.genesis
-	if config.keyJSON != "" {
-		files[filepath.Join(workdir, "signer.json")] = []byte(config.keyJSON)
-		files[filepath.Join(workdir, "signer.pass")] = []byte(config.keyPass)
+	if unlock != "" {
+		files[filepath.Join(workdir, "signer.pass")] = []byte(strings.Join(passwords, "\n"))
 	}
 	// Upload the deployment files to the remote server (and clean up afterwards)
 	if out, err := client.Upload(files); err != nil {
@@ -166,25 +217,27 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 // nodeInfos is returned from a boot or seal node status check to allow reporting
 // various configuration parameters.
 type nodeInfos struct {
-	genesis      []byte
-	network      int64
-	datadir      string
-	ethashdir    string
-	ethstats     string
-	rootchainURL string
-	vhost        string
-	rpcPort      int
-	wsPort       int
-	port         int
-	enode        string
-	peersTotal   int
-	peersLight   int
-	etherbase    string
-	keyJSON      string
-	keyPass      string
-	gasTarget    float64
-	gasLimit     float64
-	gasPrice     float64
+	genesis           []byte
+	network           int64
+	datadir           string
+	ethashdir         string
+	ethstats          string
+	rootchainURL      string
+	vhost             string
+	rpcPort           int
+	wsPort            int
+	port              int
+	enode             string
+	peersTotal        int
+	peersLight        int
+	etherbase         string
+	operatorKeyJSON   string
+	operatorKeyPass   string
+	challengerKeyJSON string
+	challengerKeyPass string
+	gasTarget         float64
+	gasLimit          float64
+	gasPrice          float64
 }
 
 // Report converts the typed struct into a plain string->string map, containing
@@ -209,15 +262,20 @@ func (info *nodeInfos) Report() map[string]string {
 			report["Ethash directory"] = info.ethashdir
 			report["Miner account"] = info.etherbase
 		}
-		if info.keyJSON != "" {
+		if info.operatorKeyJSON != "" {
 			// Clique proof-of-authority signer
 			var key struct {
 				Address string `json:"address"`
 			}
-			if err := json.Unmarshal([]byte(info.keyJSON), &key); err == nil {
-				report["Signer account"] = common.HexToAddress(key.Address).Hex()
+			if err := json.Unmarshal([]byte(info.operatorKeyJSON), &key); err == nil {
+				report["Operator account"] = common.HexToAddress(key.Address).Hex()
 			} else {
-				log.Error("Failed to retrieve signer address", "err", err)
+				log.Error("Failed to retrieve operator address", "err", err)
+			}
+			if err := json.Unmarshal([]byte(info.challengerKeyJSON), &key); err == nil {
+				report["CHallenger account"] = common.HexToAddress(key.Address).Hex()
+			} else {
+				log.Error("Failed to retrieve challenger address", "err", err)
 			}
 		}
 	}
@@ -269,12 +327,23 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	}
 	genesis := bytes.TrimSpace(out)
 
-	keyJSON, keyPass := "", ""
-	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 cat /signer.json", network, kind)); err == nil {
-		keyJSON = string(bytes.TrimSpace(out))
+	operatorKeyJSON, challengerKeyJSON := "", ""
+	operatorKeyPass, challengerKeyPass := "", ""
+
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 cat /operator.json", network, kind)); err == nil {
+		operatorKeyJSON = string(bytes.TrimSpace(out))
+	}
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 cat /challenger.json", network, kind)); err == nil {
+		challengerKeyJSON = string(bytes.TrimSpace(out))
 	}
 	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 cat /signer.pass", network, kind)); err == nil {
-		keyPass = string(bytes.TrimSpace(out))
+		keyPass := string(bytes.TrimSpace(out))
+		passwords := strings.Split(keyPass, "\n")
+
+		if len(passwords) == 2 {
+			operatorKeyPass = passwords[0]
+			challengerKeyPass = passwords[1]
+		}
 	}
 	// Run a sanity check to see if the devp2p is reachable
 	port := infos.portmap[infos.envvars["PORT"]]
@@ -283,21 +352,23 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	}
 	// Assemble and return the useful infos
 	stats := &nodeInfos{
-		genesis:      genesis,
-		datadir:      infos.volumes["/root/.ethereum"],
-		ethashdir:    infos.volumes["/root/.ethash"],
-		rootchainURL: infos.envvars["ROOTCHAIN_URL"],
-		port:         port,
-		vhost:        infos.envvars["VIRTUAL_HOST"],
-		peersTotal:   totalPeers,
-		peersLight:   lightPeers,
-		ethstats:     infos.envvars["STATS_NAME"],
-		etherbase:    infos.envvars["MINER_NAME"],
-		keyJSON:      keyJSON,
-		keyPass:      keyPass,
-		gasTarget:    gasTarget,
-		gasLimit:     gasLimit,
-		gasPrice:     gasPrice,
+		genesis:           genesis,
+		datadir:           infos.volumes["/root/.ethereum"],
+		ethashdir:         infos.volumes["/root/.ethash"],
+		rootchainURL:      infos.envvars["ROOTCHAIN_URL"],
+		port:              port,
+		vhost:             infos.envvars["VIRTUAL_HOST"],
+		peersTotal:        totalPeers,
+		peersLight:        lightPeers,
+		ethstats:          infos.envvars["STATS_NAME"],
+		etherbase:         infos.envvars["MINER_NAME"],
+		operatorKeyJSON:   operatorKeyJSON,
+		operatorKeyPass:   operatorKeyPass,
+		challengerKeyJSON: challengerKeyJSON,
+		challengerKeyPass: challengerKeyPass,
+		gasTarget:         gasTarget,
+		gasLimit:          gasLimit,
+		gasPrice:          gasPrice,
 	}
 	stats.enode = string(enode)
 
