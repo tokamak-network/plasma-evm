@@ -563,6 +563,15 @@ func (w *worker) resultLoop() {
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 				continue
 			}
+			// Short circuit if block number is same or less than current block
+			if block.Header().Number.Uint64() <= w.chain.CurrentBlock().NumberU64() {
+				continue
+			}
+			// Short circuit if block has no transaction
+			if block.Transactions().Len() == 0 {
+				continue
+			}
+
 			var (
 				sealhash = w.engine.SealHash(block.Header())
 				hash     = block.Hash()
