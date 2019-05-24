@@ -35,7 +35,7 @@ FROM onthertech/blockscout:latest
 ADD genesis.json /genesis.json
 RUN \
   echo 'geth --cache 512 init --rootchain.url {{.RootChainURL}} /genesis.json' > explorer.sh && \
-	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} --syncmode "full"  --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --rpc --rpcport 8545 --rpccorsdomain "*" --rpcvhosts "*" --ws --wsport 8546 --wsorigins "*" &' >> explorer.sh && \
+	echo $'exec geth --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} --syncmode "full"  --port {{.NodePort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --rpc --rpcport 8545 --rpcapi web3,eth,net,debug,rpc --rpccorsdomain "*" --rpcvhosts "*" --ws --wsport 8546 --wsorigins "*" &' >> explorer.sh && \
 	echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
 	echo 'sleep 5' >> explorer.sh && \
   	echo 'mix do ecto.drop --force, ecto.create, ecto.migrate' >> explorer.sh && \
