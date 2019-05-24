@@ -308,15 +308,16 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
-		if w.isRunning() && !w.env.Completed {
-			if interrupt != nil {
-				atomic.StoreInt32(interrupt, s)
-			}
-			interrupt = new(int32)
-			w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
-			timer.Reset(recommit)
-			atomic.StoreInt32(&w.newTxs, 0)
+		log.Error("Committing~!")
+		//if w.isRunning() && !w.env.Completed {
+		if interrupt != nil {
+			atomic.StoreInt32(interrupt, s)
 		}
+		interrupt = new(int32)
+		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
+		timer.Reset(recommit)
+		atomic.StoreInt32(&w.newTxs, 0)
+		//}
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
 	recalcRecommit := func(target float64, inc bool) {
@@ -356,6 +357,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		// clear pending task when miner is started
 		case <-w.startCh:
 			timer.Reset(recommit)
+			commit(true, commitInterruptResubmit)
 
 			//clearPending(w.chain.CurrentBlock().NumberU64())
 
@@ -952,6 +954,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return
+		}
+
 		header.Coinbase = w.coinbase
 	}
 
