@@ -437,6 +437,15 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
+	// Short circuit if event is removed.
+	if ev.Raw.Removed {
+		return errors.New(fmt.Sprintf("EpochPrepared#s event is removed. it will be reorganized.", ev.EpochNumber.String()))
+	}
+	// Short circuit if epoch prepared event is fired due to reorg.
+	if rcm.minerEnv.EpochNumber.Cmp(ev.EpochNumber) >= 0 {
+		return errors.New(fmt.Sprintf("epoch#sis less than current epoch#s.", ev.EpochNumber.String(), rcm.minerEnv.EpochNumber.String()))
+	}
+
 	e := *ev
 
 	if e.EpochIsEmpty {

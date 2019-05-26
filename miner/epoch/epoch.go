@@ -6,6 +6,7 @@ import (
 )
 
 type EpochEnvironment struct {
+	EpochNumber        *big.Int
 	IsRequest          bool
 	UserActivated      bool
 	Rebase             bool
@@ -20,6 +21,7 @@ type EpochEnvironment struct {
 
 func New() *EpochEnvironment {
 	return &EpochEnvironment{
+		EpochNumber:        big.NewInt(0),
 		IsRequest:          false,
 		UserActivated:      false,
 		Rebase:             false,
@@ -35,6 +37,7 @@ func Copy(dst, src *EpochEnvironment) {
 	src.Lock()
 	defer src.Unlock()
 
+	src.EpochNumber = new(big.Int).Set(dst.EpochNumber)
 	src.IsRequest = dst.IsRequest
 	src.UserActivated = dst.UserActivated
 	src.Rebase = dst.Rebase
@@ -44,7 +47,13 @@ func Copy(dst, src *EpochEnvironment) {
 	src.EpochLength = new(big.Int).Set(dst.EpochLength)
 	src.CurrentFork = new(big.Int).Set(dst.CurrentFork)
 	src.LastFinalizedBlock = new(big.Int).Set(dst.LastFinalizedBlock)
+}
 
+func (self *EpochEnvironment) SetEpochNumber(e *big.Int) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	self.EpochNumber = new(big.Int).Set(e)
 }
 
 func (self *EpochEnvironment) SetIsRequest(b bool) {
@@ -79,28 +88,28 @@ func (self *EpochEnvironment) SetNumBlockMined(n *big.Int) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	self.NumBlockMined = n
+	self.NumBlockMined = new(big.Int).Set(n)
 }
 
 func (self *EpochEnvironment) SetEpochLength(l *big.Int) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	self.EpochLength = l
+	self.EpochLength = new(big.Int).Set(l)
+
 }
 
 func (self *EpochEnvironment) SetCurrentFork(f *big.Int) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	self.CurrentFork = f
+	self.CurrentFork = new(big.Int).Set(f)
 }
 
 func (self *EpochEnvironment) SetLastFinalizedBlock(n *big.Int) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-
-	self.LastFinalizedBlock = n
+	self.LastFinalizedBlock = new(big.Int).Set(n)
 }
 
 func (self *EpochEnvironment) Lock() {
