@@ -655,7 +655,7 @@ func (rcm *RootChainManager) runDetector() {
 		return
 	}
 
-	events := rcm.eventMux.Subscribe(core.ChainHeadEvent{})
+	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
 	callerOpts := &bind.CallOpts{
@@ -669,10 +669,9 @@ func (rcm *RootChainManager) runDetector() {
 			if !ok {
 				continue
 			}
-
 			rcm.lock.Lock()
 
-			block := ev.Data.(core.ChainHeadEvent).Block
+			block := ev.Data.(core.NewMinedBlockEvent).Block
 
 			if block.IsRequest() {
 				var invalidExitsList invalidExits
@@ -680,8 +679,11 @@ func (rcm *RootChainManager) runDetector() {
 				forkNumber, err := rcm.rootchainContract.CurrentFork(callerOpts)
 				if err != nil {
 					log.Warn("failed to get current fork number", "err", err)
+					rcm.lock.Unlock()
+					continue
 				}
 
+				// TODO: read and write to DB
 				if rcm.invalidExits[forkNumber.Uint64()] == nil {
 					rcm.invalidExits[forkNumber.Uint64()] = make(map[uint64]invalidExits)
 				}
@@ -703,6 +705,7 @@ func (rcm *RootChainManager) runDetector() {
 						log.Info("Invalid Exit Detected", "invalidExit", invalidExit, "forkNumber", forkNumber, "blockNumber", block.Number())
 					}
 				}
+				// TODO: read and write to DB
 				rcm.invalidExits[forkNumber.Uint64()][block.NumberU64()] = invalidExitsList
 			}
 			rcm.lock.Unlock()
