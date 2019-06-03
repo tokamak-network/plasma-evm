@@ -1,0 +1,44 @@
+version: '2.3'
+services:
+  root:
+    image: plasma-testnet/root
+    networks:
+      plasma-testnet:
+        ipv4_address: 172.31.0.3
+    build:
+      context: containers/docker/rootchain
+      dockerfile: Dockerfile
+    ports:
+      - "0.0.0.0:8545:8545"
+      - "0.0.0.0:8546:8546"
+    command: sh run.rootchain.sh
+
+  child:
+    image: plasma-testnet/child
+    networks:
+      plasma-testnet:
+        ipv4_address: 172.31.0.4
+    build:
+      context: .
+      dockerfile: Dockerfile
+    healthcheck:
+      test: echo 'checking health'
+      interval: 60s
+      timeout: 30s
+      retries: 5
+    depends_on:
+      root:
+        condition: service_started
+    ports:
+      - "0.0.0.0:8547:8547"
+      - "0.0.0.0:8548:8548"
+    command: sh run.pls.sh 
+
+networks:
+  plasma-testnet:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.31.0.0/24
+        gateway: 172.31.0.1
+
