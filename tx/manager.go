@@ -275,7 +275,7 @@ func (tm *TransactionManager) Start() {
 
 		previousTxGasPriceGwei := new(big.Float).Quo(new(big.Float).SetInt(previousTxGasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
 		adjustGwei := new(big.Float).Quo(new(big.Float).SetInt(tm.gasPrice), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
-		log.Info("Gas price adjusted", "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
+		log.Info("Gas price adjusted", "caption", raw.Caption, "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
 
 		//if previous.Cmp(tm.gasPrice) != 0 {
 		//	log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
@@ -297,7 +297,11 @@ func (tm *TransactionManager) Start() {
 		// remove already mined raw transactions
 		i := 0
 		for ; i < len(queue); i++ {
-			if !queue[i].Mined(tm.backend) {
+			tx := queue[i]
+			if !tx.Mined(tm.backend) {
+				if tx.Reverted && !tx.AllowRevert {
+					log.Error("Transaction reverted", "caption", tx.Caption, "hash", tx.Hash())
+				}
 				break
 			}
 		}
