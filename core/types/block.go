@@ -29,7 +29,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/crypto/sha3"
-	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
@@ -400,8 +399,8 @@ func (b *Block) IsRequest() bool {
 	}
 
 	for i := 0; i < len(txs); i++ {
-		tx, _ := txs[i].AsMessage(NewEIP155Signer(params.MainnetChainConfig.ChainID))
-		if tx.From() != params.NullAddress {
+		v, r, s := txs[i].RawSignatureValues()
+		if v.Cmp(common.Big0) != 0 || r.Cmp(common.Big0) != 0 || s.Cmp(common.Big0) != 0 {
 			return false
 		}
 	}
