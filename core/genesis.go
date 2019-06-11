@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
@@ -411,7 +412,8 @@ func DeveloperGenesisBlock(period uint64, rootChainContract common.Address, oper
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		ExtraData:  rootChainContract.Bytes(),
-		GasLimit:   1e8,
+		Timestamp:  uint64(time.Now().Second()),
+		GasLimit:   10e8,
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
