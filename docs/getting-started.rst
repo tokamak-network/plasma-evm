@@ -409,7 +409,7 @@ The scenario will work as follows:
 
     truffle(ropsten)> token.mint(alice, 10000000)
     truffle(ropsten)> key = token.getBalanceTrieKey(alice)
-    truffle(ropsten)> value = '0x0000000000000000000000000000000000000000000000000000000000000010' // 16 token
+    truffle(ropsten)> value = '0x0000000000000000000000000000000000000000000000000000000000000100'
     truffle(ropsten)> rootchain.startEnter(alice, key, value)
     
 4. After entering process is finished, you can check entered token balance by using ``RequestableSimpleTokenWithoutOwnership.balances()`` at Faraday.
@@ -428,5 +428,5 @@ The scenario will work as follows:
     truffle(ropsten)> rootchain = RootChain.at('0x3122546c1544FD0F910A423A8c80fdCD48d742Fd')
 
     truffle(ropsten)> key = token.getBalanceTrieKey(alice)
-    truffle(ropsten)> value = '0x0000000000000000000000000000000000000000000000000000000000000010' // 16 token
+    truffle(ropsten)> value = '0x0000000000000000000000000000000000000000000000000000000000000100'
     truffle(ropsten)> rootchain.startExit(alice, key, value)
