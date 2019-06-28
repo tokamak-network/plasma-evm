@@ -20,9 +20,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
-	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/pls"
 )
@@ -40,7 +40,7 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, cf
 		}
 	}
 
-	dummyDB := ethdb.NewMemDatabase()
+	dummyDB := rawdb.NewMemoryDatabase()
 	defer dummyDB.Close()
 	var dummyBlock *types.Block
 

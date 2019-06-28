@@ -2,11 +2,11 @@ package tx
 
 import (
 	"encoding/binary"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"math"
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/common"
-	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
@@ -33,7 +33,7 @@ var (
 	rawTxHashPrefix = []byte("tx-hash") // rawTxHashPrefix + account address + raw transaction hash -> raw transaction
 )
 
-func ReadGasPrice(db rawdb.DatabaseReader) *big.Int {
+func ReadGasPrice(db ethdb.Reader) *big.Int {
 	data, _ := db.Get(gasPriceKey)
 
 	if len(data) == 0 {
@@ -49,7 +49,7 @@ func ReadGasPrice(db rawdb.DatabaseReader) *big.Int {
 	return &gasPrice
 }
 
-func WriteGasPrice(db rawdb.DatabaseWriter, gasPrice *big.Int) {
+func WriteGasPrice(db ethdb.KeyValueWriter, gasPrice *big.Int) {
 	data, err := rlp.EncodeToBytes(gasPrice)
 	if err != nil {
 		log.Crit("Failed to encode gas price", "err", err)
@@ -59,7 +59,7 @@ func WriteGasPrice(db rawdb.DatabaseWriter, gasPrice *big.Int) {
 	}
 }
 
-func ReadNumAddr(db rawdb.DatabaseReader) uint64 {
+func ReadNumAddr(db ethdb.Reader) uint64 {
 	data, _ := db.Get(numAddrKey)
 
 	if len(data) == 0 {
@@ -75,7 +75,7 @@ func ReadNumAddr(db rawdb.DatabaseReader) uint64 {
 	return n
 }
 
-func WriteNumAddr(db rawdb.DatabaseWriter, n uint64) {
+func WriteNumAddr(db ethdb.KeyValueWriter, n uint64) {
 	data, err := rlp.EncodeToBytes(n)
 	if err != nil {
 		log.Crit("Failed to encode account number", "err", err)
@@ -89,7 +89,7 @@ func addrKey(i uint64) []byte {
 	return append(addrPrefix, encodeNumber(i)...)
 }
 
-func ReadAddr(db rawdb.DatabaseReader, i uint64) common.Address {
+func ReadAddr(db ethdb.Reader, i uint64) common.Address {
 	data, _ := db.Get(addrKey(i))
 
 	if len(data) == 0 {
@@ -105,7 +105,7 @@ func ReadAddr(db rawdb.DatabaseReader, i uint64) common.Address {
 	return addr
 }
 
-func WriteAddr(db rawdb.DatabaseWriter, i uint64, addr common.Address) {
+func WriteAddr(db ethdb.KeyValueWriter, i uint64, addr common.Address) {
 	data, err := rlp.EncodeToBytes(addr)
 	if err != nil {
 		log.Crit("Failed to encode account address", "err", err)
@@ -119,7 +119,7 @@ func addrNonceKey(addr common.Address) []byte {
 	return append(addrNoncePrefix, addr.Bytes()...)
 }
 
-func ReadAddrNonce(db rawdb.DatabaseReader, addr common.Address) uint64 {
+func ReadAddrNonce(db ethdb.Reader, addr common.Address) uint64 {
 	data, _ := db.Get(addrNonceKey(addr))
 
 	if len(data) == 0 {
@@ -135,7 +135,7 @@ func ReadAddrNonce(db rawdb.DatabaseReader, addr common.Address) uint64 {
 	return nonce
 }
 
-func WriteAddrNonce(db rawdb.DatabaseWriter, addr common.Address, nonce uint64) {
+func WriteAddrNonce(db ethdb.KeyValueWriter, addr common.Address, nonce uint64) {
 	data, err := rlp.EncodeToBytes(nonce)
 	if err != nil {
 		log.Crit("Failed to encode account nonce", "err", err)
@@ -149,7 +149,7 @@ func numRawTxsKey(addr common.Address) []byte {
 	return append(numRawTxsPrefix, addr.Bytes()...)
 }
 
-func ReadNumRawTxs(db rawdb.DatabaseReader, addr common.Address) uint64 {
+func ReadNumRawTxs(db ethdb.Reader, addr common.Address) uint64 {
 	data, _ := db.Get(numRawTxsKey(addr))
 
 	if len(data) == 0 {
@@ -165,7 +165,7 @@ func ReadNumRawTxs(db rawdb.DatabaseReader, addr common.Address) uint64 {
 	return n
 }
 
-func WriteNumRawTxs(db rawdb.DatabaseWriter, addr common.Address, n uint64) {
+func WriteNumRawTxs(db ethdb.KeyValueWriter, addr common.Address, n uint64) {
 	data, err := rlp.EncodeToBytes(n)
 	if err != nil {
 		log.Crit("Failed to encode number of raw transactions", "err", err)
@@ -179,7 +179,7 @@ func lastPendingIndexKey(addr common.Address) []byte {
 	return append(lastPendingIndexPrefix, addr.Bytes()...)
 }
 
-func ReadLastPendingIndex(db rawdb.DatabaseReader, addr common.Address) uint64 {
+func ReadLastPendingIndex(db ethdb.Reader, addr common.Address) uint64 {
 	data, _ := db.Get(lastPendingIndexKey(addr))
 
 	if len(data) == 0 {
@@ -195,7 +195,7 @@ func ReadLastPendingIndex(db rawdb.DatabaseReader, addr common.Address) uint64 {
 	return i
 }
 
-func WriteLastPendingIndex(db rawdb.DatabaseWriter, addr common.Address, i uint64) {
+func WriteLastPendingIndex(db ethdb.KeyValueWriter, addr common.Address, i uint64) {
 	data, err := rlp.EncodeToBytes(i)
 	if err != nil {
 		log.Crit("Failed to encode number of raw transactions", "err", err)
@@ -209,7 +209,7 @@ func rawTxKey(addr common.Address, i uint64) []byte {
 	return append(append(rawTxPrefix, addr.Bytes()...), encodeNumber(i)...)
 }
 
-func ReadRawTx(db rawdb.DatabaseReader, addr common.Address, i uint64) *RawTransaction {
+func ReadRawTx(db ethdb.Reader, addr common.Address, i uint64) *RawTransaction {
 	data, _ := db.Get(rawTxKey(addr, i))
 
 	if len(data) == 0 {
@@ -225,7 +225,7 @@ func ReadRawTx(db rawdb.DatabaseReader, addr common.Address, i uint64) *RawTrans
 	return &raw
 }
 
-func WriteRawTx(db rawdb.DatabaseWriter, addr common.Address, raw RawTransaction) {
+func WriteRawTx(db ethdb.KeyValueWriter, addr common.Address, raw RawTransaction) {
 	data, err := rlp.EncodeToBytes(raw)
 	if err != nil {
 		log.Crit("Failed to encode raw transaction", "err", err)
@@ -239,7 +239,7 @@ func rawTxHashKey(addr common.Address, rawHash common.Hash) []byte {
 	return append(append(rawTxPrefix, addr.Bytes()...), rawHash.Bytes()...)
 }
 
-func ReadRawTxHash(db rawdb.DatabaseReader, addr common.Address, rawHash common.Hash) *RawTransaction {
+func ReadRawTxHash(db ethdb.Reader, addr common.Address, rawHash common.Hash) *RawTransaction {
 	data, _ := db.Get(rawTxHashKey(addr, rawHash))
 
 	if len(data) == 0 {
@@ -255,7 +255,7 @@ func ReadRawTxHash(db rawdb.DatabaseReader, addr common.Address, rawHash common.
 	return &raw
 }
 
-func WriteRawTxHash(db rawdb.DatabaseWriter, addr common.Address, raw RawTransaction) {
+func WriteRawTxHash(db ethdb.KeyValueWriter, addr common.Address, raw RawTransaction) {
 	data, err := rlp.EncodeToBytes(raw)
 	if err != nil {
 		log.Crit("Failed to encode raw transaction", "err", err)

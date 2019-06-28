@@ -29,9 +29,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/internal/jsre"
-	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/Onther-Tech/plasma-evm/internal/jsre"
+	"github.com/Onther-Tech/plasma-evm/miner"
+	"github.com/Onther-Tech/plasma-evm/node"
 )
 
 const (
@@ -95,9 +96,11 @@ func newTester(t *testing.T, confOverride func(*pls.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
-	ethConf := &pls.Config{
+	ethConf := &eth.Config{
 		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}, common.HexToAddress(testAddress), core.DefaultStaminaConfig),
-		Etherbase: common.HexToAddress(testAddress),
+		Miner: miner.Config{
+			Etherbase: common.HexToAddress(testAddress),
+		},
 		Ethash: ethash.Config{
 			PowMode: ethash.ModeTest,
 		},
@@ -149,8 +152,8 @@ func (env *tester) Close(t *testing.T) {
 	if err := env.console.Stop(false); err != nil {
 		t.Errorf("failed to stop embedded console: %v", err)
 	}
-	if err := env.stack.Stop(); err != nil {
-		t.Errorf("failed to stop embedded node: %v", err)
+	if err := env.stack.Close(); err != nil {
+		t.Errorf("failed to tear down embedded node: %v", err)
 	}
 	os.RemoveAll(env.workspace)
 }

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -45,6 +46,18 @@ type Backend interface {
 	TxPool() *core.TxPool
 }
 
+// Config is the configuration parameters of mining.
+type Config struct {
+	Etherbase common.Address `toml:",omitempty"` // Public address for block mining rewards (default = first account)
+	Notify    []string       `toml:",omitempty"` // HTTP URL list to be notified of new work packages(only useful in ethash).
+	ExtraData hexutil.Bytes  `toml:",omitempty"` // Block extra data set by the miner
+	GasFloor  uint64         // Target gas floor for mined blocks.
+	GasCeil   uint64         // Target gas ceiling for mined blocks.
+	GasPrice  *big.Int       // Minimum gas price for mining a transaction
+	Recommit  time.Duration  // The time interval for miner to re-create mining work.
+	Noverify  bool           // Disable remote mining solution verification(only useful in ethash).
+}
+
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux      *event.TypeMux
@@ -63,7 +76,7 @@ type Miner struct {
 	lock sync.Mutex
 }
 
-func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *epoch.EpochEnvironment, db ethdb.Database, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool) *Miner {
+func New(pls Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, env *epoch.EpochEnvironment, db ethdb.Database, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		pls:      pls,
 		mux:      mux,
@@ -71,7 +84,7 @@ func New(pls Backend, config *params.ChainConfig, mux *event.TypeMux, engine con
 		env:      env,
 		db:       db,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, engine, pls, env, db, mux, recommit, gasFloor, gasCeil, isLocalBlock),
+		worker:   newWorker(config, chainConfig, engine, pls, env, mux, db, isLocalBlock),
 		canStart: 2,
 	}
 	go miner.update()

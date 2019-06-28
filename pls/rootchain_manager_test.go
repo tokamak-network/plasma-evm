@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -179,7 +180,7 @@ func init() {
 	testPlsConfig.RootChainURL = rootchainUrl
 
 	testPlsConfig.TxConfig.Interval = 1 * time.Second
-	testPlsConfig.MinerRecommit = 10 * time.Second
+	testPlsConfig.Miner.Recommit = 10 * time.Second
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
@@ -1140,9 +1141,9 @@ func TestScenario4(t *testing.T) {
 
 func TestStress(t *testing.T) {
 
-	testPlsConfig.MinerRecommit = 10 * time.Second
+	testPlsConfig.Miner.Recommit = 10 * time.Second
 	testPlsConfig.TxConfig.Interval = 10 * time.Second
-	timeout := testPlsConfig.MinerRecommit / 100
+	timeout := testPlsConfig.Miner.Recommit / 100
 	targetBlockNumber := 10
 
 	pls, rpcServer, dir, err := makePls()
@@ -1262,7 +1263,7 @@ func TestStress(t *testing.T) {
 		wg.Wait()
 	}
 
-	wait(testPlsConfig.MinerRecommit * 2 / time.Second)
+	wait(testPlsConfig.Miner.Recommit * 2 / time.Second)
 
 	for _, tx := range txs {
 		r, isPending, err := plsClient.TransactionByHash(context.Background(), tx.Hash())
@@ -1298,9 +1299,9 @@ func TestStress(t *testing.T) {
 	firstBlock := pls.blockchain.GetBlockByNumber(uint64(1))
 	lastBlock := pls.blockchain.GetBlockByNumber(uint64(lastBlockNumber))
 
-	elapsed := new(big.Int).Sub(lastBlock.Time(), firstBlock.Time())
-	tps := float64(nTxs) / float64(elapsed.Int64())
-	t.Logf("Elapsed time: %s nTxs: %d TPS: %6.3f", elapsed.String(), nTxs, tps)
+	elapsed := lastBlock.Time() - firstBlock.Time()
+	tps := float64(nTxs) / float64(elapsed)
+	t.Logf("Elapsed time: %s nTxs: %d TPS: %6.3f", elapsed, nTxs, tps)
 
 }
 
@@ -1848,7 +1849,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 
 func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, rootchainContract *rootchain.RootChain, err error) {
 
-	dummyDB := ethdb.NewMemDatabase()
+	dummyDB := rawdb.NewMemoryDatabase()
 	defer dummyDB.Close()
 	dummyBlock := core.DeveloperGenesisBlock(
 		0,
@@ -2001,7 +2002,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 func newCanonical(n int, full bool) (ethdb.Database, *core.BlockChain, error) {
 	gspec := core.DeveloperGenesisBlock(0, common.Address{}, operator, core.DefaultStaminaConfig)
 	// Initialize a fresh chain with only a genesis block
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	genesis := gspec.MustCommit(db)
 
 	blockchain, _ := core.NewBlockChain(db, nil, params.MainnetChainConfig, engine, testVmConfg, nil)
@@ -2123,37 +2124,45 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	backends := []accounts.Backend{
 		ks,
 	}
-	accManager := accounts.NewManager(backends...)
+
+	accountConfig := accounts.Config{true}
+	accManager := accounts.NewManager(&accountConfig, backends...)
 
 	pls := &Plasma{
 		config:         config,
 		chainDb:        db,
-		chainConfig:    chainConfig,
 		eventMux:       new(event.TypeMux),
 		accountManager: accManager,
 		blockchain:     blockchain,
 		engine:         engine,
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
-		gasPrice:       config.MinerGasPrice,
-		etherbase:      config.Etherbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   NewBloomIndexer(db, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 	pls.bloomIndexer.Start(pls.blockchain)
-	pls.txPool = core.NewTxPool(config.TxPool, pls.chainConfig, pls.blockchain)
+	pls.txPool = core.NewTxPool(config.TxPool, chainConfig, pls.blockchain)
 
-	if pls.protocolManager, err = NewProtocolManager(pls.chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db, config.Whitelist); err != nil {
+	cacheConfig := &core.CacheConfig{
+		TrieCleanLimit:      config.TrieCleanCache,
+		TrieCleanNoPrefetch: config.NoPrefetch,
+		TrieDirtyLimit:      config.TrieDirtyCache,
+		TrieDirtyDisabled:   config.NoPruning,
+		TrieTimeLimit:       config.TrieTimeout,
+	}
+	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
+
+	if pls.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db, cacheLimit, config.Whitelist); err != nil {
 		return nil, nil, d, err
 	}
 
 	epochEnv := epoch.New()
-	pls.miner = miner.New(pls, pls.chainConfig, pls.EventMux(), pls.engine, epochEnv, db, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, pls.isLocalBlock)
-	pls.miner.SetExtra(makeExtraData(config.MinerExtraData))
-	pls.APIBackend = &PlsAPIBackend{pls, nil}
+	pls.miner = miner.New(pls, &config.Miner, chainConfig, pls.EventMux(), pls.engine, epochEnv, db, pls.isLocalBlock)
+	pls.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	pls.APIBackend = &PlsAPIBackend{false, pls, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
-		gpoParams.Default = config.MinerGasPrice
+		gpoParams.Default = config.Miner.GasPrice
 	}
 	pls.APIBackend.gpo = gasprice.NewOracle(pls.APIBackend, gpoParams)
 	// Dial rootchain provider
@@ -2283,7 +2292,7 @@ func makeManager() (*RootChainManager, func(), error) {
 
 	mux := new(event.TypeMux)
 	epochEnv := epoch.New()
-	miner := miner.New(minerBackend, params.MainnetChainConfig, mux, engine, epochEnv, db, testPlsConfig.MinerRecommit, testPlsConfig.MinerGasFloor, testPlsConfig.MinerGasCeil, nil)
+	miner := miner.New(minerBackend, &testPlsConfig.Miner, params.MainnetChainConfig, mux, engine, epochEnv, db, nil)
 
 	account, err := ks.ImportECDSA(operatorKey, "")
 	if err != nil {
@@ -2296,7 +2305,9 @@ func makeManager() (*RootChainManager, func(), error) {
 	backends := []accounts.Backend{
 		ks,
 	}
-	accManager := accounts.NewManager(backends...)
+
+	accConfig := accounts.Config{true}
+	accManager := accounts.NewManager(&accConfig, backends...)
 	txManager, err := tx.NewTransactionManager(ks, ethClient, db, &testPlsConfig.TxConfig)
 
 	var rcm *RootChainManager
@@ -2418,7 +2429,7 @@ func checkBlock(pls *Plasma, pbMinedEvents *event.TypeMuxSubscription, pbSubmite
 	defer close(outC)
 	defer close(errC)
 
-	timer := time.NewTimer((testPlsConfig.MinerRecommit + testPlsConfig.TxConfig.Interval) * 2)
+	timer := time.NewTimer((testPlsConfig.Miner.Recommit + testPlsConfig.TxConfig.Interval) * 2)
 	defer timer.Stop()
 
 	log.Error("Check block", "expectedBlockNumber", expectedBlockNumber)

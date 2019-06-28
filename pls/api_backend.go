@@ -18,6 +18,7 @@ package pls
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
@@ -25,6 +26,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
@@ -38,8 +40,9 @@ import (
 
 // PlsAPIBackend implements ethapi.Backend for full nodes
 type PlsAPIBackend struct {
-	pls *Plasma
-	gpo *gasprice.Oracle
+	extRPCEnabled bool
+	pls           *Plasma
+	gpo           *gasprice.Oracle
 }
 
 // RootChain returns RootChain contract address
@@ -54,7 +57,7 @@ func (b *PlsAPIBackend) GetRequestableContract(addr common.Address) (common.Addr
 
 // ChainConfig returns the active chain configuration.
 func (b *PlsAPIBackend) ChainConfig() *params.ChainConfig {
-	return b.pls.chainConfig
+	return b.pls.blockchain.Config()
 }
 
 func (b *PlsAPIBackend) CurrentBlock() *types.Block {
@@ -104,8 +107,11 @@ func (b *PlsAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	}
 	// Otherwise resolve the block number and return its state
 	header, err := b.HeaderByNumber(ctx, blockNr)
-	if header == nil || err != nil {
+	if err != nil {
 		return nil, nil, err
+	}
+	if header == nil {
+		return nil, nil, errors.New("header not found")
 	}
 	stateDb, err := b.pls.BlockChain().StateAt(header.Root)
 	return stateDb, header, err
@@ -140,7 +146,7 @@ func (b *PlsAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *sta
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.pls.BlockChain(), nil)
-	return vm.NewEVM(context, state, b.pls.chainConfig, *b.pls.blockchain.GetVMConfig()), vmError, nil
+	return vm.NewEVM(context, state, b.pls.blockchain.Config(), *b.pls.blockchain.GetVMConfig()), vmError, nil
 }
 
 func (b *PlsAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -183,6 +189,11 @@ func (b *PlsAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction 
 	return b.pls.txPool.Get(hash)
 }
 
+func (b *PlsAPIBackend) GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error) {
+	tx, blockHash, blockNumber, index := rawdb.ReadTransaction(b.pls.ChainDb(), txHash)
+	return tx, blockHash, blockNumber, index, nil
+}
+
 func (b *PlsAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
 	return b.pls.txPool.State().GetNonce(addr), nil
 }
@@ -221,6 +232,14 @@ func (b *PlsAPIBackend) EventMux() *event.TypeMux {
 
 func (b *PlsAPIBackend) AccountManager() *accounts.Manager {
 	return b.pls.AccountManager()
+}
+
+func (b *PlsAPIBackend) ExtRPCEnabled() bool {
+	return b.extRPCEnabled
+}
+
+func (b *PlsAPIBackend) RPCGasCap() *big.Int {
+	return b.pls.config.RPCGasCap
 }
 
 func (b *PlsAPIBackend) BloomStatus() (uint64, uint64) {
