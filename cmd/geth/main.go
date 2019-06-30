@@ -32,13 +32,14 @@ import (
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/internal/debug"
+	"github.com/Onther-Tech/plasma-evm/les"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/elastic/gosigar"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -346,14 +347,33 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	events := make(chan accounts.WalletEvent, 16)
 	stack.AccountManager().Subscribe(events)
 
-	go func() {
-		// Create a chain state reader for self-derivation
-		rpcClient, err := stack.Attach()
-		if err != nil {
-			utils.Fatalf("Failed to attach to self: %v", err)
-		}
-		stateReader := ethclient.NewClient(rpcClient)
+	// Create a client to interact with local geth node.
+	rpcClient, err := stack.Attach()
+	if err != nil {
+		utils.Fatalf("Failed to attach to self: %v", err)
+	}
+	plsClient := plsclient.NewClient(rpcClient)
 
+	// Set contract backend for ethereum service if local node
+	// is serving LES requests.
+	if ctx.GlobalInt(utils.LightServFlag.Name) > 0 {
+		var plsService *pls.Plasma
+		if err := stack.Service(&plsService); err != nil {
+			utils.Fatalf("Failed to retrieve plasma service: %v", err)
+		}
+		plsService.SetContractBackend(plsClient)
+	}
+	// Set contract backend for les service if local node is
+	// running as a light client.
+	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
+		var lesService *les.LightEthereum
+		if err := stack.Service(&lesService); err != nil {
+			utils.Fatalf("Failed to retrieve light ethereum service: %v", err)
+		}
+		lesService.SetContractBackend(plsClient)
+	}
+
+	go func() {
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
 			if err := wallet.Open(""); err != nil {
@@ -377,7 +397,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 				}
 				derivationPaths = append(derivationPaths, accounts.DefaultBaseDerivationPath)
 
-				event.Wallet.SelfDerive(derivationPaths, stateReader)
+				event.Wallet.SelfDerive(derivationPaths, plsClient)
 
 			case accounts.WalletDropped:
 				log.Info("Old wallet dropped", "url", event.Wallet.URL())
@@ -406,7 +426,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 						"age", common.PrettyAge(timestamp))
 					stack.Stop()
 				}
-
 			}
 		}()
 	}

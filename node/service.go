@@ -17,12 +17,12 @@
 package node
 
 import (
-	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"path/filepath"
 	"reflect"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
+	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/rpc"

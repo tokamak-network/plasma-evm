@@ -28,7 +28,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/light"
 )
 
-var testBankSecureTrieKey = secAddr(testBankAddress)
+var testBankSecureTrieKey = secAddr(bankAddr)
 
 func secAddr(addr common.Address) []byte {
 	return crypto.Keccak256(addr[:])

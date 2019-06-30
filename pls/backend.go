@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package eth implements the Plasma protocol.
+// Package pls implements the Plasma protocol.
 package pls
 
 import (
@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Onther-Tech/plasma-evm/accounts"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
@@ -61,6 +62,7 @@ type LesServer interface {
 	APIs() []rpc.API
 	Protocols() []p2p.Protocol
 	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
+	SetContractBackend(bind.ContractBackend)
 }
 
 // Plasma implements the Plasma full node service.
@@ -102,6 +104,14 @@ type Plasma struct {
 func (s *Plasma) AddLesServer(ls LesServer) {
 	s.lesServer = ls
 	ls.SetBloomBitsIndexer(s.bloomIndexer)
+}
+
+// SetClient sets a rpc client which connecting to our local node.
+func (s *Plasma) SetContractBackend(backend bind.ContractBackend) {
+	// Pass the rpc client to les server if it is enabled.
+	if s.lesServer != nil {
+		s.lesServer.SetContractBackend(backend)
+	}
 }
 
 // New creates a new Plasma object (including the
@@ -205,7 +215,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
-	if pls.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
+	checkpoint := config.Checkpoint
+	if checkpoint == nil {
+		checkpoint = params.TrustedCheckpoints[genesisHash]
+	}
+	if pls.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
 		return nil, err
 	}
 
@@ -326,6 +340,11 @@ func (s *Plasma) APIs() []rpc.API {
 	}
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
+
+	// Append any APIs exposed explicitly by the les server
+	if s.lesServer != nil {
+		apis = append(apis, s.lesServer.APIs()...)
+	}
 
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{

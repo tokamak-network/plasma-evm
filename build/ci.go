@@ -778,6 +778,7 @@ func doAndroidArchive(cmdline []string) {
 	}
 	// Build the Android archive and Maven resources
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
+	// TODO: setup java package for plasma-evm
 	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.ethereum", "-v", "github.com/Onther-Tech/plasma-evm/mobile"))
 
 	if *local {

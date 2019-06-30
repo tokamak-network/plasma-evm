@@ -23,9 +23,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
+
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"golang.org/x/crypto/sha3"

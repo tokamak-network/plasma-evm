@@ -21,11 +21,12 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/Onther-Tech/plasma-evm/miner/epoch"
+
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )

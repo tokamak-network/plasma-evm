@@ -73,14 +73,15 @@ var (
 )
 
 const (
-	bodyCacheLimit                = 256
-	blockCacheLimit               = 256
-	receiptsCacheLimit            = 32
+	bodyCacheLimit      = 256
+	blockCacheLimit     = 256
+	receiptsCacheLimit  = 32
+	maxFutureBlocks     = 256
+	maxTimeFutureBlocks = 30
+	badBlockLimit       = 10
+	TriesInMemory       = 128
+
 	invalidExitReceiptsCacheLimit = 256
-	maxFutureBlocks               = 256
-	maxTimeFutureBlocks           = 30
-	badBlockLimit                 = 10
-	TriesInMemory                 = 128
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -202,22 +203,23 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
-		chainConfig:              chainConfig,
-		cacheConfig:              cacheConfig,
-		db:                       db,
-		triegc:                   prque.New(nil),
-		stateCache:               state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit),
-		quit:                     make(chan struct{}),
-		shouldPreserve:           shouldPreserve,
-		bodyCache:                bodyCache,
-		bodyRLPCache:             bodyRLPCache,
-		receiptsCache:            receiptsCache,
+		chainConfig:    chainConfig,
+		cacheConfig:    cacheConfig,
+		db:             db,
+		triegc:         prque.New(nil),
+		stateCache:     state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit),
+		quit:           make(chan struct{}),
+		shouldPreserve: shouldPreserve,
+		bodyCache:      bodyCache,
+		bodyRLPCache:   bodyRLPCache,
+		receiptsCache:  receiptsCache,
+		blockCache:     blockCache,
+		futureBlocks:   futureBlocks,
+		engine:         engine,
+		vmConfig:       vmConfig,
+		badBlocks:      badBlocks,
+
 		invalidExitReceiptsCache: invalidExitReceiptsCache,
-		blockCache:               blockCache,
-		futureBlocks:             futureBlocks,
-		engine:                   engine,
-		vmConfig:                 vmConfig,
-		badBlocks:                badBlocks,
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)

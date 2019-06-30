@@ -202,6 +202,22 @@ var (
 		Name:  "ulc.trusted",
 		Usage: "List of trusted ULC servers",
 	}
+	IterativeOutputFlag = cli.BoolFlag{
+		Name:  "iterative",
+		Usage: "Print streaming JSON iteratively, delimited by newlines",
+	}
+	ExcludeStorageFlag = cli.BoolFlag{
+		Name:  "nostorage",
+		Usage: "Exclude storage entries (save db lookups)",
+	}
+	IncludeIncompletesFlag = cli.BoolFlag{
+		Name:  "incompletes",
+		Usage: "Include accounts for which we don't have the address (missing preimage)",
+	}
+	ExcludeCodeFlag = cli.BoolFlag{
+		Name:  "nocode",
+		Usage: "Exclude contract code (save db lookups)",
+	}
 	defaultSyncMode = pls.DefaultConfig.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
@@ -1687,6 +1703,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 	cfg.StaminaConfig.Initialized = true
 
+	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
+		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+	}
+
 	// TODO: set network id from params/config.go for each network
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
@@ -1724,6 +1744,10 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			}
 
 			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr, cfg.StaminaConfig)
+			if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
+				cfg.Miner.GasPrice = big.NewInt(1)
+			}
+
 			cfg.RootChainContract = rootchainContract
 		}
 	}
@@ -1821,9 +1845,9 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 func RegisterGraphQLService(stack *node.Node, endpoint string, cors, vhosts []string, timeouts rpc.HTTPTimeouts) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Try to construct the GraphQL service backed by a full node
-		var ethServ *pls.Plasma
-		if err := ctx.Service(&ethServ); err == nil {
-			return graphql.New(ethServ.APIBackend, endpoint, cors, vhosts, timeouts)
+		var plsServ *pls.Plasma
+		if err := ctx.Service(&plsServ); err == nil {
+			return graphql.New(plsServ.APIBackend, endpoint, cors, vhosts, timeouts)
 		}
 		// Try to construct the GraphQL service backed by a light node
 		var lesServ *les.LightEthereum

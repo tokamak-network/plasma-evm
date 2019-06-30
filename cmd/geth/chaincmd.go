@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"io"
 	"math/big"
 	"net/http"
@@ -34,18 +33,20 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
+	"github.com/Onther-Tech/plasma-evm/params"
+
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/trie"
 	"gopkg.in/urfave/cli.v1"
@@ -211,6 +212,10 @@ Remove blockchain and state databases`,
 			utils.DataDirFlag,
 			utils.CacheFlag,
 			utils.SyncModeFlag,
+			utils.IterativeOutputFlag,
+			utils.ExcludeCodeFlag,
+			utils.ExcludeStorageFlag,
+			utils.IncludeIncompletesFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -452,7 +457,7 @@ func importChain(ctx *cli.Context) error {
 	fmt.Printf("Allocations:   %.3f million\n", float64(mem.Mallocs)/1000000)
 	fmt.Printf("GC pause:      %v\n\n", time.Duration(mem.PauseTotalNs))
 
-	if ctx.GlobalIsSet(utils.NoCompactionFlag.Name) {
+	if ctx.GlobalBool(utils.NoCompactionFlag.Name) {
 		return nil
 	}
 
@@ -554,9 +559,11 @@ func exportGenesis(ctx *cli.Context) error {
 		utils.Fatalf("This command requires an argument.")
 	}
 	stack := makeFullNode(ctx)
-	diskdb := utils.MakeChainDatabase(ctx, stack)
+	defer stack.Close()
 
+	diskdb := utils.MakeChainDatabase(ctx, stack)
 	start := time.Now()
+
 	if err := utils.ExportGenesisFromDB(diskdb, ctx.Args().First()); err != nil {
 		utils.Fatalf("Export error: %v\n", err)
 	}
@@ -685,6 +692,7 @@ func dump(ctx *cli.Context) error {
 	defer stack.Close()
 
 	chain, chainDb := utils.MakeChain(ctx, stack)
+	defer chainDb.Close()
 	for _, arg := range ctx.Args() {
 		var block *types.Block
 		if hashish(arg) {
@@ -701,10 +709,20 @@ func dump(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump())
+			excludeCode := ctx.Bool(utils.ExcludeCodeFlag.Name)
+			excludeStorage := ctx.Bool(utils.ExcludeStorageFlag.Name)
+			includeMissing := ctx.Bool(utils.IncludeIncompletesFlag.Name)
+			if ctx.Bool(utils.IterativeOutputFlag.Name) {
+				state.IterativeDump(excludeCode, excludeStorage, !includeMissing, json.NewEncoder(os.Stdout))
+			} else {
+				if includeMissing {
+					fmt.Printf("If you want to include accounts with missing preimages, you need iterative output, since" +
+						" otherwise the accounts will overwrite each other in the resulting mapping.")
+				}
+				fmt.Printf("%v %s\n", includeMissing, state.Dump(excludeCode, excludeStorage, false))
+			}
 		}
 	}
-	chainDb.Close()
 	return nil
 }
 

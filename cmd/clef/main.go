@@ -53,8 +53,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/signer/fourbyte"
 	"github.com/Onther-Tech/plasma-evm/signer/rules"
 	"github.com/Onther-Tech/plasma-evm/signer/storage"
-
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 const legalWarning = `

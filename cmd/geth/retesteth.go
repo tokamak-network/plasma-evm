@@ -32,6 +32,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/consensus"
+	// "github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
@@ -274,144 +275,143 @@ func (e *NoRewardEngine) Close() error {
 func (api *RetestethAPI) SetChainParams(ctx context.Context, chainParams ChainParams) (bool, error) {
 	// TODO: support retesteth
 	return false, errors.New("Plasma EVM doesn't support retesteth")
-	//// Clean up
-	//if api.blockchain != nil {
-	//	api.blockchain.Stop()
-	//}
-	//if api.engine != nil {
-	//	api.engine.Close()
-	//}
-	//if api.ethDb != nil {
-	//	api.ethDb.Close()
-	//}
-	//ethDb := rawdb.NewMemoryDatabase()
-	//accounts := make(core.GenesisAlloc)
-	//for address, account := range chainParams.Accounts {
-	//	balance := big.NewInt(0)
-	//	if account.Balance != nil {
-	//		balance.Set((*big.Int)(account.Balance))
-	//	}
-	//	var nonce uint64
-	//	if account.Nonce != nil {
-	//		nonce = uint64(*account.Nonce)
-	//	}
-	//	if account.Precompiled == nil || account.Balance != nil {
-	//		storage := make(map[common.Hash]common.Hash)
-	//		for k, v := range account.Storage {
-	//			storage[common.HexToHash(k)] = common.HexToHash(v)
-	//		}
-	//		accounts[address] = core.GenesisAccount{
-	//			Balance: balance,
-	//			Code:    account.Code,
-	//			Nonce:   nonce,
-	//			Storage: storage,
-	//		}
-	//	}
-	//}
-	//chainId := big.NewInt(1)
-	//if chainParams.Params.ChainID != nil {
-	//	chainId.Set((*big.Int)(chainParams.Params.ChainID))
-	//}
-	//var (
-	//	homesteadBlock      *big.Int
-	//	daoForkBlock        *big.Int
-	//	eip150Block         *big.Int
-	//	eip155Block         *big.Int
-	//	eip158Block         *big.Int
-	//	byzantiumBlock      *big.Int
-	//	constantinopleBlock *big.Int
-	//	petersburgBlock     *big.Int
-	//)
-	//if chainParams.Params.HomesteadForkBlock != nil {
-	//	homesteadBlock = big.NewInt(int64(*chainParams.Params.HomesteadForkBlock))
-	//}
-	//if chainParams.Params.DaoHardforkBlock != nil {
-	//	daoForkBlock = big.NewInt(int64(*chainParams.Params.DaoHardforkBlock))
-	//}
-	//if chainParams.Params.EIP150ForkBlock != nil {
-	//	eip150Block = big.NewInt(int64(*chainParams.Params.EIP150ForkBlock))
-	//}
-	//if chainParams.Params.EIP158ForkBlock != nil {
-	//	eip158Block = big.NewInt(int64(*chainParams.Params.EIP158ForkBlock))
-	//	eip155Block = eip158Block
-	//}
-	//if chainParams.Params.ByzantiumForkBlock != nil {
-	//	byzantiumBlock = big.NewInt(int64(*chainParams.Params.ByzantiumForkBlock))
-	//}
-	//if chainParams.Params.ConstantinopleForkBlock != nil {
-	//	constantinopleBlock = big.NewInt(int64(*chainParams.Params.ConstantinopleForkBlock))
-	//}
-	//if chainParams.Params.ConstantinopleFixForkBlock != nil {
-	//	petersburgBlock = big.NewInt(int64(*chainParams.Params.ConstantinopleFixForkBlock))
-	//}
-	//if constantinopleBlock != nil && petersburgBlock == nil {
-	//	petersburgBlock = big.NewInt(100000000000)
-	//}
-	//genesis := &core.Genesis{
-	//	Config: &params.ChainConfig{
-	//		ChainID:             chainId,
-	//		HomesteadBlock:      homesteadBlock,
-	//		DAOForkBlock:        daoForkBlock,
-	//		DAOForkSupport:      false,
-	//		EIP150Block:         eip150Block,
-	//		EIP155Block:         eip155Block,
-	//		EIP158Block:         eip158Block,
-	//		ByzantiumBlock:      byzantiumBlock,
-	//		ConstantinopleBlock: constantinopleBlock,
-	//		PetersburgBlock:     petersburgBlock,
-	//	},
-	//	Nonce:      uint64(chainParams.Genesis.Nonce),
-	//	Timestamp:  uint64(chainParams.Genesis.Timestamp),
-	//	ExtraData:  chainParams.Genesis.ExtraData,
-	//	GasLimit:   uint64(chainParams.Genesis.GasLimit),
-	//	Difficulty: big.NewInt(0).Set((*big.Int)(chainParams.Genesis.Difficulty)),
-	//	Mixhash:    common.BigToHash((*big.Int)(chainParams.Genesis.MixHash)),
-	//	Coinbase:   chainParams.Genesis.Author,
-	//	ParentHash: chainParams.Genesis.ParentHash,
-	//	Alloc:      accounts,
-	//}
-	//
-	//chainConfig, genesisHash, err := core.SetupGenesisBlock(ethDb, genesis)
-	//if err != nil {
-	//	return false, err
-	//}
-	//fmt.Printf("Chain config: %v\n", chainConfig)
-	//
-	//var inner consensus.Engine
-	//switch chainParams.SealEngine {
-	//case "NoProof", "NoReward":
-	//	inner = ethash.NewFaker()
-	//case "Ethash":
-	//	inner = ethash.New(ethash.Config{
-	//		CacheDir:       "ethash",
-	//		CachesInMem:    2,
-	//		CachesOnDisk:   3,
-	//		DatasetsInMem:  1,
-	//		DatasetsOnDisk: 2,
-	//	}, nil, false)
-	//default:
-	//	return false, fmt.Errorf("unrecognised seal engine: %s", chainParams.SealEngine)
-	//}
-	//engine := &NoRewardEngine{inner: inner, rewardsOn: chainParams.SealEngine != "NoReward"}
-	//
-	//blockchain, err := core.NewBlockChain(ethDb, nil, chainConfig, engine, vm.Config{}, nil)
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//api.chainConfig = chainConfig
-	//api.genesisHash = genesisHash
-	//api.author = chainParams.Genesis.Author
-	//api.extraData = chainParams.Genesis.ExtraData
-	//api.ethDb = ethDb
-	//api.engine = engine
-	//api.blockchain = blockchain
-	//api.db = state.NewDatabase(api.ethDb)
-	//api.blockNumber = 0
-	//api.txMap = make(map[common.Address]map[uint64]*types.Transaction)
-	//api.txSenders = make(map[common.Address]struct{})
-	//api.blockInterval = 0
-	//return true, nil
+	// // Clean up
+	// if api.blockchain != nil {
+	// 	api.blockchain.Stop()
+	// }
+	// if api.engine != nil {
+	// 	api.engine.Close()
+	// }
+	// if api.ethDb != nil {
+	// 	api.ethDb.Close()
+	// }
+	// ethDb := rawdb.NewMemoryDatabase()
+	// accounts := make(core.GenesisAlloc)
+	// for address, account := range chainParams.Accounts {
+	// 	balance := big.NewInt(0)
+	// 	if account.Balance != nil {
+	// 		balance.Set((*big.Int)(account.Balance))
+	// 	}
+	// 	var nonce uint64
+	// 	if account.Nonce != nil {
+	// 		nonce = uint64(*account.Nonce)
+	// 	}
+	// 	if account.Precompiled == nil || account.Balance != nil {
+	// 		storage := make(map[common.Hash]common.Hash)
+	// 		for k, v := range account.Storage {
+	// 			storage[common.HexToHash(k)] = common.HexToHash(v)
+	// 		}
+	// 		accounts[address] = core.GenesisAccount{
+	// 			Balance: balance,
+	// 			Code:    account.Code,
+	// 			Nonce:   nonce,
+	// 			Storage: storage,
+	// 		}
+	// 	}
+	// }
+	// chainId := big.NewInt(1)
+	// if chainParams.Params.ChainID != nil {
+	// 	chainId.Set((*big.Int)(chainParams.Params.ChainID))
+	// }
+	// var (
+	// 	homesteadBlock      *big.Int
+	// 	daoForkBlock        *big.Int
+	// 	eip150Block         *big.Int
+	// 	eip155Block         *big.Int
+	// 	eip158Block         *big.Int
+	// 	byzantiumBlock      *big.Int
+	// 	constantinopleBlock *big.Int
+	// 	petersburgBlock     *big.Int
+	// )
+	// if chainParams.Params.HomesteadForkBlock != nil {
+	// 	homesteadBlock = big.NewInt(int64(*chainParams.Params.HomesteadForkBlock))
+	// }
+	// if chainParams.Params.DaoHardforkBlock != nil {
+	// 	daoForkBlock = big.NewInt(int64(*chainParams.Params.DaoHardforkBlock))
+	// }
+	// if chainParams.Params.EIP150ForkBlock != nil {
+	// 	eip150Block = big.NewInt(int64(*chainParams.Params.EIP150ForkBlock))
+	// }
+	// if chainParams.Params.EIP158ForkBlock != nil {
+	// 	eip158Block = big.NewInt(int64(*chainParams.Params.EIP158ForkBlock))
+	// 	eip155Block = eip158Block
+	// }
+	// if chainParams.Params.ByzantiumForkBlock != nil {
+	// 	byzantiumBlock = big.NewInt(int64(*chainParams.Params.ByzantiumForkBlock))
+	// }
+	// if chainParams.Params.ConstantinopleForkBlock != nil {
+	// 	constantinopleBlock = big.NewInt(int64(*chainParams.Params.ConstantinopleForkBlock))
+	// }
+	// if chainParams.Params.ConstantinopleFixForkBlock != nil {
+	// 	petersburgBlock = big.NewInt(int64(*chainParams.Params.ConstantinopleFixForkBlock))
+	// }
+	// if constantinopleBlock != nil && petersburgBlock == nil {
+	// 	petersburgBlock = big.NewInt(100000000000)
+	// }
+	// genesis := &core.Genesis{
+	// 	Config: &params.ChainConfig{
+	// 		ChainID:             chainId,
+	// 		HomesteadBlock:      homesteadBlock,
+	// 		DAOForkBlock:        daoForkBlock,
+	// 		DAOForkSupport:      false,
+	// 		EIP150Block:         eip150Block,
+	// 		EIP155Block:         eip155Block,
+	// 		EIP158Block:         eip158Block,
+	// 		ByzantiumBlock:      byzantiumBlock,
+	// 		ConstantinopleBlock: constantinopleBlock,
+	// 		PetersburgBlock:     petersburgBlock,
+	// 	},
+	// 	Nonce:      uint64(chainParams.Genesis.Nonce),
+	// 	Timestamp:  uint64(chainParams.Genesis.Timestamp),
+	// 	ExtraData:  chainParams.Genesis.ExtraData,
+	// 	GasLimit:   uint64(chainParams.Genesis.GasLimit),
+	// 	Difficulty: big.NewInt(0).Set((*big.Int)(chainParams.Genesis.Difficulty)),
+	// 	Mixhash:    common.BigToHash((*big.Int)(chainParams.Genesis.MixHash)),
+	// 	Coinbase:   chainParams.Genesis.Author,
+	// 	ParentHash: chainParams.Genesis.ParentHash,
+	// 	Alloc:      accounts,
+	// }
+	// chainConfig, genesisHash, err := core.SetupGenesisBlock(ethDb, genesis)
+	// if err != nil {
+	// 	return false, err
+	// }
+	// fmt.Printf("Chain config: %v\n", chainConfig)
+
+	// var inner consensus.Engine
+	// switch chainParams.SealEngine {
+	// case "NoProof", "NoReward":
+	// 	inner = ethash.NewFaker()
+	// case "Ethash":
+	// 	inner = ethash.New(ethash.Config{
+	// 		CacheDir:       "ethash",
+	// 		CachesInMem:    2,
+	// 		CachesOnDisk:   3,
+	// 		DatasetsInMem:  1,
+	// 		DatasetsOnDisk: 2,
+	// 	}, nil, false)
+	// default:
+	// 	return false, fmt.Errorf("unrecognised seal engine: %s", chainParams.SealEngine)
+	// }
+	// engine := &NoRewardEngine{inner: inner, rewardsOn: chainParams.SealEngine != "NoReward"}
+
+	// blockchain, err := core.NewBlockChain(ethDb, nil, chainConfig, engine, vm.Config{}, nil)
+	// if err != nil {
+	// 	return false, err
+	// }
+
+	// api.chainConfig = chainConfig
+	// api.genesisHash = genesisHash
+	// api.author = chainParams.Genesis.Author
+	// api.extraData = chainParams.Genesis.ExtraData
+	// api.ethDb = ethDb
+	// api.engine = engine
+	// api.blockchain = blockchain
+	// api.db = state.NewDatabase(api.ethDb)
+	// api.blockNumber = 0
+	// api.txMap = make(map[common.Address]map[uint64]*types.Transaction)
+	// api.txSenders = make(map[common.Address]struct{})
+	// api.blockInterval = 0
+	// return true, nil
 }
 
 func (api *RetestethAPI) SendRawTransaction(ctx context.Context, rawTx hexutil.Bytes) (common.Hash, error) {

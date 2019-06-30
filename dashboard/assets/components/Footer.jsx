@@ -192,16 +192,12 @@ class Footer extends Component<Props, State> {
 					{general.commit && (
 						<Typography type='caption' color='inherit'>
 							<span style={commonStyles.light}>{'Commit '}</span>
-<<<<<<< HEAD
-							<a href={`https://github.com/Onther-Tech/plasma-evm/commit/${general.commit}`} target='_blank' style={{color: 'inherit', textDecoration: 'none'}} >
-=======
 							<a
 								href={`https://github.com/ethereum/go-ethereum/commit/${general.commit}`}
 								target='_blank'
 								rel='noopener noreferrer'
 								style={styles.link}
 							>
->>>>>>> ethereum/master
 								{general.commit.substring(0, 8)}
 							</a>
 						</Typography>
