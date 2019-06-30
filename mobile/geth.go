@@ -78,7 +78,7 @@ type NodeConfig struct {
 	PprofAddress string
 
 	// Ultra Light client options
-	ULC *eth.ULCConfig
+	ULC *pls.ULCConfig
 }
 
 // defaultNodeConfig contains the default node configuration values to use if all
