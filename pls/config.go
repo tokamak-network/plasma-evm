@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package pls
+package eth
 
 import (
 	"math/big"
@@ -24,28 +24,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/eth/downloader"
+	"github.com/Onther-Tech/plasma-evm/eth/gasprice"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
-	"github.com/Onther-Tech/plasma-evm/tx"
-)
-
-const (
-	ModeOperator = iota
-	ModeUser
-	ModeChallenger
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	NodeMode: ModeUser,
 	SyncMode: downloader.FastSync,
-	TxConfig: *tx.DefaultConfig,
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
 		CachesInMem:    2,
@@ -53,24 +43,18 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:          16,
-	RootChainNetworkID: 1,
-	LightPeers:         100,
-	DatabaseCache:      512,
-	TrieCleanCache:     256,
-	TrieDirtyCache:     256,
-	TrieTimeout:        60 * time.Minute,
+	NetworkId:      1,
+	LightPeers:     100,
+	DatabaseCache:  512,
+	TrieCleanCache: 256,
+	TrieDirtyCache: 256,
+	TrieTimeout:    60 * time.Minute,
 	Miner: miner.Config{
 		GasFloor: 8000000,
 		GasCeil:  8000000,
 		GasPrice: big.NewInt(params.GWei),
 		Recommit: 3 * time.Second,
 	},
-
-	OperatorMinEther: big.NewInt(0.5 * params.Ether),
-
-	StaminaConfig: core.DefaultStaminaConfig,
-
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -105,21 +89,6 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
-
-	// Stamina config
-	StaminaConfig *core.StaminaConfig
-
-	TxConfig tx.Config
-
-	// Plasma options
-	Operator   accounts.Account
-	Challenger accounts.Account
-	NodeMode   int
-
-	OperatorMinEther   *big.Int
-	RootChainURL       string
-	RootChainContract  common.Address
-	RootChainNetworkID uint64
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
