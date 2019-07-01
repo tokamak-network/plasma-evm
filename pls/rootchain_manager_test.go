@@ -2152,7 +2152,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	}
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
 
-	if pls.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db, cacheLimit, config.Whitelist); err != nil {
+	if pls.protocolManager, err = NewProtocolManager(chainConfig, nil, config.SyncMode, config.NetworkId, pls.eventMux, pls.txPool, pls.engine, pls.blockchain, db, cacheLimit, config.Whitelist); err != nil {
 		return nil, nil, d, err
 	}
 
@@ -2247,20 +2247,22 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 	opt := makeTxOpt(operatorKey, 0, nil, nil)
 
 	setNonce(opt, &operatorNonceRootChain)
-	tokenAddrInRootChain, _, tokenInRootChain, err := token.DeployRequestableSimpleToken(
+	tokenAddrInRootChain, tx, tokenInRootChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		ethClient,
 	)
+	waitTx(tx.Hash())
 	if err != nil {
 		t.Fatal("Failed to deploy token contract in root chain", "err", err)
 	}
 	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
 
 	setNonce(opt, &operatorNonceChildChain)
-	tokenAddrInChildChain, _, tokenInChildChain, err := token.DeployRequestableSimpleToken(
+	tokenAddrInChildChain, tx, tokenInChildChain, err := token.DeployRequestableSimpleToken(
 		opt,
 		plsClient,
 	)
+	waitTx(tx.Hash())
 	if err != nil {
 		t.Fatal("Failed to deploy token contract in child chain", "err", err)
 	}
