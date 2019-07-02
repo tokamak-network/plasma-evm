@@ -343,7 +343,7 @@ func TestScenario2(t *testing.T) {
 	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer events.Unsubscribe()
 
-	timer := time.NewTimer(120 * time.Second)
+	timer := time.NewTimer(4000 * time.Second)
 	go func() {
 		<-timer.C
 		t.Fatal("Out of time")
@@ -369,7 +369,7 @@ func TestScenario2(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to map EtherToken and PEtherToken: %v", err)
 	}
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// #1 NRE
 	for i = 0; i < NRELength.Uint64()-1; i++ {
@@ -546,7 +546,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatalf("Failed to mint token: %v", err)
 	}
 
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
 	if err != nil {
@@ -566,7 +566,7 @@ func TestScenario3(t *testing.T) {
 		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
 	}
 
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
 	if err != nil {
@@ -1573,7 +1573,7 @@ func startETHDeposit(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey,
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
 	}
 
-	if err = waitTx(tx.Hash()); err != nil {
+	if err = waitEthTx(tx.Hash()); err != nil {
 		t.Fatalf("Failed to make an ETH deposit request: %v", err)
 	}
 
@@ -1616,7 +1616,7 @@ func startTokenDeposit(t *testing.T, rcm *RootChainManager, tokenContract *token
 		t.Fatalf("Failed to make an token deposit request: %v", err)
 	}
 
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	request := <-event
 	log.Debug("Token deposit request", "request", request)
@@ -1660,7 +1660,7 @@ func startETHWithdraw(t *testing.T, rcm *RootChainManager, key *ecdsa.PrivateKey
 		t.Fatalf("Failed to make an ETH withdraw request: %v", err)
 	}
 
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	receipt, err := rcm.backend.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -1691,7 +1691,7 @@ func startTokenWithdraw(t *testing.T, rootchainContract *rootchain.RootChain, to
 		t.Fatalf("Failed to make an token withdrawal request: %v", err)
 	}
 
-	if err := waitTx(tx.Hash()); err != nil {
+	if err := waitEthTx(tx.Hash()); err != nil {
 		t.Fatalf("failed to make exit request for token withdrawal")
 	}
 }
@@ -1771,7 +1771,7 @@ func finalizeBlocks(t *testing.T, rootchainContract *rootchain.RootChain, target
 			t.Errorf("Failed to fianlize block: %v", err)
 		}
 
-		waitTx(tx.Hash())
+		waitEthTx(tx.Hash())
 
 		receipt, _ := ethClient.TransactionReceipt(context.Background(), tx.Hash())
 		if receipt.Status == 0 {
@@ -1803,7 +1803,7 @@ func applyRequest(t *testing.T, rootchainContract *rootchain.RootChain, key *ecd
 		t.Fatalf("failed to apply requeest: %v", err)
 	}
 
-	if err := waitTx(tx.Hash()); err != nil {
+	if err := waitEthTx(tx.Hash()); err != nil {
 		t.Fatalf("failed to apply requeest: %v", err)
 	}
 }
@@ -1836,7 +1836,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 			t.Fatalf("failed to apply requeest: %v", err)
 		}
 
-		if err := waitTx(tx.Hash()); err != nil {
+		if err := waitEthTx(tx.Hash()); err != nil {
 			t.Fatalf("failed to apply requeest: %v", err)
 
 		}
@@ -1871,7 +1871,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy MintableToken contract", "hash", tx.Hash(), "address", mintableTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// 2. deploy EtherToken in root chain
 	setNonce(operatorOpt, &operatorNonceRootChain)
@@ -1883,7 +1883,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy EtherToken contract", "hash", tx.Hash(), "address", etherTokenAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// 3. deploy EpochHandler in root chain
 	setNonce(operatorOpt, &operatorNonceRootChain)
@@ -1895,7 +1895,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Deploy EpochHandler contract", "hash", tx.Hash(), "address", epochHandlerAddr)
 
 	log.Info("Wait until deploy transaction is mined")
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// 4. deploy RootChain in root chain
 	setNonce(operatorOpt, &operatorNonceRootChain)
@@ -1904,7 +1904,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
 	log.Info("Deploy RootChain contract", "hash", tx.Hash(), "address", rootchainAddr)
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// 5. initialize EtherToken
 	setNonce(operatorOpt, &operatorNonceRootChain)
@@ -1913,7 +1913,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
 	log.Info("Initialize EtherToken", "hash", tx.Hash())
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 
 	// 6. mint tokens
 	mintEvents := make(chan *mintabletoken.MintableTokenMint)
@@ -1961,10 +1961,10 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	log.Info("MintableToken is approved to EtherToken")
 
-	waitTx(tx1.Hash())
-	waitTx(tx2.Hash())
-	waitTx(tx3.Hash())
-	waitTx(tx4.Hash())
+	waitEthTx(tx1.Hash())
+	waitEthTx(tx2.Hash())
+	waitEthTx(tx3.Hash())
+	waitEthTx(tx4.Hash())
 
 	setNonce(opt1, &addr1NonceRootChain)
 	setNonce(opt2, &addr2NonceRootChain)
@@ -1976,10 +1976,10 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	tx3, _ = etherToken.Deposit(opt3, ether(100))
 	tx4, _ = etherToken.Deposit(opt4, ether(100))
 
-	waitTx(tx1.Hash())
-	waitTx(tx2.Hash())
-	waitTx(tx3.Hash())
-	waitTx(tx4.Hash())
+	waitEthTx(tx1.Hash())
+	waitEthTx(tx2.Hash())
+	waitEthTx(tx3.Hash())
+	waitEthTx(tx4.Hash())
 
 	log.Info("Swap MintableToken to EtherToken")
 
@@ -2251,7 +2251,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		opt,
 		ethClient,
 	)
-	waitTx(tx.Hash())
+	waitEthTx(tx.Hash())
 	if err != nil {
 		t.Fatal("Failed to deploy token contract in root chain", "err", err)
 	}
@@ -2262,7 +2262,7 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		opt,
 		plsClient,
 	)
-	waitTx(tx.Hash())
+	waitPlsTx(tx.Hash())
 	if err != nil {
 		t.Fatal("Failed to deploy token contract in child chain", "err", err)
 	}
@@ -2375,17 +2375,39 @@ func wait(t time.Duration) {
 	<-timer.C
 }
 
-func waitTx(hash common.Hash) error {
+func waitEthTx(hash common.Hash) error {
+	log.Info("Waiting ethereum transaction mined...", "hash", hash)
+
 	var receipt *types.Receipt
 	for receipt, _ = ethClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
 		<-time.NewTimer(500 * time.Millisecond).C
-
+		log.Error("Ethereum transaction is pending...", "hash", hash)
 		receipt, _ = ethClient.TransactionReceipt(context.Background(), hash)
 	}
+	log.Info("Ethereum transaction mined", "hash", hash, "blockNumber", receipt.BlockNumber)
 
 	if receipt.Status == 0 {
-		log.Error("transaction reverted", "hash", hash)
-		return errors.New("transaction reverted")
+		log.Error("Ethereum transaction reverted", "hash", hash)
+		return errors.New("Ethereum transaction reverted")
+	}
+
+	return nil
+}
+
+func waitPlsTx(hash common.Hash) error {
+	log.Info("Waiting plasma transaction...", "hash", hash)
+
+	var receipt *types.Receipt
+	for receipt, _ = plsClient.TransactionReceipt(context.Background(), hash); receipt == nil; {
+		<-time.NewTimer(500 * time.Millisecond).C
+		log.Error("Plasma transaction is pending...", "hash", hash)
+		receipt, _ = plsClient.TransactionReceipt(context.Background(), hash)
+	}
+	log.Info("Plasma transaction mined", "hash", hash, "blockNumber", receipt.BlockNumber)
+
+	if receipt.Status == 0 {
+		log.Error("Plasma transaction reverted", "hash", hash)
+		return errors.New("Plasma transaction reverted")
 	}
 
 	return nil
