@@ -1648,7 +1648,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
-		hex := ctx.GlobalString(OperatorAddressFlag.Name)
+		hex := ctx.GlobalString(PlasmaRootChainChallenger.Name)
 		addr := common.HexToAddress(hex)
 		account, err := ks.Find(accounts.Account{Address: addr})
 
