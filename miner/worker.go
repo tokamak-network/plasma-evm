@@ -306,7 +306,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
-		log.Error("Committing~!")
 		//if w.isRunning() && !w.env.Completed {
 		if interrupt != nil {
 			atomic.StoreInt32(interrupt, s)
