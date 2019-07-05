@@ -355,7 +355,7 @@ func deployContract(ctx *cli.Context) error {
 		withPETH = true
 	}
 
-	NRELengthInt, err := strconv.Atoi(ctx.Args()[1])
+	NRELengthInt, err := strconv.Atoi(ctx.Args()[3])
 	if err != nil {
 		return err
 	}
