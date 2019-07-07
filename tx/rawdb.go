@@ -25,12 +25,15 @@ var (
 	addrPrefix      = []byte("address")       // addrPrefix + i (uint64 big endian) -> i-th account to send transaction
 	addrNoncePrefix = []byte("address-nonce") // addrPrefix + address -> i-th account's nonce
 
-	numRawTxsPrefix        = []byte("num-raw-txs")      // numRawTxsPrefix + account address -> number of raw transactions
-	lastPendingIndexPrefix = []byte("last-pending-raw") // lastPendingIndexKey + account address -> index of last pending transaction
+	numRawTxsPrefix = []byte("num-address-raw-txs") // numRawTxsPrefix + address -> # of raw transactions from the address
 
-	rawTxPrefix = []byte("raw-tx") // rawTxPrefix + account address + i (uint64 big endian) -> i-th raw transaction
+	// TODO: design new scheme to reduce I/O for resend + pending txs
+	numConfirmedTxsPrefix = []byte("num-confirmed-raw-txs") // numConfirmedTxsPrefix + account address -> # of confirmed raw transactions
+	confirmedTxsPrefix    = []byte("confirmed-raw-txs")     // confirmedTxsPrefix + account address + i (uint64 big endian) -> i-th confirmed raw transaction
+	unconfirmedTxsPrefix  = []byte("unonfirmed-raw-txs")    // unconfirmedIndexPrefix + account address -> unconfirmed raw transactions
+	pendingTxsPrefix      = []byte("pending-raw-txs")       // pendingTxsPrefix + account address -> (resend + pending) raw transactions
 
-	rawTxHashPrefix = []byte("tx-hash") // rawTxHashPrefix + account address + raw transaction hash -> raw transaction
+	rawTxHashPrefix = []byte("raw-tx-hash") // rawTxHashPrefix + account address + raw transaction hash -> raw transaction without index
 )
 
 func ReadGasPrice(db ethdb.Reader) *big.Int {
@@ -42,7 +45,7 @@ func ReadGasPrice(db ethdb.Reader) *big.Int {
 
 	var gasPrice big.Int
 	if err := rlp.DecodeBytes(data, &gasPrice); err != nil {
-		log.Error("Failed to decode gas price", "err", err)
+		log.Crit("Failed to decode gas price", "err", err)
 		return new(big.Int).SetInt64(10 * params.GWei)
 	}
 
@@ -68,7 +71,7 @@ func ReadNumAddr(db ethdb.Reader) uint64 {
 
 	var n uint64
 	if err := rlp.DecodeBytes(data, &n); err != nil {
-		log.Error("Failed to decode account number", "err", err)
+		log.Crit("Failed to decode account number", "err", err)
 		return MaxUint64
 	}
 
@@ -98,7 +101,7 @@ func ReadAddr(db ethdb.Reader, i uint64) common.Address {
 
 	var addr common.Address
 	if err := rlp.DecodeBytes(data, &addr); err != nil {
-		log.Error("Failed to decode account address", "err", err)
+		log.Crit("Failed to decode account address", "err", err)
 		return common.Address{}
 	}
 
@@ -128,7 +131,7 @@ func ReadAddrNonce(db ethdb.Reader, addr common.Address) uint64 {
 
 	var nonce uint64
 	if err := rlp.DecodeBytes(data, &nonce); err != nil {
-		log.Error("Failed to decode account nonce", "err", err)
+		log.Crit("Failed to decode account nonce", "err", err)
 		return 0
 	}
 
@@ -158,8 +161,8 @@ func ReadNumRawTxs(db ethdb.Reader, addr common.Address) uint64 {
 
 	var n uint64
 	if err := rlp.DecodeBytes(data, &n); err != nil {
-		log.Error("Failed to decode number of raw transactions", "err", err)
-		return MaxUint64
+		log.Crit("Failed to decode number of raw transactions", "err", err)
+		return 0
 	}
 
 	return n
@@ -175,68 +178,128 @@ func WriteNumRawTxs(db ethdb.KeyValueWriter, addr common.Address, n uint64) {
 	}
 }
 
-func lastPendingIndexKey(addr common.Address) []byte {
-	return append(lastPendingIndexPrefix, addr.Bytes()...)
+func numConfirmedRawTxsKey(addr common.Address) []byte {
+	return append(numConfirmedTxsPrefix, addr.Bytes()...)
 }
 
-func ReadLastPendingIndex(db ethdb.Reader, addr common.Address) uint64 {
-	data, _ := db.Get(lastPendingIndexKey(addr))
+func ReadNumConfirmedRawTxs(db ethdb.Reader, addr common.Address) uint64 {
+	data, _ := db.Get(numConfirmedRawTxsKey(addr))
 
 	if len(data) == 0 {
+		return 0
+	}
+
+	var n uint64
+	if err := rlp.DecodeBytes(data, &n); err != nil {
+		log.Crit("Failed to decode number of confirmed raw transactions", "err", err)
 		return MaxUint64
 	}
 
-	var i uint64
-	if err := rlp.DecodeBytes(data, &i); err != nil {
-		log.Error("Failed to decode number of raw transactions", "err", err)
-		return MaxUint64
-	}
-
-	return i
+	return n
 }
 
-func WriteLastPendingIndex(db ethdb.KeyValueWriter, addr common.Address, i uint64) {
-	data, err := rlp.EncodeToBytes(i)
+func WriteNumConfirmedRawTxs(db ethdb.KeyValueWriter, addr common.Address, n uint64) {
+	data, err := rlp.EncodeToBytes(n)
 	if err != nil {
 		log.Crit("Failed to encode number of raw transactions", "err", err)
 	}
-	if err := db.Put(lastPendingIndexKey(addr), data); err != nil {
+	if err := db.Put(numConfirmedRawTxsKey(addr), data); err != nil {
 		log.Crit("Failed to store number of raw transactions", "err", err)
 	}
 }
 
-func rawTxKey(addr common.Address, i uint64) []byte {
-	return append(append(rawTxPrefix, addr.Bytes()...), encodeNumber(i)...)
+func confirmedTxKey(addr common.Address, i uint64) []byte {
+	return append(append(confirmedTxsPrefix, addr.Bytes()...), encodeNumber(i)...)
 }
 
-func ReadRawTx(db ethdb.Reader, addr common.Address, i uint64) *RawTransaction {
-	data, _ := db.Get(rawTxKey(addr, i))
+func ReadConfirmedTx(db ethdb.Reader, addr common.Address, i uint64) *RawTransaction {
+	data, _ := db.Get(confirmedTxKey(addr, i))
 
 	if len(data) == 0 {
-		return nil
+		log.Crit("Failed to decode unconfirmed transactions")
 	}
 
 	var raw RawTransaction
 	if err := rlp.DecodeBytes(data, &raw); err != nil {
-		log.Error("Failed to decode raw transaction", "err", err, "addr", addr, "i", i)
+		log.Crit("Failed to decode number of raw transactions", "err", err)
 		return nil
 	}
 
 	return &raw
 }
 
-func WriteRawTx(db ethdb.KeyValueWriter, addr common.Address, raw RawTransaction) {
+func WriteConfirmedTx(db ethdb.KeyValueWriter, addr common.Address, i uint64, raw *RawTransaction) {
 	data, err := rlp.EncodeToBytes(raw)
 	if err != nil {
-		log.Crit("Failed to encode raw transaction", "err", err)
+		log.Crit("Failed to encode confirmed raw transaction", "err", err)
 	}
-	if err := db.Put(rawTxKey(addr, raw.Index), data); err != nil {
-		log.Crit("Failed to store raw transaction", "err", err)
+	if err := db.Put(confirmedTxKey(addr, i), data); err != nil {
+		log.Crit("Failed to store confirmed raw transaction", "err", err)
+	}
+}
+
+func unconfirmedTxsKey(addr common.Address) []byte {
+	return append(unconfirmedTxsPrefix, addr.Bytes()...)
+}
+
+func ReadUnconfirmedTxs(db ethdb.Reader, addr common.Address) RawTransactions {
+	data, _ := db.Get(unconfirmedTxsKey(addr))
+
+	if len(data) == 0 {
+		return RawTransactions{}
+	}
+
+	var txs RawTransactions
+	if err := rlp.DecodeBytes(data, &txs); err != nil {
+		log.Crit("Failed to decode unconfirmed transactions", "err", err)
+		return nil
+	}
+
+	return txs
+}
+
+func WriteUnconfirmedTxs(db ethdb.KeyValueWriter, addr common.Address, txs RawTransactions) {
+	data, err := rlp.EncodeToBytes(txs)
+	if err != nil {
+		log.Crit("Failed to encode unconfirmed transactions", "err", err)
+	}
+	if err := db.Put(unconfirmedTxsKey(addr), data); err != nil {
+		log.Crit("Failed to store unconfirmed transactions", "err", err)
+	}
+}
+
+func pendingTxsKey(addr common.Address) []byte {
+	return append(pendingTxsPrefix, addr.Bytes()...)
+}
+
+func ReadPendingTxs(db ethdb.Reader, addr common.Address) RawTransactions {
+	data, _ := db.Get(pendingTxsKey(addr))
+
+	if len(data) == 0 {
+		return RawTransactions{}
+	}
+
+	var txs RawTransactions
+	if err := rlp.DecodeBytes(data, &txs); err != nil {
+		log.Crit("Failed to decode pending transactions", "err", err)
+		return nil
+	}
+
+	return txs
+}
+
+func WritePendingTxs(db ethdb.KeyValueWriter, addr common.Address, txs RawTransactions) {
+	data, err := rlp.EncodeToBytes(txs)
+	if err != nil {
+		log.Crit("Failed to encode pending transactions", "err", err)
+	}
+	if err := db.Put(pendingTxsKey(addr), data); err != nil {
+		log.Crit("Failed to store pending transactions", "err", err)
 	}
 }
 
 func rawTxHashKey(addr common.Address, rawHash common.Hash) []byte {
-	return append(append(rawTxPrefix, addr.Bytes()...), rawHash.Bytes()...)
+	return append(append(rawTxHashPrefix, addr.Bytes()...), rawHash.Bytes()...)
 }
 
 func ReadRawTxHash(db ethdb.Reader, addr common.Address, rawHash common.Hash) *RawTransaction {
@@ -248,7 +311,7 @@ func ReadRawTxHash(db ethdb.Reader, addr common.Address, rawHash common.Hash) *R
 
 	var raw RawTransaction
 	if err := rlp.DecodeBytes(data, &raw); err != nil {
-		log.Error("Failed to decode raw transaction", "err", err, "addr", addr)
+		log.Crit("Failed to decode raw transaction", "err", err, "addr", addr)
 		return nil
 	}
 

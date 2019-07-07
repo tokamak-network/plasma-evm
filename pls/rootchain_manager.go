@@ -300,7 +300,7 @@ func (rcm *RootChainManager) addSubmitTransaction(block *types.Block) error {
 	caption := fmt.Sprintf("%s(%d)", funcName, block.NumberU64())
 	rawTx := tx.NewRawTransaction(operator.Address, params.SubmitBlockGasLimit, &rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), input, false, caption)
 
-	return rcm.txManager.Add(operator, rawTx)
+	return rcm.txManager.Add(operator, rawTx, false)
 }
 
 func (rcm *RootChainManager) runSubmitter() {

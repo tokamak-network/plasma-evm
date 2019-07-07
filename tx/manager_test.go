@@ -15,6 +15,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
@@ -45,7 +46,7 @@ var (
 	backend    *ethclient.Client
 
 	defaultGasLimit uint64 = 7000000
-	defaultResubmit        = 500 * time.Millisecond
+	defaultResubmit        = 3 * time.Second
 	maxTxFee        *big.Int
 
 	err error
@@ -110,7 +111,7 @@ func makeTestManager(db ethdb.Database) *TransactionManager {
 }
 
 func TestBasic(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
 	tm.Start()
@@ -121,7 +122,7 @@ func TestBasic(t *testing.T) {
 
 	for i := 0; i < n1; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
-		if err := tm.Add(accs[0], rawTx); err != nil {
+		if err := tm.Add(accs[0], rawTx, false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
 		log.Debug(fmt.Sprintf("raw tx %d added", i))
@@ -131,7 +132,7 @@ func TestBasic(t *testing.T) {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
 	}
 
-	timer := time.NewTimer(40 * time.Second)
+	timer := time.NewTimer(10 * time.Minute)
 
 	<-timer.C
 	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
@@ -144,23 +145,23 @@ func TestBasic(t *testing.T) {
 }
 
 func TestRestart(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 	tm.Start()
 
-	// addrs[0] send 1 ETH to addrs[1] n1 times
+	// addrs[0] sends n1 transactions
 	n1 := 10
 	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
 	for i := 0; i < n1; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
-		if err := tm.Add(accs[0], rawTx); err != nil {
+		if err := tm.Add(accs[0], rawTx, false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
 		log.Debug(fmt.Sprintf("raw tx %d added", i))
 	}
 
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(25 * time.Second)
 
 	<-timer.C
 
@@ -170,19 +171,20 @@ func TestRestart(t *testing.T) {
 	<-time.NewTimer(5 * time.Second).C
 	tm = makeTestManager(db)
 	tm.Start()
+	log.Info("TranasctionManager restarted")
 
-	// addrs[0] send 1 ETH to addrs[1] n2 times
+	// addrs[0] sends n2 transactions
 	n2 := 10
 
 	for i := 0; i < n2; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i+n1)), []byte{}, false, fmt.Sprintf("raw tx %d", n1+i))
-		if err := tm.Add(accs[0], rawTx); err != nil {
+		if err := tm.Add(accs[0], rawTx, false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
 		log.Debug(fmt.Sprintf("raw tx %d added", n1+i))
 	}
 
-	timer2 := time.NewTimer(45 * time.Second)
+	timer2 := time.NewTimer(2 * time.Minute)
 
 	<-timer2.C
 	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
@@ -199,7 +201,7 @@ func TestRestart(t *testing.T) {
 }
 
 func TestCongestedNetwork(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
 	tm.Start()
@@ -238,7 +240,7 @@ func TestCongestedNetwork(t *testing.T) {
 
 	for i := 0; i < n1; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
-		if err := tm.Add(accs[0], rawTx); err != nil {
+		if err := tm.Add(accs[0], rawTx, false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
 		log.Debug(fmt.Sprintf("raw tx %d added", i))
