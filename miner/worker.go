@@ -1077,10 +1077,7 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
-		if w.coinbase == (common.Address{}) {
-			log.Error("Refusing to mine without etherbase")
-			return
-		}
+		w.coinbase = params.NullAddress
 		header.Coinbase = w.coinbase
 	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
