@@ -918,7 +918,7 @@ func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase com
 		w.current.state.Prepare(rtx.Hash(), common.Hash{}, w.current.tcount)
 
 		logs, err := w.commitTransaction(rtx, coinbase)
-		if err != nil {
+		if err == nil {
 			coalescedLogs = append(coalescedLogs, logs...)
 			w.current.tcount++
 		}
