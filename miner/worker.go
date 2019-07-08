@@ -1081,8 +1081,7 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 			log.Error("Refusing to mine without etherbase")
 			return
 		}
-		// NOTE: change w.coinbase to params.NullAddress
-		header.Coinbase = params.NullAddress
+		header.Coinbase = w.coinbase
 	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
