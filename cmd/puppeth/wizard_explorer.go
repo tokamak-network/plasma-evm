@@ -53,13 +53,13 @@ func (w *wizard) deployExplorer() {
 	}
 	existed := err == nil
 
-	infos.genesis, _ = json.MarshalIndent(w.conf.Genesis, "", "  ")
-	infos.networkId = w.conf.Genesis.Config.ChainID.Int64()
+	infos.node.genesis, _ = json.MarshalIndent(w.conf.Genesis, "", "  ")
+	infos.node.network = w.conf.Genesis.Config.ChainID.Int64()
 
 	// Figure out which URL to listen for root chain JSONRPC endpoint
 	fmt.Println()
 	fmt.Printf("What URL to listen on root chain JSONRPC?\n")
-	infos.rootchainURL = w.readURL().String()
+	infos.node.rootchainURL = w.readURL().String()
 
 	// Figure out which port to listen on
 	fmt.Println()

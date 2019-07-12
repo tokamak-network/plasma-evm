@@ -45,17 +45,10 @@ type PlsAPIBackend struct {
 	gpo           *gasprice.Oracle
 }
 
-// RootChain returns RootChain contract address
 func (b *PlsAPIBackend) RootChain() common.Address {
 	return b.pls.config.RootChainContract
 }
 
-// GetRequestableContract returns requestable contract address in child chain
-func (b *PlsAPIBackend) GetRequestableContract(addr common.Address) (common.Address, error) {
-	return b.pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, addr)
-}
-
-// ChainConfig returns the active chain configuration.
 func (b *PlsAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.pls.blockchain.Config()
 }
@@ -195,7 +188,7 @@ func (b *PlsAPIBackend) GetTransaction(ctx context.Context, txHash common.Hash) 
 }
 
 func (b *PlsAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
-	return b.pls.txPool.State().GetNonce(addr), nil
+	return b.pls.txPool.Nonce(addr), nil
 }
 
 func (b *PlsAPIBackend) Stats() (pending int, queued int) {

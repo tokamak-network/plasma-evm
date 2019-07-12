@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package eth
+package pls
 
 import (
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/forkid"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/forkid"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
+	"github.com/Onther-Tech/plasma-evm/rlp"
 )
 
 // ethEntry is the "eth" ENR entry which advertises eth protocol
@@ -37,7 +37,7 @@ func (e ethEntry) ENRKey() string {
 	return "eth"
 }
 
-func (eth *Ethereum) startEthEntryUpdate(ln *enode.LocalNode) {
+func (eth *Plasma) startEthEntryUpdate(ln *enode.LocalNode) {
 	var newHead = make(chan core.ChainHeadEvent, 10)
 	sub := eth.blockchain.SubscribeChainHeadEvent(newHead)
 
@@ -56,6 +56,6 @@ func (eth *Ethereum) startEthEntryUpdate(ln *enode.LocalNode) {
 	}()
 }
 
-func (eth *Ethereum) currentEthEntry() *ethEntry {
+func (eth *Plasma) currentEthEntry() *ethEntry {
 	return &ethEntry{ForkID: forkid.NewID(eth.blockchain)}
 }
