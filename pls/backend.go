@@ -47,6 +47,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
+	"github.com/Onther-Tech/plasma-evm/p2p/enr"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/pls/filters"
@@ -70,7 +71,9 @@ type Plasma struct {
 	config *Config
 
 	// Channel for shutting down the service
-	shutdownChan chan bool // Channel for shutting down the Plasma
+	shutdownChan chan bool
+
+	server *p2p.Server
 
 	// Handlers
 	txPool           *core.TxPool
@@ -139,7 +142,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""))
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""))
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
@@ -559,7 +562,7 @@ func (s *Plasma) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Plasma) Engine() consensus.Engine           { return s.engine }
 func (s *Plasma) ChainDb() ethdb.Database            { return s.chainDb }
 func (s *Plasma) IsListening() bool                  { return true } // Always listening
-func (s *Plasma) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Plasma) EthVersion() int                    { return int(ProtocolVersions[0]) }
 func (s *Plasma) NetVersion() uint64                 { return s.networkID }
 func (s *Plasma) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 func (s *Plasma) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
@@ -567,16 +570,23 @@ func (s *Plasma) ArchiveMode() bool                  { return s.config.NoPruning
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
-func (s *Plasma) Protocols() []p2p.Protocol {
-	if s.lesServer == nil {
-		return s.protocolManager.SubProtocols
+func (s *Ethereum) Protocols() []p2p.Protocol {
+	protos := make([]p2p.Protocol, len(ProtocolVersions))
+	for i, vsn := range ProtocolVersions {
+		protos[i] = s.protocolManager.makeProtocol(vsn)
+		protos[i].Attributes = []enr.Entry{s.currentEthEntry()}
 	}
-	return append(s.protocolManager.SubProtocols, s.lesServer.Protocols()...)
+	if s.lesServer != nil {
+		protos = append(protos, s.lesServer.Protocols()...)
+	}
+	return protos
 }
 
 // Start implements node.Service, starting all internal goroutines needed by the
 // Plasma protocol implementation.
 func (s *Plasma) Start(srvr *p2p.Server) error {
+	s.startEthEntryUpdate(srvr.LocalNode())
+
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
