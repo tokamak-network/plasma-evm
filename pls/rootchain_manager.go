@@ -716,7 +716,8 @@ func (rcm *RootChainManager) runDetector() {
 	}
 }
 
-func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (*rootchain.PlasmaEpoch, error) {
+func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (*PlasmaEpoch, error) {
+
 	b, err := rcm.rootchainContract.GetEpoch(baseCallOpt, forkNumber, epochNumber)
 
 	if err != nil {

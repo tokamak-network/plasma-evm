@@ -3,7 +3,7 @@ package plasma
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/RootChain.sol --pkg rootchain --out rootchain/rootchain.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/EpochHandler.sol --pkg epochhandler --out epochhandler/epochhandler.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/RequestableSimpleToken.sol --pkg token --out token/token.go
-//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/node_modules/openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol --pkg mintabletoken --out mintabletoken/mintabletoken.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/node_modules/openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol --pkg mintabletoken --out mintabletoken/mintabletoken.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/EtherToken.sol --pkg ethertoken --out ethertoken/ethertoken.go
 
 import (
@@ -62,7 +62,7 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, cf
 	}
 
 	// 1. deploy MintableToken in root chain
-	mintableTokenContract, tx, _, err := mintabletoken.DeployMintableToken(opt, backend)
+	mintableTokenContract, tx, _, err := mintabletoken.DeployERC20Mintable(opt, backend)
 	if err != nil {
 		return common.Address{}, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 	}

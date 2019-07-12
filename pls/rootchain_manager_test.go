@@ -122,7 +122,7 @@ var (
 	empty32Bytes = common.Hash{}
 
 	// contracts
-	mintableToken     *mintabletoken.MintableToken
+	mintableToken     *mintabletoken.ERC20Mintable
 	mintableTokenAddr common.Address
 
 	etherToken     *ethertoken.EtherToken
@@ -1863,7 +1863,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 
 	// 1. deploy MintableToken in root chain
 	setNonce(operatorOpt, &operatorNonceRootChain)
-	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployMintableToken(operatorOpt, ethClient)
+	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployERC20Mintable(operatorOpt, ethClient)
 
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
@@ -1916,13 +1916,6 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	waitEthTx(tx.Hash())
 
 	// 6. mint tokens
-	mintEvents := make(chan *mintabletoken.MintableTokenMint)
-	mintWatchOpts := &bind.WatchOpts{
-		Start:   nil,
-		Context: context.Background(),
-	}
-	mintFilterrer, _ := mintableToken.WatchMint(mintWatchOpts, mintEvents, addrs)
-
 	setNonce(operatorOpt, &operatorNonceRootChain)
 	tx1, err := mintableToken.Mint(operatorOpt, addr1, ether(100))
 	setNonce(operatorOpt, &operatorNonceRootChain)
@@ -1932,11 +1925,10 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	setNonce(operatorOpt, &operatorNonceRootChain)
 	tx4, err := mintableToken.Mint(operatorOpt, addr4, ether(100))
 
-	<-mintEvents
-	<-mintEvents
-	<-mintEvents
-	<-mintEvents
-	mintFilterrer.Unsubscribe()
+	waitEthTx(tx1.Hash())
+	waitEthTx(tx2.Hash())
+	waitEthTx(tx3.Hash())
+	waitEthTx(tx4.Hash())
 
 	log.Info("Mint MintableToken to users")
 
