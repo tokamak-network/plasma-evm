@@ -552,8 +552,6 @@ func (tm *TransactionManager) clearQueue(addr common.Address) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
-	tm.inspect(addr)
-
 	// short circuit if pending is nil or empty.
 	if tm.pending[addr] == nil || len(tm.pending[addr]) == 0 {
 		return
@@ -571,10 +569,10 @@ func (tm *TransactionManager) clearQueue(addr common.Address) {
 			break
 		}
 
-		log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.getCaption(), "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash)
+		log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.getCaption(), "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash.String())
 
 		if raw.Reverted {
-			log.Error("Transaction is reverted", "caption", raw.getCaption())
+			log.Error("Transaction is reverted", "caption", raw.getCaption(), "hash", raw.MinedTxHash.String())
 		}
 		tm.adjustGasPrice(raw, true)
 	}
@@ -619,7 +617,6 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 		if raw == nil {
 			log.Error("raw transaction is nil!!", "index", i)
 		}
-
 	}
 
 	// short circuit if unconfirmed is nil or empty.
@@ -712,7 +709,7 @@ func (tm *TransactionManager) confirmLoop() {
 
 		if err != nil {
 			log.Error("Failed to re-subscribe root chian new block event", "err", err)
-			reconnTimer.Reset(1 * time.Second)
+			reconnTimer.Reset(5 * time.Second)
 		} else {
 			sub = sub2
 			log.Info("Re-subscribe root chian new block event")
