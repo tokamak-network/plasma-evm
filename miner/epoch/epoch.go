@@ -15,10 +15,13 @@ type EpochEnvironment struct {
 	EpochLength        *big.Int
 	CurrentFork        *big.Int
 	LastFinalizedBlock *big.Int
+	StartBlockNumber   *big.Int
+	EndBlockNumber     *big.Int
 
 	lock sync.Mutex
 }
 
+// TODO: rename to EmptyEnv
 func New() *EpochEnvironment {
 	return &EpochEnvironment{
 		EpochNumber:        big.NewInt(0),
@@ -30,6 +33,8 @@ func New() *EpochEnvironment {
 		EpochLength:        big.NewInt(0),
 		CurrentFork:        big.NewInt(0),
 		LastFinalizedBlock: big.NewInt(0),
+		StartBlockNumber:   big.NewInt(0),
+		EndBlockNumber:     big.NewInt(0),
 	}
 }
 
@@ -47,6 +52,10 @@ func Copy(dst, src *EpochEnvironment) {
 	src.EpochLength = new(big.Int).Set(dst.EpochLength)
 	src.CurrentFork = new(big.Int).Set(dst.CurrentFork)
 	src.LastFinalizedBlock = new(big.Int).Set(dst.LastFinalizedBlock)
+
+	src.StartBlockNumber = new(big.Int).Set(dst.StartBlockNumber)
+	src.EndBlockNumber = new(big.Int).Set(dst.EndBlockNumber)
+
 }
 
 func (self *EpochEnvironment) SetEpochNumber(e *big.Int) {
@@ -110,6 +119,18 @@ func (self *EpochEnvironment) SetLastFinalizedBlock(n *big.Int) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	self.LastFinalizedBlock = new(big.Int).Set(n)
+}
+
+func (self *EpochEnvironment) SetStartBlockNumber(n *big.Int) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	self.StartBlockNumber = new(big.Int).Set(n)
+}
+
+func (self *EpochEnvironment) SetEndBlockNumber(n *big.Int) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	self.EndBlockNumber = new(big.Int).Set(n)
 }
 
 func (self *EpochEnvironment) Lock() {
