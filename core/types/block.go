@@ -438,6 +438,36 @@ func (b *Block) IsRequest() bool {
 
 type Blocks []*Block
 
+func (self Blocks) StatesRoot() common.Hash {
+	h := make([]common.Hash, len(self))
+
+	for i := 0; i < len(self); i++ {
+		h[i] = self[i].header.Root
+	}
+
+	return getBinaryMerkleRoot(h)
+}
+
+func (self Blocks) TransactionsRoot() common.Hash {
+	h := make([]common.Hash, len(self))
+
+	for i := 0; i < len(self); i++ {
+		h[i] = self[i].header.TxHash
+	}
+
+	return getBinaryMerkleRoot(h)
+}
+
+func (self Blocks) ReceiptssRoot() common.Hash {
+	h := make([]common.Hash, len(self))
+
+	for i := 0; i < len(self); i++ {
+		h[i] = self[i].header.ReceiptHash
+	}
+
+	return getBinaryMerkleRoot(h)
+}
+
 type BlockBy func(b1, b2 *Block) bool
 
 func (self BlockBy) Sort(blocks Blocks) {
