@@ -213,7 +213,10 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract co
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db)
-		return genesis.Config, block.Hash(), err
+		if err != nil {
+			return genesis.Config, hash, err
+		}
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// Check whether the genesis block is already written.

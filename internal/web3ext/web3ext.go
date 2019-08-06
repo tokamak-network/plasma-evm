@@ -484,6 +484,26 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'getHeaderByNumber',
+			call: 'eth_getHeaderByNumber',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getHeaderByHash',
+			call: 'eth_getHeaderByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getBlockByNumber',
+			call: 'eth_getBlockByNumber',
+			params: 2
+		}),
+		new web3._extend.Method({
+			name: 'getBlockByHash',
+			call: 'eth_getBlockByHash',
+			params: 2
+		}),
+		new web3._extend.Method({
 			name: 'getRawTransaction',
 			call: 'eth_getRawTransactionByHash',
 			params: 1
