@@ -540,10 +540,6 @@ func (tm *TransactionManager) adjustGasPrice(raw *RawTransaction, decrease bool)
 	previousTxGasPriceGwei := gasPriceToString(previousTxGasPrice)
 	adjustGwei := gasPriceToString(tm.gasPrice)
 	log.Info("Gas price adjusted", "caption", raw.getCaption(), "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
-
-	//if previous.Cmp(tm.gasPrice) != 0 {
-	//	log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
-	//}
 }
 
 // clearQueue check raw transaction is mined. Mined raw transactions move to unconfirmed pending.
@@ -613,12 +609,6 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 
 	tm.inspect(addr)
 
-	for i, raw := range tm.pending[addr] {
-		if raw == nil {
-			log.Error("raw transaction is nil!!", "index", i)
-		}
-	}
-
 	// short circuit if unconfirmed is nil or empty.
 	if tm.unconfirmed[addr] == nil || len(tm.unconfirmed[addr]) == 0 {
 		return
@@ -630,10 +620,10 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 	i := 0
 	for ; i < len(tm.unconfirmed[addr]); i++ {
 		raw := tm.unconfirmed[addr][i]
-		log.Info("check raw raw is confirmed", "raw", raw, "i", i, "unconfirmed", len(tm.unconfirmed[addr]))
+		log.Debug("check raw is confirmed", "addr", addr, "caption", raw.getCaption())
 
 		if !raw.Confirmed(tm.backend, currentBlockNumber) {
-			log.Info("raw is not confirmed")
+			log.Debug("raw is not confirmed")
 			break
 		}
 		log.Info("Transaction is confirmed", "addr", addr, "caption", raw.getCaption())

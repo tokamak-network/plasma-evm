@@ -316,12 +316,9 @@ func (rcm *RootChainManager) addEpochSubmitTransaction(blocks types.Blocks) erro
 
 	startBlockNumber := blocks[0].Number()
 	endBlockNumber := blocks[len(blocks)-1].Number()
+
 	// pos2 = start block number * 2^128 + end block number
 	pos2 := makePos(startBlockNumber, endBlockNumber)
-
-	log.Info("epochs tats", "forkNumber", forkNumber, "epochNumber", epochNumber)
-	log.Info("pos1", "pos1", pos1.Bytes())
-	log.Info("pos2", "pos2", pos2.Bytes())
 
 	input, err := rootchainContractABI.Pack(
 		funcName,
