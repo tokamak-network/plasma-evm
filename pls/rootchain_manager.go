@@ -94,9 +94,26 @@ func NewRootChainManager(
 	miner *miner.Miner,
 	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
-	code, _ := backend.CodeAt(context.Background(), config.RootChainContract, nil)
-	if len(code) == 0 {
-		return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+	code, err := backend.CodeAt(context.Background(), config.RootChainContract, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	n := 10
+	for i := 0; i <= n; i++ {
+		if len(code) > 0 {
+			break
+		}
+
+		<-time.NewTimer(time.Second).C
+		code, err = backend.CodeAt(context.Background(), config.RootChainContract, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(code) == 0 && i == n {
+			return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+		}
 	}
 
 	rcm := &RootChainManager{
