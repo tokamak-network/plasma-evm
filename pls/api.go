@@ -378,7 +378,7 @@ const AccountRangeMaxResults = 256
 func (api *PrivateDebugAPI) AccountRange(ctx context.Context, start *common.Hash, maxResults int) (AccountRangeResult, error) {
 	var statedb *state.StateDB
 	var err error
-	block := api.eth.blockchain.CurrentBlock()
+	block := api.pls.blockchain.CurrentBlock()
 
 	if len(block.Transactions()) == 0 {
 		statedb, err = api.computeStateDB(block, defaultTraceReexec)

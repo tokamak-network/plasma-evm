@@ -60,9 +60,9 @@ func (b *LesApiBackend) SetHead(number uint64) {
 
 func (b *LesApiBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	if number == rpc.LatestBlockNumber || number == rpc.PendingBlockNumber {
-		return b.eth.blockchain.CurrentHeader(), nil
+		return b.pls.blockchain.CurrentHeader(), nil
 	}
-	return b.eth.blockchain.GetHeaderByNumberOdr(ctx, uint64(number))
+	return b.pls.blockchain.GetHeaderByNumberOdr(ctx, uint64(number))
 }
 
 func (b *LesApiBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
@@ -89,11 +89,11 @@ func (b *LesApiBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.B
 }
 
 func (b *LesApiBackend) GetHeader(ctx context.Context, hash common.Hash) *types.Header {
-	return b.eth.blockchain.GetHeaderByHash(hash)
+	return b.pls.blockchain.GetHeaderByHash(hash)
 }
 
 func (b *LesApiBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
-	return b.eth.blockchain.GetBlockByHash(ctx, hash)
+	return b.pls.blockchain.GetBlockByHash(ctx, hash)
 }
 
 func (b *LesApiBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {

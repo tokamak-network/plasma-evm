@@ -110,6 +110,10 @@ func (b *PlsAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	return stateDb, header, err
 }
 
+func (b *PlsAPIBackend) GetHeader(ctx context.Context, hash common.Hash) *types.Header {
+	return b.pls.blockchain.GetHeaderByHash(hash)
+}
+
 func (b *PlsAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.pls.blockchain.GetBlockByHash(hash), nil
 }
