@@ -332,6 +332,10 @@ func initGenesis(ctx *cli.Context) error {
 }
 
 func deployContract(ctx *cli.Context) error {
+	if len(ctx.Args()) != 4 {
+		utils.Fatalf("Expected 4 parameters, not %d", len(ctx.Args()))
+	}
+
 	// Make sure we have a valid genesis JSON
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
