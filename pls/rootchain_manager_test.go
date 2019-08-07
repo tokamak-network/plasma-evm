@@ -209,293 +209,8 @@ func init() {
 	maxTxFee = new(big.Int).Mul(defaultGasPrice, big.NewInt(int64(defaultGasLimit)))
 }
 
-func TestScenario1(t *testing.T) {
-	rcm, stopFn, err := makeManager()
-	defer stopFn()
-
-	if err != nil {
-		t.Fatalf("Failed to make rootchian manager: %v", err)
-	}
-
-	NRELength, err := rcm.NRELength()
-
-	if err != nil {
-		t.Fatalf("Failed to get NRELength: %v", err)
-	}
-
-	startETHDeposit(t, rcm, key1, ether(1))
-	startETHDeposit(t, rcm, key2, ether(1))
-	startETHDeposit(t, rcm, key3, ether(1))
-	startETHDeposit(t, rcm, key4, ether(1))
-
-	wait(3)
-
-	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
-
-	if numEROs.Cmp(big.NewInt(0)) == 0 {
-		t.Fatal("numEROs should not be 0")
-	}
-
-	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer events.Unsubscribe()
-
-	if err = rcm.Start(); err != nil {
-		t.Fatalf("Failed to start rootchain manager: %v", err)
-	}
-
-	timer := time.NewTimer(1 * time.Minute)
-	go func() {
-		<-timer.C
-		t.Fatal("Out of time")
-	}()
-
-	var i uint64
-
-	for i = 0; i < NRELength.Uint64(); {
-		makeSampleTx(rcm)
-		i++
-		ev := <-events.Chan()
-
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
-		}
-	}
-
-	ev := <-events.Chan()
-	blockInfo := ev.Data.(core.NewMinedBlockEvent)
-	if !rcm.minerEnv.IsRequest {
-		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
-	}
-
-	for i = 0; i < NRELength.Uint64()*2; {
-		makeSampleTx(rcm)
-		i++
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		makeSampleTx(rcm)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
-	log.Info("test finished")
-	return
-}
-
-// TestScenario2 tests enter and exit between root chain & plasma chain
-func TestScenario2(t *testing.T) {
-	pls, rpcServer, dir, err := makePls()
-	defer os.RemoveAll(dir)
-
-	if err != nil {
-		t.Fatalf("Failed to make pls service: %v", err)
-	}
-	defer pls.Stop()
-	defer rpcServer.Stop()
-
-	if err := pls.rootchainManager.Start(); err != nil {
-		t.Fatalf("Failed to start RootChainManager: %v", err)
-	}
-	pls.protocolManager.Start(1)
-
-	rpcClient := rpc.DialInProc(rpcServer)
-
-	// assign to global variable
-	plsClient = plsclient.NewClient(rpcClient)
-
-	rcm := pls.rootchainManager
-
-	NRELength, err := rcm.NRELength()
-	if err != nil {
-		t.Fatalf("Failed to get NRELength: %v", err)
-	}
-
-	// balance check in root chain before enter
-	balances1 := getEtherTokenBalances(addrs)
-
-	enterAmount := ether(1)
-
-	// make enter request
-	startETHDeposit(t, rcm, key1, enterAmount)
-	startETHDeposit(t, rcm, key2, enterAmount)
-	startETHDeposit(t, rcm, key3, enterAmount)
-	startETHDeposit(t, rcm, key4, enterAmount)
-
-	balances2 := getEtherTokenBalances(addrs)
-
-	for i, balance1 := range balances1 {
-		balance2 := balances2[i]
-		if err := checkBalance(balance1, balance2, new(big.Int).Neg(enterAmount), nil, "check enter request result"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	numEROs, _ := rcm.rootchainContract.GetNumEROs(baseCallOpt)
-
-	if numEROs.Cmp(big.NewInt(0)) == 0 {
-		t.Fatal("numEROs should not be 0")
-	}
-
-	events := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	defer events.Unsubscribe()
-
-	timer := time.NewTimer(4000 * time.Second)
-	go func() {
-		<-timer.C
-		t.Fatal("Out of time")
-	}()
-
-	var i uint64
-
-	// NRB#1 : deploy EtherToken in child chain
-	deployEtherTokenInChildChain(t)
-	ev := <-events.Chan()
-
-	blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-	if rcm.minerEnv.IsRequest {
-		t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
-	}
-
-	// map EtherToken address
-	setNonce(operatorOpt, &operatorNonceRootChain) // for NRB#1 submit
-	setNonce(operatorOpt, &operatorNonceRootChain) // for ether token address map
-
-	tx, err := rcm.rootchainContract.MapRequestableContractByOperator(operatorOpt, etherTokenAddr, etherTokenAddrInChildChain)
-	if err != nil {
-		t.Errorf("Failed to map EtherToken and PEtherToken: %v", err)
-	}
-	waitEthTx(tx.Hash(), "")
-
-	// #1 NRE
-	for i = 0; i < NRELength.Uint64()-1; i++ {
-		makeSampleTx(rcm)
-		ev := <-events.Chan()
-
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block, but it is not. blockNumber:", blockInfo.Block.NumberU64())
-		}
-	}
-
-	// #2 empty ORE
-
-	// #3 NRE
-	for i = 0; i < NRELength.Uint64(); i++ {
-		makeSampleTx(rcm)
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
-	// #4 ORE
-	withdrawalAmount := ether(0.9)
-	for i = 0; i < 1; i++ {
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-		if !rcm.minerEnv.IsRequest {
-			t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
-	// make exit request
-	startETHWithdraw(t, rcm, key1, withdrawalAmount, big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm, key2, withdrawalAmount, big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm, key3, withdrawalAmount, big.NewInt(int64(rcm.state.costERO)))
-	startETHWithdraw(t, rcm, key4, withdrawalAmount, big.NewInt(int64(rcm.state.costERO)))
-
-	// #5 NRE
-	// swap PETH to PEtherToken
-	setNonce(opt1, noncesChildChain[addr1])
-	setNonce(opt2, noncesChildChain[addr2])
-	setNonce(opt3, noncesChildChain[addr3])
-	setNonce(opt4, noncesChildChain[addr4])
-
-	opt1.Value = withdrawalAmount
-	opt2.Value = withdrawalAmount
-	opt3.Value = withdrawalAmount
-	opt4.Value = withdrawalAmount
-
-	if _, err := etherTokenInChildChain.SwapFromEth(opt1); err != nil {
-		log.Error("Failed to swap PEtherToken", "err", err)
-	}
-	if _, err := etherTokenInChildChain.SwapFromEth(opt2); err != nil {
-		log.Error("Failed to swap PEtherToken", "err", err)
-	}
-	if _, err := etherTokenInChildChain.SwapFromEth(opt3); err != nil {
-		log.Error("Failed to swap PEtherToken", "err", err)
-	}
-	if _, err := etherTokenInChildChain.SwapFromEth(opt4); err != nil {
-		log.Error("Failed to swap PEtherToken", "err", err)
-	}
-
-	ev = <-events.Chan()
-	blockInfo = ev.Data.(core.NewMinedBlockEvent)
-
-	if rcm.minerEnv.IsRequest {
-		t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-	}
-
-	// NRE#5 - rest blocks
-	for i = 0; i < NRELength.Uint64()-1; i++ {
-		makeSampleTx(rcm)
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
-	// #6 empty ORE
-
-	// #7 NRE
-	for i = 0; i < NRELength.Uint64(); i++ {
-		makeSampleTx(rcm)
-		ev := <-events.Chan()
-		blockInfo := ev.Data.(core.NewMinedBlockEvent)
-
-		if rcm.minerEnv.IsRequest {
-			t.Fatal("Block should not be request block", "blockNumber", blockInfo.Block.NumberU64())
-		}
-	}
-
-	// #8 ORE
-	ev = <-events.Chan()
-	blockInfo = ev.Data.(core.NewMinedBlockEvent)
-	if !rcm.minerEnv.IsRequest {
-		t.Fatal("Block should be request block", "blockNumber", blockInfo.Block.NumberU64())
-	}
-
-	finalizeBlocks(t, pls.rootchainManager.rootchainContract, 10)
-
-	// wait challenge period ends
-	wait(20)
-
-	applyRequests(t, rcm.rootchainContract, key2)
-
-	balances3 := getEtherTokenBalances(addrs)
-
-	for i, balance2 := range balances2 {
-		balance3 := balances3[i]
-		if err := checkBalance(balance2, balance3, withdrawalAmount, nil, "check exit result"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	log.Info("test finished")
-	return
-}
-
-// TestScenario3 tests enter & exit with token transfer in child chain.
-func TestScenario3(t *testing.T) {
+// TestBasic tests enter & exit with token transfer in child chain.
+func TestBasic(t *testing.T) {
 	pls, rpcServer, dir, err := makePls()
 	defer os.RemoveAll(dir)
 
@@ -640,6 +355,7 @@ func TestScenario3(t *testing.T) {
 	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, true, 0, 5); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 5); err != nil {
 		t.Fatal(err)
 	}
@@ -687,6 +403,7 @@ func TestScenario3(t *testing.T) {
 	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, true, 0, 8); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 8); err != nil {
 		t.Fatal(err)
 	}
@@ -746,7 +463,6 @@ func TestScenario3(t *testing.T) {
 	}
 
 	// ORE#8 is empty
-
 	if err := checkEpochAfter(pls, epochPreparedEvents, true, true, 0, 8); err != nil {
 		t.Fatal(err)
 	}
@@ -979,282 +695,352 @@ func TestScenario3(t *testing.T) {
 	t.Log("Test finished")
 }
 
-// test challenge invalid exit
-//func TestScenario4(t *testing.T) {
-//	pls, rpcServer, dir, err := makePls()
-//	defer os.RemoveAll(dir)
-//
-//	if err != nil {
-//		t.Fatalf("Failed to make pls service: %v", err)
-//	}
-//	defer pls.Stop()
-//	defer rpcServer.Stop()
-//
-//	// pls.Start()
-//	pls.protocolManager.Start(1)
-//
-//	if err := pls.rootchainManager.Start(); err != nil {
-//		t.Fatalf("Failed to start RootChainManager: %v", err)
-//	}
-//
-//	pls.StartMining(runtime.NumCPU())
-//
-//	rpcClient := rpc.DialInProc(rpcServer)
-//
-//	// assign to global variable
-//	plsClient = plsclient.NewClient(rpcClient)
-//
-//	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
-//	defer plasmaBlockMinedEvents.Unsubscribe()
-//
-//	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
-//	blockSubmitWatchOpts := &bind.WatchOpts{
-//		Start:   nil,
-//		Context: context.Background(),
-//	}
-//	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
-//	defer blockFilterer.Unsubscribe()
-//
-//	wait(3)
-//
-//	log.Info("All backends are set up")
-//
-//	// NRE#1 / Block#1 (1/2)
-//	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
-//
-//	wait(4)
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 1); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	opt := makeTxOpt(operatorKey, 0, nil, nil)
-//
-//	_, err = tokenInRootChain.Mint(opt, addr1, ether(100))
-//	if err != nil {
-//		t.Fatalf("Failed to mint token: %v", err)
-//	}
-//	wait(2)
-//
-//	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
-//	if err != nil {
-//		t.Fatalf("Failed to get total supply from root chain: %v", err)
-//	}
-//
-//	ts2, err := tokenInChildChain.TotalSupply(baseCallOpt)
-//	if err != nil {
-//		t.Fatalf("Failed to get total supply from child chain: %v", err)
-//	}
-//
-//	log.Info("Token total supply", "rootchain", ts1, "childchain", ts2)
-//
-//	wait(3)
-//
-//	_, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(opt, tokenAddrInRootChain, tokenAddrInChildChain)
-//	if err != nil {
-//		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
-//	}
-//	wait(2)
-//
-//	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
-//	wait(2)
-//	if err != nil {
-//		t.Fatalf("Failed to fetch token address from RootChain contract: %v", err)
-//	} else if tokenAddr != tokenAddrInChildChain {
-//		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain, tokenAddr)
-//	}
-//
-//	// NRE#1 -> ORE#4 -- deposit 1 ether for each account
-//	ETHBalances1 := getETHBalances(addrs)
-//	PETHBalances1 := getPETHBalances(addrs)
-//
-//	depositAmount := ether(10)
-//	depositAmountNeg := new(big.Int).Neg(depositAmount)
-//
-//	for _, key := range keys {
-//		startETHDeposit(t, pls.rootchainManager, key, depositAmount)
-//	}
-//
-//	// NRE#1 / Block#2 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 2); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORB#2 is empty
-//
-//	// NRE#3 -> ORE#6 -- deposit 1 token from addr1
-//	tokenAmount := ether(1)
-//	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
-//
-//	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
-//	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
-//
-//	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
-//
-//	// NRE#3 / Block#3 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 3); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#3 / Block#4 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 4); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORE#4 / Block#5 (1/1) -- deposit 1 ether for each account
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 5); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	ETHBalances2 := getETHBalances(addrs)
-//	PETHBalances2 := getPETHBalances(addrs)
-//	// check eth balance in root chain
-//	for i := range keys {
-//		if err := checkBalance(ETHBalances1[i], ETHBalances2[i], depositAmountNeg, maxTxFee, "Failed to check ETH balance(1)"); err != nil {
-//			t.Fatal(err)
-//		}
-//	}
-//
-//	// check peth balance in child chain
-//	for i := range keys {
-//		if err := checkBalance(PETHBalances1[i], PETHBalances2[i], depositAmount, nil, "Failed to check ETH balance(1)"); err != nil {
-//			t.Fatal(err)
-//		}
-//	}
-//
-//	// NRE#5 / Block#6 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 6); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#5 / Block#7 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 7); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORE#6 / Block#8 (1/1) -- deposit 1 token from addr1
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 8); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
-//	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
-//
-//	// check Token balance
-//	if err := checkBalance(TokenBalances1[0], TokenBalances2[0], tokenAmountNeg, nil, "Failed to check Token Balance (1)"); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// check PToken balance
-//	if err := checkBalance(PTokenBalances1[0], PTokenBalances2[0], tokenAmount, nil, "Failed to check PToken Balance (1)"); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#7 -> ORB#9 -- invalid withdrawal
-//	startTokenWithdraw(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key2, ether(100), big.NewInt(int64(pls.rootchainManager.state.costERO)))
-//
-//	// NRE#7 / Block#9 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 9); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#7 / Block#10 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 10); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORB#8 is empty
-//
-//	// NRE#9 / Block#11 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 11); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#9 / Block#12 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 12); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORE#10 / Block#13 (1/1) -- invalid withdrawal
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, true, 0, 13); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#11 / Block#14 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 14); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#11 / Block#15 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 15); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORB#12 is empty
-//
-//	// NRE#13 / Block#16 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 16); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#13 / Block#17 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 17); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// ORB#14 is empty
-//
-//	// NRE#15 / Block#18 (1/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 18); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	// NRE#15 / Block#19 (2/2)
-//	makeSampleTx(pls.rootchainManager)
-//
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, 19); err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	wait(10)
-//
-//	ERO, err := pls.rootchainManager.rootchainContract.EROs(baseCallOpt, big.NewInt(5))
-//	if err != nil {
-//		t.Fatal("failed to get ERO")
-//	}
-//
-//	if !ERO.Challenged {
-//		t.Fatal("ERO is not challenged successfully")
-//	}
-//}
+func TestInvalidExit(t *testing.T) {
+	pls, rpcServer, dir, err := makePls()
+	defer os.RemoveAll(dir)
+
+	if err != nil {
+		t.Fatalf("Failed to make pls service: %v", err)
+	}
+	defer pls.Stop()
+	defer rpcServer.Stop()
+
+	if err := pls.rootchainManager.Start(); err != nil {
+		t.Fatalf("Failed to start RootChainManager: %v", err)
+	}
+	pls.protocolManager.Start(1)
+
+	rpcClient := rpc.DialInProc(rpcServer)
+
+	// assign to global variable
+	plsClient = plsclient.NewClient(rpcClient)
+
+	plasmaBlockMinedEvents := pls.rootchainManager.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	defer plasmaBlockMinedEvents.Unsubscribe()
+
+	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
+	blockSubmitWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
+	defer blockFilterer.Unsubscribe()
+
+	epochPreparedEvents := make(chan *rootchain.RootChainEpochPrepared)
+	epochPreparedWatchOpts := &bind.WatchOpts{
+		Start:   nil,
+		Context: context.Background(),
+	}
+	epochPreparedFilterer, _ := pls.rootchainManager.rootchainContract.WatchEpochPrepared(epochPreparedWatchOpts, epochPreparedEvents)
+	defer epochPreparedFilterer.Unsubscribe()
+
+	var tx *types.Transaction
+
+	wait(3)
+
+	log.Info("All backends are set up")
+
+	// NRE#1 / Block#1 (1/2)
+	tokenInRootChain, tokenInChildChain, tokenAddrInRootChain, tokenAddrInChildChain := deployTokenContracts(t)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = tokenInRootChain.Mint(operatorOpt, addr1, ether(100))
+	if err != nil {
+		t.Fatalf("Failed to mint token: %v", err)
+	}
+
+	waitEthTx(tx.Hash(), "")
+
+	ts1, err := tokenInRootChain.TotalSupply(baseCallOpt)
+	if err != nil {
+		t.Fatalf("Failed to get total supply from root chain: %v", err)
+	}
+
+	ts2, err := tokenInChildChain.TotalSupply(baseCallOpt)
+	if err != nil {
+		t.Fatalf("Failed to get total supply from child chain: %v", err)
+	}
+
+	log.Info("Token total supply", "rootchain", ts1, "childchain", ts2)
+
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	tx, err = pls.rootchainManager.rootchainContract.MapRequestableContractByOperator(operatorOpt, tokenAddrInRootChain, tokenAddrInChildChain)
+	if err != nil {
+		t.Fatalf("Failed to map token addresses to RootChain contract: %v", err)
+	}
+
+	waitEthTx(tx.Hash(), "")
+
+	tokenAddr, err := pls.rootchainManager.rootchainContract.RequestableContracts(baseCallOpt, tokenAddrInRootChain)
+	if err != nil {
+		t.Fatalf("Failed to fetch token address from RootChain contract: %v", err)
+	} else if tokenAddr != tokenAddrInChildChain {
+		t.Fatalf("RootChain doesn't know requestable contract address in child chain: %v != %v", tokenAddrInChildChain.Hex(), tokenAddr.Hex())
+	}
+
+	// NRE#1 -> ORE#4 -- deposit 1 ether for each account
+	ETHBalances1 := getETHBalances(addrs)
+	PETHBalances1 := getPETHBalances(addrs)
+
+	depositAmount := ether(10)
+	depositAmountNeg := new(big.Int).Neg(depositAmount)
+
+	for _, key := range keys {
+		startETHDeposit(t, pls.rootchainManager, key, depositAmount)
+	}
+
+	// NRE#1 / Block#2 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#2 is empty
+	if err := checkEpochAfter(pls, epochPreparedEvents, true, true, 0, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#3 -> ORE#6 -- deposit 1 token from addr1
+	tokenAmount := ether(1)
+	tokenAmountNeg := new(big.Int).Neg(tokenAmount)
+
+	TokenBalances1 := getTokenBalances(addrs, tokenInRootChain)
+	PTokenBalances1 := getTokenBalances(addrs, tokenInChildChain)
+
+	startTokenDeposit(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key1, tokenAmount)
+
+	// NRE#3 / Block#3 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#3 / Block#4 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 4); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#4 / Block#5 (1/1) -- deposit 1 ether for each account
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, true, 0, 5); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 5); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, true, 0, 4); err != nil {
+		t.Fatal(err)
+	}
+
+	ETHBalances2 := getETHBalances(addrs)
+	PETHBalances2 := getPETHBalances(addrs)
+	// check eth balance in root chain
+	for i := range keys {
+		if err := checkBalance(ETHBalances1[i], ETHBalances2[i], depositAmountNeg, maxTxFee, "Failed to check ETH balance(1)"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// check peth balance in child chain
+	for i := range keys {
+		if err := checkBalance(PETHBalances1[i], PETHBalances2[i], depositAmount, nil, "Failed to check ETH balance(1)"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// NRE#5 / Block#6 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 6); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#5 / Block#7 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 7); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 5); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#6 / Block#8 (1/1) -- deposit 1 token from addr1
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, true, 0, 8); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 8); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, true, 0, 6); err != nil {
+		t.Fatal(err)
+	}
+
+	TokenBalances2 := getTokenBalances(addrs, tokenInRootChain)
+	PTokenBalances2 := getTokenBalances(addrs, tokenInChildChain)
+
+	// check Token balance
+	if err := checkBalance(TokenBalances1[0], TokenBalances2[0], tokenAmountNeg, nil, "Failed to check Token Balance (1)"); err != nil {
+		t.Fatal(err)
+	}
+
+	// check PToken balance
+	if err := checkBalance(PTokenBalances1[0], PTokenBalances2[0], tokenAmount, nil, "Failed to check PToken Balance (1)"); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#7 -> ORB#9 -- invalid withdrawal
+	startTokenWithdraw(t, pls.rootchainManager, tokenInRootChain, tokenAddrInRootChain, key2, ether(100), big.NewInt(int64(pls.rootchainManager.state.costERO)))
+
+	// NRE#7 / Block#9 (1/2)
+	makeSampleTx(pls.rootchainManager)
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 9); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#7 / Block#10 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 10); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 7); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#8 is empty
+	if err := checkEpochAfter(pls, epochPreparedEvents, true, true, 0, 8); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#9 / Block#11 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 11); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#9 / Block#12 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 12); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 9); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORE#10 / Block#13 (1/1) -- invalid withdrawal
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, true, 0, 13); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 13); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, true, 0, 10); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#11 / Block#14 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 14); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#11 / Block#15 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 15); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 11); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#12 is empty
+	if err := checkEpochAfter(pls, epochPreparedEvents, true, true, 0, 12); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#13 / Block#16 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 16); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#13 / Block#17 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 17); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 13); err != nil {
+		t.Fatal(err)
+	}
+
+	// ORB#14 is empty
+	if err := checkEpochAfter(pls, epochPreparedEvents, true, true, 0, 14); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#15 / Block#18 (1/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 18); err != nil {
+		t.Fatal(err)
+	}
+
+	// NRE#15 / Block#19 (2/2)
+	makeSampleTx(pls.rootchainManager)
+
+	if err := checkMinedBlock(pls, plasmaBlockMinedEvents, false, 0, 19); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkEpochAfter(pls, epochPreparedEvents, false, false, 0, 15); err != nil {
+		t.Fatal(err)
+	}
+
+	wait(10)
+
+	ERO, err := pls.rootchainManager.rootchainContract.EROs(baseCallOpt, big.NewInt(5))
+	if err != nil {
+		t.Fatal("failed to get ERO")
+	}
+
+	if !ERO.Challenged {
+		t.Fatal("ERO is not challenged successfully")
+	}
+}
+
 //
 //func TestStress(t *testing.T) {
 //
