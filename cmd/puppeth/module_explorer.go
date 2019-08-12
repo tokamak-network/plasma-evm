@@ -58,7 +58,6 @@ services:
             - "{{.NodePort}}:{{.NodePort}}/udp"{{if not .VHost}}
             - "{{.WebPort}}:4000"{{end}}
         environment:
-            - NETWORK={{.NetworkName}}{{if .VHost}}
             - ROOTCHAIN_URL={{.RootChainURL}}
             - VIRTUAL_HOST={{.VHost}}
             - VIRTUAL_PORT=4000{{end}}
