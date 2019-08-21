@@ -413,11 +413,14 @@ func (rcm *RootChainManager) runSubmitter() {
 		} else if !rcm.minerEnv.IsRequest && rcm.minerEnv.Completed {
 			var blocks types.Blocks
 
+			st := time.Now()
 			s := rcm.minerEnv.StartBlockNumber.Uint64()
 			e := rcm.minerEnv.EndBlockNumber.Uint64()
 			for i := s; i <= e; i++ {
 				blocks = append(blocks, rcm.blockchain.GetBlockByNumber(i))
 			}
+			elapsed := time.Since(st)
+			log.Debug("Read blocks for NRE", "epochNumber", rcm.minerEnv.EpochNumber, "numBlocks", e-s+1, "elapsed", elapsed)
 
 			err = rcm.addEpochSubmitTransaction(blocks)
 		} else {
@@ -537,7 +540,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 		log.Debug("rcm.getEpoch", "epoch", epoch)
 
 		// TODO: URE, ORE' should handle requestBlockId in a different way.
-		requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+		requestBlockId := big.NewInt(int64(epoch.RE.FirstRequestBlockId))
 
 		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "requestBlockId", requestBlockId, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
@@ -646,6 +649,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	return nil
 }
 
+// Challenge on invalid exits
 func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFinalized) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
@@ -689,6 +693,7 @@ func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFi
 				log.Error("Failed to get challenger nonce", "err", err)
 			}
 
+			// TODO: use tx.TransactionManager
 			challengeTx := types.NewTransaction(uint64(nonce), rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Challenger, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))

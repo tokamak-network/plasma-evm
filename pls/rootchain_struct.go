@@ -1,79 +1,21 @@
 package pls
 
+import (
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+)
+
+// NOTE: abigen sometimes mixes struct nubmering. it should be manually checked.
 // Structs for PlasmaEpoch and PlasmaBlock
+type PlasmaEpoch rootchain.Struct3
 
-type PlasmaEpoch struct {
-	RequestStart          uint64
-	RequestEnd            uint64
-	StartBlockNumber      uint64
-	EndBlockNumber        uint64
-	FirstRequestBlockId   uint64
-	NumEnter              uint64
-	NextEnterEpoch        uint64
-	Timestamp             uint64
-	EpochStateRoot        [32]byte
-	EpochTransactionsRoot [32]byte
-	EpochReceiptsRoot     [32]byte
-	IsEmpty               bool
-	Initialized           bool
-	IsRequest             bool
-	UserActivated         bool
-	Rebase                bool
-}
-
-func newPlasmaEpoch(e struct {
-	RequestStart          uint64
-	RequestEnd            uint64
-	StartBlockNumber      uint64
-	EndBlockNumber        uint64
-	FirstRequestBlockId   uint64
-	NumEnter              uint64
-	NextEnterEpoch        uint64
-	Timestamp             uint64
-	EpochStateRoot        [32]byte
-	EpochTransactionsRoot [32]byte
-	EpochReceiptsRoot     [32]byte
-	IsEmpty               bool
-	Initialized           bool
-	IsRequest             bool
-	UserActivated         bool
-	Rebase                bool
-}) *PlasmaEpoch {
+func newPlasmaEpoch(e rootchain.Struct3) *PlasmaEpoch {
 	e2 := PlasmaEpoch(e)
 	return &e2
 }
 
-type PlasmaBlock struct {
-	EpochNumber      uint64
-	RequestBlockId   uint64
-	Timestamp        uint64
-	FinalizedAt      uint64
-	ReferenceBlock   uint64
-	StatesRoot       [32]byte
-	TransactionsRoot [32]byte
-	ReceiptsRoot     [32]byte
-	IsRequest        bool
-	UserActivated    bool
-	Challenged       bool
-	Challenging      bool
-	Finalized        bool
-}
+type PlasmaBlock rootchain.Struct0
 
-func newPlasmaBlock(b struct {
-	EpochNumber      uint64
-	RequestBlockId   uint64
-	Timestamp        uint64
-	FinalizedAt      uint64
-	ReferenceBlock   uint64
-	StatesRoot       [32]byte
-	TransactionsRoot [32]byte
-	ReceiptsRoot     [32]byte
-	IsRequest        bool
-	UserActivated    bool
-	Challenged       bool
-	Challenging      bool
-	Finalized        bool
-}) *PlasmaBlock {
+func newPlasmaBlock(b rootchain.Struct0) *PlasmaBlock {
 	b2 := PlasmaBlock(b)
 	return &b2
 }

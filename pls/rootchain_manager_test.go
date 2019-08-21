@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -25,9 +24,11 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/submithandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -1041,12 +1042,14 @@ func TestInvalidExit(t *testing.T) {
 	}
 }
 
-//
 //func TestStress(t *testing.T) {
+//	// override test parameters
+//	NRELength = big.NewInt(1024)
 //
 //	testPlsConfig.Miner.Recommit = 10 * time.Second
 //	testPlsConfig.TxConfig.Interval = 10 * time.Second
 //	timeout := testPlsConfig.Miner.Recommit / 100
+//
 //	targetBlockNumber := 10
 //
 //	pls, rpcServer, dir, err := makePls()
@@ -1099,7 +1102,8 @@ func TestInvalidExit(t *testing.T) {
 //		}
 //		txs = append(txs, tx)
 //	}
-//	if err := checkSubmittedBlock(pls, plasmaBlockMinedEvents, blockSubmitEvents, false, 0, int64(blockNumber)); err != nil {
+//
+//	if err := checkSubmittedBlock(pls, blockSubmitEvents, 0, 13); err != nil {
 //		t.Fatal(err)
 //	}
 //
@@ -1616,47 +1620,66 @@ func finalizeBlocks(t *testing.T, rootchainContract *rootchain.RootChain, target
 		t.Fatalf("Failed to GetLastFinalizedBlock: %v", err)
 	}
 
-	for last.Cmp(target) < 0 {
-		opt := opts[addr1]
-		opt.Value = nil
-		setNonce(opt, noncesRootChain[addr1])
-		opt.GasLimit = 6000000
-
-		log.Info("Try to finalize block", "lastFinalizedBlock", last, "lastBlock", target)
-
-		tx, err := rootchainContract.FinalizeBlock(opt)
-		if err != nil {
-			t.Errorf("Failed to fianlize block: %v", err)
-		}
-
-		if err := waitEthTx(tx.Hash(), ""); err != nil {
-			t.Fatalf("Failed to finalize blocks: %v", err)
-		}
-
-		receipt, _ := ethClient.TransactionReceipt(context.Background(), tx.Hash())
-		if receipt.Status == 0 {
-			log.Error("FinalizeBlock transaction is failed")
-		}
-
-		last, err = rootchainContract.GetLastFinalizedBlock(baseCallOpt, big.NewInt(0))
-		if err != nil {
-			t.Fatalf("Failed to GetLastFinalizedBlock: %v", err)
-		}
-
-		wait(3)
+	cp, err := rootchainContract.CPWITHHOLDING(baseCallOpt)
+	if err != nil {
+		t.Fatalf("Failed to get CP_WITHHOLDING: %v", err)
 	}
 
-	log.Info("All blocks are fianlized")
+	for last.Cmp(target) < 0 {
+		log.Info("Try to finalize block", "lastFinalizedBlock", last, "lastBlock", target)
+
+		nTries := 2
+		for i := 0; i < nTries; i++ {
+			opt := opts[addr1]
+			opt.Value = nil
+			setNonce(opt, noncesRootChain[addr1])
+			opt.GasLimit = 6000000
+
+			tx, err := rootchainContract.FinalizeBlock(opt)
+			if err != nil {
+				t.Errorf("Failed to fianlize block: %v", err)
+			}
+
+			waitEthTx(tx.Hash(), fmt.Sprintf("Finalize Block#%d", last.Uint64()+1))
+
+			receipt, err := ethClient.TransactionReceipt(context.Background(), tx.Hash())
+			if err != nil {
+				t.Errorf("Failed to get transaction receipt: %v", err)
+			}
+
+			last, err = rootchainContract.GetLastFinalizedBlock(baseCallOpt, big.NewInt(0))
+			if err != nil {
+				t.Fatalf("Failed to GetLastFinalizedBlock: %v", err)
+			}
+
+			if receipt.Status == 1 {
+				break
+			}
+
+			if i == nTries-1 {
+				t.Fatalf("Failed to finalize block%d up to %d tries", last.Uint64()+1, nTries)
+			}
+			log.Error("FinalizeBlock transaction is failed")
+			wait(time.Duration(cp.Uint64()) + 1)
+		}
+	}
+
+	log.Info("All blocks are finalized")
 }
 
 // apply a single request
 func applyRequest(rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey) error {
-	requestIdToFinalize, err := rootchainContract.LastAppliedERO(baseCallOpt)
+	requestIdToFinalize, err := rootchainContract.EROIdToFinalize(baseCallOpt)
 	if err != nil {
 		return err
 	}
 
 	numRequests, err := rootchainContract.GetNumEROs(baseCallOpt)
+	if err != nil {
+		return err
+	}
+
+	cp, err := rootchainContract.CPEXIT(baseCallOpt)
 	if err != nil {
 		return err
 	}
@@ -1667,15 +1690,13 @@ func applyRequest(rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey)
 
 	log.Info("Finalize request", "targetRequestId", requestIdToFinalize, "numRequests", numRequests)
 
-	n := 1
+	n := 2
 	var tx *types.Transaction
 	for i := 0; i < n; i++ {
 		opt := makeTxOpt(key, 5000000, nil, nil)
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 
 		setNonce(opt, noncesRootChain[addr])
-
-		wait(1)
 
 		tx, err = rootchainContract.FinalizeRequest(opt)
 
@@ -1688,10 +1709,12 @@ func applyRequest(rootchainContract *rootchain.RootChain, key *ecdsa.PrivateKey)
 		if err == nil {
 			return nil
 		}
+
+		wait(time.Duration(cp.Uint64() + 1))
 	}
 
 	if err != nil {
-		return fmt.Errorf("Failed to finalize request up to %d try: %v", n, err)
+		return fmt.Errorf("Failed to finalize request#%d up to %d tries: %v", requestIdToFinalize.Uint64(), n, err)
 	}
 
 	return nil
@@ -1702,7 +1725,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 	opt := makeTxOpt(key, 2000000, nil, nil)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 
-	last, err := rootchainContract.LastAppliedERO(baseCallOpt)
+	last, err := rootchainContract.EROIdToFinalize(baseCallOpt)
 	if err != nil {
 		t.Fatalf("Failed to get last applied ERO: %v", err)
 	}
@@ -1730,7 +1753,7 @@ func applyRequests(t *testing.T, rootchainContract *rootchain.RootChain, key *ec
 
 		}
 
-		last, _ = rootchainContract.LastAppliedERO(baseCallOpt)
+		last, _ = rootchainContract.EROIdToFinalize(baseCallOpt)
 		target, _ = rootchainContract.GetNumEROs(baseCallOpt)
 
 	}
@@ -1750,7 +1773,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	var tx *types.Transaction
 	log.Info("Deploying contracts for development mode")
 
-	// 1. deploy MintableToken in root chain
+	// 1. deploy MintableToken
 	setNonce(operatorOpt, &operatorNonceRootChain)
 	mintableTokenAddr, tx, mintableToken, err = mintabletoken.DeployERC20Mintable(operatorOpt, ethClient)
 
@@ -1762,7 +1785,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Wait until deploy transaction is mined")
 	waitEthTx(tx.Hash(), "")
 
-	// 2. deploy EtherToken in root chain
+	// 2. deploy EtherToken
 	setNonce(operatorOpt, &operatorNonceRootChain)
 	etherTokenAddr, tx, etherToken, err = ethertoken.DeployEtherToken(operatorOpt, ethClient, development, mintableTokenAddr, swapEnabledInRootChain)
 
@@ -1774,7 +1797,7 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Wait until deploy transaction is mined")
 	waitEthTx(tx.Hash(), "")
 
-	// 3. deploy EpochHandler in root chain
+	// 3. deploy EpochHandler
 	setNonce(operatorOpt, &operatorNonceRootChain)
 	epochHandlerAddr, tx, _, err := epochhandler.DeployEpochHandler(operatorOpt, ethClient)
 
@@ -1786,9 +1809,20 @@ func deployRootChain(genesis *types.Block) (rootchainAddress common.Address, roo
 	log.Info("Wait until deploy transaction is mined")
 	waitEthTx(tx.Hash(), "")
 
-	// 4. deploy RootChain in root chain
+	// 4. deploy SubmitHandler
 	setNonce(operatorOpt, &operatorNonceRootChain)
-	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(operatorOpt, ethClient, epochHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
+	submitHandlerAddr, tx, _, err := submithandler.DeploySubmitHandler(operatorOpt, ethClient, epochHandlerAddr)
+	if err != nil {
+		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy SubmitHandler contract: %v", err))
+	}
+	log.Info("Deploy SubmitHandler contract", "hash", tx.Hash(), "address", submitHandlerAddr)
+
+	log.Info("Wait until deploy transaction is mined")
+	waitEthTx(tx.Hash(), "")
+
+	// 5. deploy RootChain
+	setNonce(operatorOpt, &operatorNonceRootChain)
+	rootchainAddr, tx, rootchainContract, err := rootchain.DeployRootChain(operatorOpt, ethClient, epochHandlerAddr, submitHandlerAddr, etherTokenAddr, development, NRELength, dummyBlock.Root(), dummyBlock.TxHash(), dummyBlock.ReceiptHash())
 	if err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
@@ -2266,7 +2300,7 @@ func waitEthTx(hash common.Hash, caption string) error {
 	log.Info("Ethereum transaction mined", "caption", caption, "blockNumber", receipt.BlockNumber, "hash", hash.String())
 
 	if receipt.Status == 0 {
-		log.Error("Ethereum transaction reverted", "caption", caption, "hash", hash.String())
+		log.Error("Ethereum transaction reverted", "caption", caption, "gasUsed", receipt.GasUsed, "hash", hash.String())
 		return errors.New("Ethereum transaction reverted")
 	}
 
@@ -2472,19 +2506,19 @@ func checkEpochAfter(pls *Plasma, epochPreparedEvents chan *rootchain.RootChainE
 	}
 
 	expectedStatesRoot := blocks.StatesRoot().Bytes()[:]
-	stateRoot := epoch.EpochStateRoot[:]
+	stateRoot := epoch.NRE.EpochStateRoot[:]
 	if bytes.Compare(expectedStatesRoot, stateRoot) != 0 {
 		return errors.New(fmt.Sprintf("Epoch states root mismatch (expected: %s actual: %s)", common.Bytes2Hex(expectedStatesRoot), common.Bytes2Hex(stateRoot)))
 	}
 
 	expectedTxRoot := blocks.TransactionsRoot().Bytes()[:]
-	txRoot := epoch.EpochTransactionsRoot[:]
+	txRoot := epoch.NRE.EpochTransactionsRoot[:]
 	if bytes.Compare(expectedTxRoot, txRoot) != 0 {
 		return errors.New(fmt.Sprintf("Epoch transactions root mismatch (expected: %s actual: %s)", common.Bytes2Hex(expectedTxRoot), common.Bytes2Hex(txRoot)))
 	}
 
 	expectedReceiptsRoot := blocks.ReceiptssRoot().Bytes()[:]
-	receiptsRoot := epoch.EpochReceiptsRoot[:]
+	receiptsRoot := epoch.NRE.EpochReceiptsRoot[:]
 	if bytes.Compare(expectedReceiptsRoot, receiptsRoot) != 0 {
 		return errors.New(fmt.Sprintf("Epoch receipts root mismatch (expected: %s actual: %s)", common.Bytes2Hex(expectedReceiptsRoot), common.Bytes2Hex(receiptsRoot)))
 	}
