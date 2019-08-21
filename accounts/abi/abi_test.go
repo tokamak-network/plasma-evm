@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"math/big"
 	"reflect"
 	"strings"
@@ -102,8 +101,7 @@ func TestReader(t *testing.T) {
 func TestTestNumbers(t *testing.T) {
 	abi, err := JSON(strings.NewReader(jsondata2))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	if _, err := abi.Pack("balance"); err != nil {
@@ -140,8 +138,7 @@ func TestTestNumbers(t *testing.T) {
 func TestTestString(t *testing.T) {
 	abi, err := JSON(strings.NewReader(jsondata2))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	if _, err := abi.Pack("string", "hello world"); err != nil {
@@ -152,8 +149,7 @@ func TestTestString(t *testing.T) {
 func TestTestBool(t *testing.T) {
 	abi, err := JSON(strings.NewReader(jsondata2))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	if _, err := abi.Pack("bool", true); err != nil {
@@ -164,8 +160,7 @@ func TestTestBool(t *testing.T) {
 func TestTestSlice(t *testing.T) {
 	abi, err := JSON(strings.NewReader(jsondata2))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	slice := make([]uint64, 2)
@@ -221,8 +216,7 @@ func TestMethodSignature(t *testing.T) {
 func TestMultiPack(t *testing.T) {
 	abi, err := JSON(strings.NewReader(jsondata2))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	sig := crypto.Keccak256([]byte("bar(uint32,uint16)"))[:4]
@@ -232,10 +226,8 @@ func TestMultiPack(t *testing.T) {
 
 	packed, err := abi.Pack("bar", uint32(10), uint16(11))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
-
 	if !bytes.Equal(packed, sig) {
 		t.Errorf("expected %x got %x", sig, packed)
 	}
@@ -246,11 +238,11 @@ func ExampleJSON() {
 
 	abi, err := JSON(strings.NewReader(definition))
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 	out, err := abi.Pack("isBar", common.HexToAddress("01"))
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	fmt.Printf("%x\n", out)
@@ -832,9 +824,6 @@ func TestUnpackIntoMapNamingConflict(t *testing.T) {
 	if err = abi.UnpackIntoMap(receivedMap, "received", data); err != nil {
 		t.Error("naming conflict between two events; no error expected")
 	}
-	if len(receivedMap) != 1 {
-		t.Error("naming conflict between two events; event defined latest in the abi expected to be used")
-	}
 
 	// Method and event have the same name
 	abiJSON = `[{"constant":false,"inputs":[{"name":"memo","type":"bytes"}],"name":"received","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"sender","type":"address"}],"name":"receivedAddr","type":"event"}]`
@@ -997,5 +986,47 @@ func TestABI_EventById(t *testing.T) {
 		if unknownEvent != nil {
 			t.Errorf("We should not find any event for topic %s, test #%d", unknowntopicID.Hex(), testnum)
 		}
+	}
+}
+
+func TestDuplicateMethodNames(t *testing.T) {
+	abiJSON := `[{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"data","type":"bytes"}],"name":"transfer","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"data","type":"bytes"},{"name":"customFallback","type":"string"}],"name":"transfer","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	contractAbi, err := JSON(strings.NewReader(abiJSON))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := contractAbi.Methods["transfer"]; !ok {
+		t.Fatalf("Could not find original method")
+	}
+	if _, ok := contractAbi.Methods["transfer0"]; !ok {
+		t.Fatalf("Could not find duplicate method")
+	}
+	if _, ok := contractAbi.Methods["transfer1"]; !ok {
+		t.Fatalf("Could not find duplicate method")
+	}
+	if _, ok := contractAbi.Methods["transfer2"]; ok {
+		t.Fatalf("Should not have found extra method")
+	}
+}
+
+// TestDoubleDuplicateMethodNames checks that if transfer0 already exists, there won't be a name
+// conflict and that the second transfer method will be renamed transfer1.
+func TestDoubleDuplicateMethodNames(t *testing.T) {
+	abiJSON := `[{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"data","type":"bytes"}],"name":"transfer0","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"data","type":"bytes"},{"name":"customFallback","type":"string"}],"name":"transfer","outputs":[{"name":"ok","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	contractAbi, err := JSON(strings.NewReader(abiJSON))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := contractAbi.Methods["transfer"]; !ok {
+		t.Fatalf("Could not find original method")
+	}
+	if _, ok := contractAbi.Methods["transfer0"]; !ok {
+		t.Fatalf("Could not find duplicate method")
+	}
+	if _, ok := contractAbi.Methods["transfer1"]; !ok {
+		t.Fatalf("Could not find duplicate method")
+	}
+	if _, ok := contractAbi.Methods["transfer2"]; ok {
+		t.Fatalf("Should not have found extra method")
 	}
 }

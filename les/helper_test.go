@@ -167,7 +167,7 @@ func testIndexers(db ethdb.Database, odr light.OdrBackend, config *light.Indexer
 // newTestProtocolManager creates a new protocol manager for testing purposes,
 // with the given number of blocks already known, potential notification
 // channels for different events and relative chain indexers array.
-func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []*core.ChainIndexer, peers *peerSet, db ethdb.Database, ulcConfig *pls.ULCConfig, testCost uint64, clock mclock.Clock) (*ProtocolManager, *backends.SimulatedBackend, error) {
+func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []*core.ChainIndexer, peers *peerSet, db ethdb.Database, ulcServers []string, ulcFraction int, testCost uint64, clock mclock.Clock) (*ProtocolManager, *backends.SimulatedBackend, error) {
 	var (
 		evmux  = new(event.TypeMux)
 		engine = ethash.NewFaker()
@@ -192,7 +192,9 @@ func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []
 		chain, _ = light.NewLightChain(odr, gspec.Config, engine, nil)
 	} else {
 		chain = simulation.Blockchain()
-		pool = core.NewTxPool(core.DefaultTxPoolConfig, gspec.Config, simulation.Blockchain())
+		config := core.DefaultTxPoolConfig
+		config.Journal = ""
+		pool = core.NewTxPool(config, gspec.Config, simulation.Blockchain())
 	}
 
 	// Create contract registrar
@@ -219,7 +221,7 @@ func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []
 		}
 		reg = newCheckpointOracle(config, getLocal)
 	}
-	pm, err := NewProtocolManager(gspec.Config, nil, indexConfig, ulcConfig, lightSync, NetworkId, evmux, peers, chain, pool, db, odr, nil, reg, exitCh, new(sync.WaitGroup), func() bool { return true })
+	pm, err := NewProtocolManager(gspec.Config, nil, indexConfig, ulcServers, ulcFraction, lightSync, NetworkId, evmux, peers, chain, pool, db, odr, nil, reg, exitCh, new(sync.WaitGroup), func() bool { return true })
 	if err != nil {
 		return nil, nil, err
 	}
@@ -231,7 +233,7 @@ func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []
 	if !lightSync {
 		srv := &LesServer{lesCommons: lesCommons{protocolManager: pm, chainDb: db}}
 		pm.server = srv
-		pm.servingQueue = newServingQueue(int64(time.Millisecond*10), 1, nil)
+		pm.servingQueue = newServingQueue(int64(time.Millisecond*10), 1)
 		pm.servingQueue.setThreads(4)
 
 		srv.defParams = flowcontrol.ServerParams{
@@ -249,8 +251,8 @@ func newTestProtocolManager(lightSync bool, blocks int, odr *LesOdr, indexers []
 // with the given number of blocks already known, potential notification channels
 // for different events and relative chain indexers array. In case of an error, the
 // constructor force-fails the test.
-func newTestProtocolManagerMust(t *testing.T, lightSync bool, blocks int, odr *LesOdr, indexers []*core.ChainIndexer, peers *peerSet, db ethdb.Database, ulcConfig *pls.ULCConfig) (*ProtocolManager, *backends.SimulatedBackend) {
-	pm, backend, err := newTestProtocolManager(lightSync, blocks, odr, indexers, peers, db, ulcConfig, 0, &mclock.System{})
+func newTestProtocolManagerMust(t *testing.T, lightSync bool, blocks int, odr *LesOdr, indexers []*core.ChainIndexer, peers *peerSet, db ethdb.Database, ulcServers []string, ulcFraction int) (*ProtocolManager, *backends.SimulatedBackend) {
+	pm, backend, err := newTestProtocolManager(lightSync, blocks, odr, indexers, peers, db, ulcServers, ulcFraction, 0, &mclock.System{})
 	if err != nil {
 		t.Fatalf("Failed to create protocol manager: %v", err)
 	}
@@ -395,7 +397,7 @@ func newServerEnv(t *testing.T, blocks int, protocol int, waitIndexers func(*cor
 	db := rawdb.NewMemoryDatabase()
 	indexers := testIndexers(db, nil, light.TestServerIndexerConfig)
 
-	pm, b := newTestProtocolManagerMust(t, false, blocks, nil, indexers, nil, db, nil)
+	pm, b := newTestProtocolManagerMust(t, false, blocks, nil, indexers, nil, db, nil, 0)
 	peer, _ := newTestPeer(t, "peer", protocol, pm, true, 0)
 
 	cIndexer, bIndexer, btIndexer := indexers[0], indexers[1], indexers[2]
@@ -441,8 +443,8 @@ func newClientServerEnv(t *testing.T, blocks int, protocol int, waitIndexers fun
 
 	odr.SetIndexers(lcIndexer, lbtIndexer, lbIndexer)
 
-	pm, b := newTestProtocolManagerMust(t, false, blocks, nil, indexers, peers, db, nil)
-	lpm, lb := newTestProtocolManagerMust(t, true, 0, odr, lIndexers, lPeers, ldb, nil)
+	pm, b := newTestProtocolManagerMust(t, false, blocks, nil, indexers, peers, db, nil, 0)
+	lpm, lb := newTestProtocolManagerMust(t, true, 0, odr, lIndexers, lPeers, ldb, nil, 0)
 
 	startIndexers := func(clientMode bool, pm *ProtocolManager) {
 		if clientMode {

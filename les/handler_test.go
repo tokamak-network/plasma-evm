@@ -496,6 +496,7 @@ func TestGetBloombitsProofs(t *testing.T) {
 func TestTransactionStatusLes2(t *testing.T) {
 	server, tearDown := newServerEnv(t, 0, 2, nil)
 	defer tearDown()
+	server.pm.addTxsSync = true
 
 	chain := server.pm.blockchain.(*core.BlockChain)
 	config := core.DefaultTxPoolConfig
@@ -588,7 +589,7 @@ func TestStopResumeLes3(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	clock := &mclock.Simulated{}
 	testCost := testBufLimit / 10
-	pm, _, err := newTestProtocolManager(false, 0, nil, nil, nil, db, nil, testCost, clock)
+	pm, _, err := newTestProtocolManager(false, 0, nil, nil, nil, db, nil, 0, testCost, clock)
 	if err != nil {
 		t.Fatalf("Failed to create protocol manager: %v", err)
 	}

@@ -33,13 +33,11 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
-	"github.com/Onther-Tech/plasma-evm/les/csvlogger"
 	"github.com/Onther-Tech/plasma-evm/light"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discv5"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 	"github.com/Onther-Tech/plasma-evm/trie"
@@ -87,6 +85,7 @@ type BlockChain interface {
 
 type txPool interface {
 	AddRemotes(txs []*types.Transaction) []error
+	AddRemotesSync(txs []*types.Transaction) []error
 	Status(hashes []common.Hash) []core.TxStatus
 }
 
@@ -124,15 +123,17 @@ type ProtocolManager struct {
 
 	wg       *sync.WaitGroup
 	eventMux *event.TypeMux
-	logger   *csvlogger.Logger
 
 	// Callbacks
 	synced func() bool
+
+	// Testing fields
+	addTxsSync bool
 }
 
 // NewProtocolManager returns a new ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
 // with the ethereum network.
-func NewProtocolManager(chainConfig *params.ChainConfig, checkpoint *params.TrustedCheckpoint, indexerConfig *light.IndexerConfig, ulcConfig *pls.ULCConfig, client bool, networkId uint64, mux *event.TypeMux, peers *peerSet, blockchain BlockChain, txpool txPool, chainDb ethdb.Database, odr *LesOdr, serverPool *serverPool, registrar *checkpointOracle, quitSync chan struct{}, wg *sync.WaitGroup, synced func() bool) (*ProtocolManager, error) {
+func NewProtocolManager(chainConfig *params.ChainConfig, checkpoint *params.TrustedCheckpoint, indexerConfig *light.IndexerConfig, ulcServers []string, ulcFraction int, client bool, networkId uint64, mux *event.TypeMux, peers *peerSet, blockchain BlockChain, txpool txPool, chainDb ethdb.Database, odr *LesOdr, serverPool *serverPool, registrar *checkpointOracle, quitSync chan struct{}, wg *sync.WaitGroup, synced func() bool) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		client:      client,
@@ -159,10 +160,14 @@ func NewProtocolManager(chainConfig *params.ChainConfig, checkpoint *params.Trus
 		manager.reqDist = odr.retriever.dist
 	}
 
-	if ulcConfig != nil {
-		manager.ulc = newULC(ulcConfig)
+	if ulcServers != nil {
+		ulc, err := newULC(ulcServers, ulcFraction)
+		if err != nil {
+			log.Warn("Failed to initialize ultra light client", "err", err)
+		} else {
+			manager.ulc = ulc
+		}
 	}
-
 	removePeer := manager.removePeer
 	if disableClientRemovePeer {
 		removePeer = func(id string) {}
@@ -249,11 +254,11 @@ func (pm *ProtocolManager) runPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWrit
 }
 
 func (pm *ProtocolManager) newPeer(pv int, nv uint64, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
-	var isTrusted bool
-	if pm.isULCEnabled() {
-		isTrusted = pm.ulc.isTrusted(p.ID())
+	var trusted bool
+	if pm.ulc != nil {
+		trusted = pm.ulc.trusted(p.ID())
 	}
-	return newPeer(pv, nv, isTrusted, p, newMeteredMsgWriter(rw))
+	return newPeer(pv, nv, trusted, p, newMeteredMsgWriter(rw))
 }
 
 // handle is the callback invoked to manage the life cycle of a les peer. When
@@ -262,11 +267,12 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// Ignore maxPeers if this is a trusted peer
 	// In server mode we try to check into the client pool after handshake
 	if pm.client && pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
-		pm.logger.Event("Rejected (too many peers), " + p.id)
+		clientRejectedMeter.Mark(1)
 		return p2p.DiscTooManyPeers
 	}
 	// Reject light clients if server is not synced.
 	if !pm.client && !pm.synced() {
+		clientRejectedMeter.Mark(1)
 		return p2p.DiscRequested
 	}
 	p.Log().Debug("Light Ethereum peer connected", "name", p.Name())
@@ -281,7 +287,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	)
 	if err := p.Handshake(td, hash, number, genesis.Hash(), pm.server); err != nil {
 		p.Log().Debug("Light Ethereum handshake failed", "err", err)
-		pm.logger.Event("Handshake error: " + err.Error() + ", " + p.id)
+		clientErrorMeter.Mark(1)
 		return err
 	}
 	if p.fcClient != nil {
@@ -294,14 +300,14 @@ func (pm *ProtocolManager) handle(p *peer) error {
 
 	// Register the peer locally
 	if err := pm.peers.Register(p); err != nil {
+		clientErrorMeter.Mark(1)
 		p.Log().Error("Light Ethereum peer registration failed", "err", err)
-		pm.logger.Event("Peer registration error: " + err.Error() + ", " + p.id)
 		return err
 	}
-	pm.logger.Event("Connection established, " + p.id)
+	connectedAt := time.Now()
 	defer func() {
-		pm.logger.Event("Closed connection, " + p.id)
 		pm.removePeer(p.id)
+		connectionTimer.UpdateSince(connectedAt)
 	}()
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
@@ -317,11 +323,9 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			pm.serverPool.registered(p.poolEntry)
 		}
 	}
-
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
-			pm.logger.Event("Message handling error: " + err.Error() + ", " + p.id)
 			p.Log().Debug("Light Ethereum message handling failed", "err", err)
 			if p.fcServer != nil {
 				p.fcServer.DumpLogs()
@@ -445,7 +449,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&req); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-
+		if err := req.sanityCheck(); err != nil {
+			return err
+		}
 		update, size := req.Update.decode()
 		if p.rejectUpdate(size) {
 			return errResp(ErrRequestRejected, "")
@@ -1042,7 +1048,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 					hash := tx.Hash()
 					stats[i] = pm.txStatus(hash)
 					if stats[i].Status == core.TxStatusUnknown {
-						if errs := pm.txpool.AddRemotes([]*types.Transaction{tx}); errs[0] != nil {
+						addFn := pm.txpool.AddRemotes
+						// Add txs synchronously for testing purpose
+						if pm.addTxsSync {
+							addFn = pm.txpool.AddRemotesSync
+						}
+						if errs := addFn([]*types.Transaction{tx}); errs[0] != nil {
 							stats[i].Error = errs[0].Error()
 							continue
 						}
@@ -1196,14 +1207,6 @@ func (pm *ProtocolManager) txStatus(hash common.Hash) light.TxStatus {
 		}
 	}
 	return stat
-}
-
-// isULCEnabled returns true if we can use ULC
-func (pm *ProtocolManager) isULCEnabled() bool {
-	if pm.ulc == nil || len(pm.ulc.trustedKeys) == 0 {
-		return false
-	}
-	return true
 }
 
 // downloaderPeerNotify implements peerSetNotify

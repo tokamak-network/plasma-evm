@@ -33,10 +33,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/bloombits"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/pls/filters"
-	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/internal/ethapi"
 	"github.com/Onther-Tech/plasma-evm/light"
@@ -45,6 +41,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discv5"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/filters"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 )
 
@@ -85,7 +85,7 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""))
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""))
 	genesisBlock := rawdb.ReadBlock(chainDb, genesisHash, 0)
 	config.RootChainContract = common.BytesToAddress(genesisBlock.Extra())
 
@@ -118,12 +118,7 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   pls.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 	}
-
-	var trustedNodes []string
-	if leth.config.ULC != nil {
-		trustedNodes = leth.config.ULC.TrustedServers
-	}
-	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg, trustedNodes)
+	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg, leth.config.UltraLightServers)
 	leth.retriever = newRetrieveManager(peers, leth.reqDist, leth.serverPool)
 	leth.relay = newLesTxRelay(peers, leth.retriever)
 
@@ -167,11 +162,11 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 		oracle = params.CheckpointOracles[genesisHash]
 	}
 	registrar := newCheckpointOracle(oracle, leth.getLocalCheckpoint)
-	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, checkpoint, light.DefaultClientIndexerConfig, config.ULC, true, config.NetworkId, leth.eventMux, leth.peers, leth.blockchain, nil, chainDb, leth.odr, leth.serverPool, registrar, quitSync, &leth.wg, nil); err != nil {
+	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, checkpoint, light.DefaultClientIndexerConfig, config.UltraLightServers, config.UltraLightFraction, true, config.NetworkId, leth.eventMux, leth.peers, leth.blockchain, nil, chainDb, leth.odr, leth.serverPool, registrar, quitSync, &leth.wg, nil); err != nil {
 		return nil, err
 	}
-	if leth.protocolManager.isULCEnabled() {
-		log.Warn("Ultra light client is enabled", "trustedNodes", len(leth.protocolManager.ulc.trustedKeys), "minTrustedFraction", leth.protocolManager.ulc.minTrustedFraction)
+	if leth.protocolManager.ulc != nil {
+		log.Warn("Ultra light client is enabled", "servers", len(config.UltraLightServers), "fraction", config.UltraLightFraction)
 		leth.blockchain.DisableCheckFreq()
 	}
 	return leth, nil

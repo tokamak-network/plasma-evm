@@ -94,9 +94,26 @@ func NewRootChainManager(
 	miner *miner.Miner,
 	env *epoch.EpochEnvironment,
 ) (*RootChainManager, error) {
-	code, _ := backend.CodeAt(context.Background(), config.RootChainContract, nil)
-	if len(code) == 0 {
-		return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+	code, err := backend.CodeAt(context.Background(), config.RootChainContract, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	n := 10
+	for i := 0; i <= n; i++ {
+		if len(code) > 0 {
+			break
+		}
+
+		<-time.NewTimer(time.Second).C
+		code, err = backend.CodeAt(context.Background(), config.RootChainContract, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(code) == 0 && i == n {
+			return nil, errors.New(fmt.Sprintf("RootChain contract is not deployed at %s", config.RootChainContract.Hex()))
+		}
 	}
 
 	rcm := &RootChainManager{
@@ -190,7 +207,9 @@ func (rcm *RootChainManager) watchEvents() error {
 	for iteratorForEpochPreparedEvent.Next() {
 		e := iteratorForEpochPreparedEvent.Event
 		if e != nil {
-			rcm.handleEpochPrepared(e)
+			if err := rcm.handleEpochPrepared(e); err != nil {
+				log.Error("Failed to handle past EpochPrepared events", "err", err)
+			}
 		}
 	}
 
@@ -204,7 +223,9 @@ func (rcm *RootChainManager) watchEvents() error {
 	for iteratorForBlockFinalizedEvent.Next() {
 		e := iteratorForBlockFinalizedEvent.Event
 		if e != nil {
-			rcm.handleBlockFinalized(e)
+			if err := rcm.handleBlockFinalized(e); err != nil {
+				log.Error("Failed to handle past BlockFinalized events", "err", err)
+			}
 		}
 	}
 
@@ -266,24 +287,69 @@ func (rcm *RootChainManager) watchEvents() error {
 	return nil
 }
 
-func (rcm *RootChainManager) addSubmitTransaction(block *types.Block) error {
+func makePos(v1 *big.Int, v2 *big.Int) *big.Int {
+	a := new(big.Int).Mul(
+		v1,
+		new(big.Int).Exp(
+			big.NewInt(2),
+			big.NewInt(128),
+			nil,
+		),
+	)
+
+	return new(big.Int).Add(a, v2)
+}
+
+func (rcm *RootChainManager) addEpochSubmitTransaction(blocks types.Blocks) error {
 	if rcm.config.NodeMode != ModeOperator {
 		return errors.New("only operator node can add submit transaction")
 	}
 
 	operator := rcm.config.Operator
+	funcName := "submitNRE"
 
-	funcName := "submitNRB"
-	if block.IsRequest() {
-		funcName = "submitORB"
+	forkNumber := new(big.Int).Set(rcm.minerEnv.CurrentFork)
+	epochNumber := new(big.Int).Set(rcm.minerEnv.EpochNumber)
+
+	// pos1 = fork number * 2^128 + epoch number
+	pos1 := makePos(forkNumber, epochNumber)
+
+	startBlockNumber := blocks[0].Number()
+	endBlockNumber := blocks[len(blocks)-1].Number()
+
+	// pos2 = start block number * 2^128 + end block number
+	pos2 := makePos(startBlockNumber, endBlockNumber)
+
+	input, err := rootchainContractABI.Pack(
+		funcName,
+		pos1,
+		pos2,
+		blocks.StatesRoot(),
+		blocks.TransactionsRoot(),
+		blocks.ReceiptssRoot(),
+	)
+
+	if err != nil {
+		return err
 	}
 
-	// td = (forkNumber + 1) * 2^128 + block number
-	td := rcm.blockchain.GetTdByHash(block.Hash())
-	forkNumberOffset := new(big.Int).Lsh(big.NewInt(1), 128)
+	caption := fmt.Sprintf("%s(%d: [%d-%d])", funcName, epochNumber.Uint64(), startBlockNumber.Uint64(), endBlockNumber.Uint64())
+	rawTx := tx.NewRawTransaction(operator.Address, params.SubmitBlockGasLimit, &rcm.config.RootChainContract, big.NewInt(int64(rcm.state.costNRB)), input, false, caption)
 
-	// pos = forkNumber * 2^128 + block number = td - 2^128
-	pos := new(big.Int).Sub(td, forkNumberOffset)
+	return rcm.txManager.Add(operator, rawTx, false)
+}
+
+func (rcm *RootChainManager) addBlockSubmitTransaction(block *types.Block) error {
+	if rcm.config.NodeMode != ModeOperator {
+		return errors.New("only operator node can add submit transaction")
+	}
+
+	operator := rcm.config.Operator
+	funcName := "submitORB"
+
+	forkNumber := new(big.Int).Set(rcm.minerEnv.CurrentFork)
+
+	pos := makePos(forkNumber, block.Number())
 
 	input, err := rootchainContractABI.Pack(
 		funcName,
@@ -319,6 +385,59 @@ func (rcm *RootChainManager) runSubmitter() {
 	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
+	submitBlockOrEpoch := func(block *types.Block) error {
+		rcm.lock.Lock()
+		rcm.minerEnv.Lock()
+
+		defer rcm.lock.Unlock()
+		defer rcm.minerEnv.Unlock()
+
+		log.Info("New block is mined", "number", block.Number())
+
+		// if the epoch is completed, stop mining operation and wait next epoch
+		if rcm.minerEnv.Completed {
+			rcm.miner.Stop()
+		}
+
+		bal, err := rcm.backend.BalanceAt(context.Background(), rcm.config.Operator.Address, nil)
+		if err != nil {
+			log.Error("Failed to get balance of operator account from rootchain", "err", err)
+		}
+
+		if bal.Cmp(rcm.config.OperatorMinEther) < 0 {
+			log.Warn("Operator account balance on rootchain is too low")
+		}
+
+		if rcm.minerEnv.IsRequest {
+			err = rcm.addBlockSubmitTransaction(block)
+		} else if !rcm.minerEnv.IsRequest && rcm.minerEnv.Completed {
+			var blocks types.Blocks
+
+			st := time.Now()
+			s := rcm.minerEnv.StartBlockNumber.Uint64()
+			e := rcm.minerEnv.EndBlockNumber.Uint64()
+			for i := s; i <= e; i++ {
+				blocks = append(blocks, rcm.blockchain.GetBlockByNumber(i))
+			}
+			elapsed := time.Since(st)
+			log.Debug("Read blocks for NRE", "epochNumber", rcm.minerEnv.EpochNumber, "numBlocks", e-s+1, "elapsed", elapsed)
+
+			err = rcm.addEpochSubmitTransaction(blocks)
+		} else {
+			log.Info("Non-request epoch is not completed yet", "epochNumber", rcm.minerEnv.EpochNumber)
+			return nil
+		}
+
+		if err == tx.ErrDuplicateRaw {
+			log.Error("Same block submit transaction was included.")
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	for {
 		select {
 		case ev, ok := <-plasmaBlockMinedEvents.Chan():
@@ -326,78 +445,9 @@ func (rcm *RootChainManager) runSubmitter() {
 				continue
 			}
 
-			log.Info("New block is mined")
-
-			// if the epoch is completed, stop mining operation and wait next epoch
-			rcm.minerEnv.Lock()
-			if rcm.minerEnv.Completed {
-				rcm.miner.Stop()
-			}
-			rcm.minerEnv.Unlock()
-
-			bal, err := rcm.backend.BalanceAt(context.Background(), rcm.config.Operator.Address, nil)
-			if err != nil {
-				log.Error("Failed to get balance of opeartor account from rootchain", "err", err)
-			}
-
-			if bal.Cmp(rcm.config.OperatorMinEther) < 0 {
-				log.Warn("Operator account balance on rootchain is too low")
-			}
-
-			rcm.lock.Lock()
-
-			blockInfo := ev.Data.(core.NewMinedBlockEvent)
-			block := blockInfo.Block
-
-			// send block submit transaction
-			err = rcm.addSubmitTransaction(block)
-
-			if err == tx.ErrDuplicateRaw {
-				log.Error("Same block submit transaction was included.")
-				continue
-			} else if err != nil {
-				log.Error("Failed to submit block", "isRequest", block.IsRequest(), "blocknumber", block.NumberU64(), "err", err)
+			if err := submitBlockOrEpoch(ev.Data.(core.NewMinedBlockEvent).Block); err != nil {
+				log.Error("Failed to submit block", "err", err)
 				rcm.stopFn()
-				return
-			}
-
-		WaitLoop:
-			for {
-				select {
-				// TODO: check URB is submitted
-				case b := <-blockSubmitEvents:
-					if b.Raw.Removed {
-						log.Error("Previous submitted block is removed in root chain", "number", b.BlockNumber)
-						continue
-					}
-
-					if b.BlockNumber.Cmp(block.Number()) < 0 {
-						log.Error("Submit event has lower block number than local. It may be removed due to chain reorg", "local", block.Number(), "event", b.BlockNumber)
-						continue
-					}
-
-					if b.BlockNumber.Cmp(block.Number()) > 0 {
-						log.Error("Unexpected block is submitted.", "expected", block.Number(), "actual", b.BlockNumber)
-						rcm.stopFn()
-						return
-					}
-
-					actualBlock, _ := rcm.getBlock(big.NewInt(int64(rcm.state.currentFork)), b.BlockNumber)
-
-					if common.BytesToHash(actualBlock.StatesRoot[:]) != block.Root() {
-						log.Error("Unexpected block is submitted. Stop pls service", "blockNumber", b.BlockNumber)
-						rcm.stopFn()
-						return
-					}
-
-					log.Info("Block is submitted", "isRequest", b.IsRequest, "number", blockInfo.Block.NumberU64(), "hash", b.Raw.TxHash.String())
-					rcm.lock.Unlock()
-					break WaitLoop
-
-				case <-rcm.quit:
-					rcm.lock.Unlock()
-					return
-				}
 			}
 
 		case <-rcm.quit:
@@ -432,31 +482,42 @@ func (rcm *RootChainManager) runHandlers() {
 }
 
 // handleEpochPrepared handles EpochPrepared event from RootChain contract after
-// plasma chain is *SYNCED*.
+// plasma chain is SYNCED.
 func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPrepared) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
 
 	// Short circuit if event is removed.
 	if ev.Raw.Removed {
-		return errors.New(fmt.Sprintf("EpochPrepared#s event is removed. it will be reorganized.", ev.EpochNumber.String()))
+		return errors.New(fmt.Sprintf("EpochPrepared#%s event is removed. root chain would had been reorganized.", ev.EpochNumber.String()))
 	}
+
 	// Short circuit if epoch prepared event is fired due to reorg.
 	if rcm.minerEnv.EpochNumber.Cmp(ev.EpochNumber) >= 0 {
-		return errors.New(fmt.Sprintf("epoch#sis less than current epoch#s.", ev.EpochNumber.String(), rcm.minerEnv.EpochNumber.String()))
+		return errors.New(fmt.Sprintf("Epoch#%s is less than current epoch#%s.", ev.EpochNumber.String(), rcm.minerEnv.EpochNumber.String()))
 	}
 
 	e := *ev
+
+	length := new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1))
+
+	log.Info("RootChain epoch prepared",
+		"epochNumber", e.EpochNumber,
+		"startBlockNumber", e.StartBlockNumber,
+		"endBlockNumber", e.EndBlockNumber,
+		"epochLength", length,
+		"isRequest", e.IsRequest,
+		"userActivated", e.UserActivated,
+		"isEmpty", e.EpochIsEmpty,
+		"ForkNumber", e.ForkNumber,
+		"isRebase", e.Rebase,
+	)
 
 	if e.EpochIsEmpty {
 		log.Info("epoch is empty, jump to next epoch")
 		return nil
 	}
 
-	length := new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1))
-
-	// start miner
-	log.Info("RootChain epoch prepared", "epochNumber", e.EpochNumber, "epochLength", length, "isRequest", e.IsRequest, "userActivated", e.UserActivated, "isEmpty", e.EpochIsEmpty, "ForkNumber", e.ForkNumber, "isRebase", e.Rebase)
 	if rcm.config.NodeMode == ModeOperator {
 		go rcm.miner.Start(rcm.config.Operator.Address, &e, false)
 	}
@@ -479,7 +540,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 		log.Debug("rcm.getEpoch", "epoch", epoch)
 
 		// TODO: URE, ORE' should handle requestBlockId in a different way.
-		requestBlockId := big.NewInt(int64(epoch.FirstRequestBlockId))
+		requestBlockId := big.NewInt(int64(epoch.RE.FirstRequestBlockId))
 
 		log.Debug("Num Orbs", "epochNumber", e.EpochNumber, "numORBs", numORBs, "requestBlockId", requestBlockId, "e.EndBlockNumber", e.EndBlockNumber, "e.StartBlockNumber", e.StartBlockNumber)
 		for blockNumber := e.StartBlockNumber; blockNumber.Cmp(e.EndBlockNumber) <= 0; {
@@ -491,7 +552,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 			}
 
 			numRequests := orb.RequestEnd - orb.RequestStart + 1
-			log.Debug("Fetching ORB", "requestBlockId", requestBlockId, "numRequests", numRequests)
+			log.Debug("Fetching ORB", "blockNumber", blockNumber, "requestStart", orb.RequestStart, "requestEnd", orb.RequestEnd, "requestBlockId", requestBlockId)
 
 			body := make(types.Transactions, 0, numRequests)
 
@@ -588,6 +649,7 @@ func (rcm *RootChainManager) handleEpochPrepared(ev *rootchain.RootChainEpochPre
 	return nil
 }
 
+// Challenge on invalid exits
 func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFinalized) error {
 	rcm.lock.Lock()
 	defer rcm.lock.Unlock()
@@ -631,6 +693,7 @@ func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFi
 				log.Error("Failed to get challenger nonce", "err", err)
 			}
 
+			// TODO: use tx.TransactionManager
 			challengeTx := types.NewTransaction(uint64(nonce), rcm.config.RootChainContract, big.NewInt(0), params.SubmitBlockGasLimit, params.SubmitBlockGasPrice, input)
 
 			signedTx, err := w.SignTx(rcm.config.Challenger, challengeTx, big.NewInt(int64(rcm.config.RootChainNetworkID)))
@@ -717,6 +780,7 @@ func (rcm *RootChainManager) runDetector() {
 }
 
 func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (*PlasmaEpoch, error) {
+
 	b, err := rcm.rootchainContract.GetEpoch(baseCallOpt, forkNumber, epochNumber)
 
 	if err != nil {

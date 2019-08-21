@@ -155,9 +155,6 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, genesis, nil, rootChainContract, operator, staminaConfig, instanceDir)
-}
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constantinopleOverride *big.Int, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -216,7 +213,10 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db)
-		return genesis.Config, block.Hash(), err
+		if err != nil {
+			return genesis.Config, hash, err
+		}
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// Check whether the genesis block is already written.
@@ -229,10 +229,6 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, constant
 
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
-	if constantinopleOverride != nil {
-		newcfg.ConstantinopleBlock = constantinopleOverride
-		newcfg.PetersburgBlock = constantinopleOverride
-	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")

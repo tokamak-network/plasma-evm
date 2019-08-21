@@ -540,10 +540,6 @@ func (tm *TransactionManager) adjustGasPrice(raw *RawTransaction, decrease bool)
 	previousTxGasPriceGwei := gasPriceToString(previousTxGasPrice)
 	adjustGwei := gasPriceToString(tm.gasPrice)
 	log.Info("Gas price adjusted", "caption", raw.getCaption(), "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
-
-	//if previous.Cmp(tm.gasPrice) != 0 {
-	//	log.Info("Gas price adjusted", "previous", previousGwei, "adjusted", adjustGwei)
-	//}
 }
 
 // clearQueue check raw transaction is mined. Mined raw transactions move to unconfirmed pending.
@@ -551,8 +547,6 @@ func (tm *TransactionManager) adjustGasPrice(raw *RawTransaction, decrease bool)
 func (tm *TransactionManager) clearQueue(addr common.Address) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-
-	tm.inspect(addr)
 
 	// short circuit if pending is nil or empty.
 	if tm.pending[addr] == nil || len(tm.pending[addr]) == 0 {
@@ -571,10 +565,10 @@ func (tm *TransactionManager) clearQueue(addr common.Address) {
 			break
 		}
 
-		log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.getCaption(), "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash)
+		log.Info("Transaction is mined", "nonce", raw.Nonce, "caption", raw.getCaption(), "reverted", raw.Reverted, "from", addr, "hash", raw.MinedTxHash.String())
 
 		if raw.Reverted {
-			log.Error("Transaction is reverted", "caption", raw.getCaption())
+			log.Error("Transaction is reverted", "caption", raw.getCaption(), "hash", raw.MinedTxHash.String())
 		}
 		tm.adjustGasPrice(raw, true)
 	}
@@ -615,13 +609,6 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 
 	tm.inspect(addr)
 
-	for i, raw := range tm.pending[addr] {
-		if raw == nil {
-			log.Error("raw transaction is nil!!", "index", i)
-		}
-
-	}
-
 	// short circuit if unconfirmed is nil or empty.
 	if tm.unconfirmed[addr] == nil || len(tm.unconfirmed[addr]) == 0 {
 		return
@@ -633,10 +620,10 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 	i := 0
 	for ; i < len(tm.unconfirmed[addr]); i++ {
 		raw := tm.unconfirmed[addr][i]
-		log.Info("check raw raw is confirmed", "raw", raw, "i", i, "unconfirmed", len(tm.unconfirmed[addr]))
+		log.Debug("check raw is confirmed", "addr", addr, "caption", raw.getCaption())
 
 		if !raw.Confirmed(tm.backend, currentBlockNumber) {
-			log.Info("raw is not confirmed")
+			log.Debug("raw is not confirmed")
 			break
 		}
 		log.Info("Transaction is confirmed", "addr", addr, "caption", raw.getCaption())
@@ -712,7 +699,7 @@ func (tm *TransactionManager) confirmLoop() {
 
 		if err != nil {
 			log.Error("Failed to re-subscribe root chian new block event", "err", err)
-			reconnTimer.Reset(1 * time.Second)
+			reconnTimer.Reset(5 * time.Second)
 		} else {
 			sub = sub2
 			log.Info("Re-subscribe root chian new block event")

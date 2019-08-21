@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	godebug "runtime/debug"
 	"sort"
 	"strconv"
@@ -89,18 +90,19 @@ var (
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
-		utils.ULCModeConfigFlag,
-		utils.OnlyAnnounceModeFlag,
-		utils.ULCTrustedNodesFlag,
-		utils.ULCMinTrustedFractionFlag,
 		utils.SyncModeFlag,
 		utils.ExitWhenSyncedFlag,
 		utils.GCModeFlag,
-		utils.LightServFlag,
-		utils.LightBandwidthInFlag,
-		utils.LightBandwidthOutFlag,
-		utils.LightPeersFlag,
+		utils.LightServeFlag,
+		utils.LightLegacyServFlag,
+		utils.LightIngressFlag,
+		utils.LightEgressFlag,
+		utils.LightMaxPeersFlag,
+		utils.LightLegacyPeersFlag,
 		utils.LightKDFFlag,
+		utils.UltraLightServersFlag,
+		utils.UltraLightFractionFlag,
+		utils.UltraLightOnlyAnnounceFlag,
 		utils.WhitelistFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
@@ -138,7 +140,6 @@ var (
 		utils.GoerliFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
-		utils.ConstantinopleOverrideFlag,
 		utils.EthStatsURLFlag,
 		utils.FakePoWFlag,
 		utils.NoCompactionFlag,
@@ -267,7 +268,7 @@ func init() {
 		// If we're a full node on mainnet without --cache specified, bump default cache allowance
 		if ctx.GlobalString(utils.SyncModeFlag.Name) != "light" && !ctx.GlobalIsSet(utils.CacheFlag.Name) && !ctx.GlobalIsSet(utils.NetworkIdFlag.Name) {
 			// Make sure we're not on any supported preconfigured testnet either
-			if !ctx.GlobalIsSet(utils.TestnetFlag.Name) && !ctx.GlobalIsSet(utils.RinkebyFlag.Name) && !ctx.GlobalIsSet(utils.GoerliFlag.Name) {
+			if !ctx.GlobalIsSet(utils.TestnetFlag.Name) && !ctx.GlobalIsSet(utils.RinkebyFlag.Name) && !ctx.GlobalIsSet(utils.GoerliFlag.Name) && !ctx.GlobalIsSet(utils.DeveloperFlag.Name) {
 				// Nope, we're really on mainnet. Bump that cache up!
 				log.Info("Bumping default cache on mainnet", "provided", ctx.GlobalInt(utils.CacheFlag.Name), "updated", 4096)
 				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(4096))
@@ -280,11 +281,15 @@ func init() {
 		}
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem
-		if err := mem.Get(); err == nil {
-			allowance := int(mem.Total / 1024 / 1024 / 3)
-			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
+		// Workaround until OpenBSD support lands into gosigar
+		// Check https://github.com/elastic/gosigar#supported-platforms
+		if runtime.GOOS != "openbsd" {
+			if err := mem.Get(); err == nil {
+				allowance := int(mem.Total / 1024 / 1024 / 3)
+				if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
+					log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+					ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
+				}
 			}
 		}
 		// Ensure Go's GC ignores the database cache for trigger percentage
@@ -356,10 +361,10 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	// Set contract backend for ethereum service if local node
 	// is serving LES requests.
-	if ctx.GlobalInt(utils.LightServFlag.Name) > 0 {
+	if ctx.GlobalInt(utils.LightLegacyServFlag.Name) > 0 || ctx.GlobalInt(utils.LightServeFlag.Name) > 0 {
 		var plsService *pls.Plasma
 		if err := stack.Service(&plsService); err != nil {
-			utils.Fatalf("Failed to retrieve plasma service: %v", err)
+			utils.Fatalf("Failed to retrieve ethereum service: %v", err)
 		}
 		plsService.SetContractBackend(plsClient)
 	}

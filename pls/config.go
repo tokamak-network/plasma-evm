@@ -56,6 +56,7 @@ var DefaultConfig = Config{
 	NetworkId:          16,
 	RootChainNetworkID: 1,
 	LightPeers:         100,
+	UltraLightFraction: 75,
 	DatabaseCache:      512,
 	TrieCleanCache:     256,
 	TrieDirtyCache:     256,
@@ -132,14 +133,15 @@ type Config struct {
 	Whitelist map[uint64]common.Hash `toml:"-"`
 
 	// Light client options
-	LightServ         int  `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
-	LightBandwidthIn  int  `toml:",omitempty"` // Incoming bandwidth limit for light servers
-	LightBandwidthOut int  `toml:",omitempty"` // Outgoing bandwidth limit for light servers
-	LightPeers        int  `toml:",omitempty"` // Maximum number of LES client peers
-	OnlyAnnounce      bool // Maximum number of LES client peers
+	LightServ    int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
+	LightIngress int `toml:",omitempty"` // Incoming bandwidth limit for light servers
+	LightEgress  int `toml:",omitempty"` // Outgoing bandwidth limit for light servers
+	LightPeers   int `toml:",omitempty"` // Maximum number of LES client peers
 
 	// Ultra Light client options
-	ULC *ULCConfig `toml:",omitempty"`
+	UltraLightServers      []string `toml:",omitempty"` // List of trusted ultra light servers
+	UltraLightFraction     int      `toml:",omitempty"` // Percentage of trusted servers to accept an announcement
+	UltraLightOnlyAnnounce bool     `toml:",omitempty"` // Whether to only announce headers, or also serve them
 
 	// Database options
 	SkipBcVersionCheck bool `toml:"-"`
@@ -175,15 +177,12 @@ type Config struct {
 	// Type of the EVM interpreter ("" for default)
 	EVMInterpreter string
 
-	// Constantinople block override (TODO: remove after the fork)
-	ConstantinopleOverride *big.Int
-
 	// RPCGasCap is the global gas cap for eth-call variants.
 	RPCGasCap *big.Int `toml:",omitempty"`
 
 	// Checkpoint is a hardcoded checkpoint which can be nil.
-	Checkpoint *params.TrustedCheckpoint
+	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 
 	// CheckpointOracle is the configuration for checkpoint oracle.
-	CheckpointOracle *params.CheckpointOracleConfig
+	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 }

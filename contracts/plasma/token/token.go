@@ -30,8 +30,15 @@ var (
 // OwnableABI is the input ABI used to generate the binding from.
 const OwnableABI = "[{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"}],\"name\":\"OwnershipRenounced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}]"
 
+// OwnableFuncSigs maps the 4-byte function signature to its string representation.
+var OwnableFuncSigs = map[string]string{
+	"8da5cb5b": "owner()",
+	"715018a6": "renounceOwnership()",
+	"f2fde38b": "transferOwnership(address)",
+}
+
 // OwnableBin is the compiled bytecode used for deploying new contracts.
-const OwnableBin = `0x608060405234801561001057600080fd5b5060008054600160a060020a0319163317905561020b806100326000396000f3006080604052600436106100565763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663715018a6811461005b5780638da5cb5b14610072578063f2fde38b146100a3575b600080fd5b34801561006757600080fd5b506100706100c4565b005b34801561007e57600080fd5b50610087610130565b60408051600160a060020a039092168252519081900360200190f35b3480156100af57600080fd5b50610070600160a060020a036004351661013f565b600054600160a060020a031633146100db57600080fd5b60008054604051600160a060020a03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a26000805473ffffffffffffffffffffffffffffffffffffffff19169055565b600054600160a060020a031681565b600054600160a060020a0316331461015657600080fd5b61015f81610162565b50565b600160a060020a038116151561017757600080fd5b60008054604051600160a060020a03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a36000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03929092169190911790555600a165627a7a723058207ed8578cfbb93984d3aefa457c845b1c4e85248b67e0dac33c7fd4f0531b7dab0029`
+var OwnableBin = "0x608060405234801561001057600080fd5b50600080546001600160a01b031916331790556101ce806100326000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c8063715018a6146100465780638da5cb5b14610050578063f2fde38b14610074575b600080fd5b61004e61009a565b005b6100586100f9565b604080516001600160a01b039092168252519081900360200190f35b61004e6004803603602081101561008a57600080fd5b50356001600160a01b0316610108565b6000546001600160a01b031633146100b157600080fd5b600080546040516001600160a01b03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a2600080546001600160a01b0319169055565b6000546001600160a01b031681565b6000546001600160a01b0316331461011f57600080fd5b6101288161012b565b50565b6001600160a01b03811661013e57600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fea265627a7a723058208980494d4d1a24286f8824dbad433f3b9f5dbb6efee260fce80d85896c0cfdfb64736f6c63430005090032"
 
 // DeployOwnable deploys a new Ethereum contract, binding an instance of Ownable to it.
 func DeployOwnable(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Ownable, error) {
@@ -39,6 +46,7 @@ func DeployOwnable(auth *bind.TransactOpts, backend bind.ContractBackend) (commo
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(OwnableBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -388,6 +396,17 @@ func (_Ownable *OwnableFilterer) WatchOwnershipRenounced(opts *bind.WatchOpts, s
 	}), nil
 }
 
+// ParseOwnershipRenounced is a log parse operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
+//
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
+func (_Ownable *OwnableFilterer) ParseOwnershipRenounced(log types.Log) (*OwnableOwnershipRenounced, error) {
+	event := new(OwnableOwnershipRenounced)
+	if err := _Ownable.contract.UnpackLog(event, "OwnershipRenounced", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // OwnableOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the Ownable contract.
 type OwnableOwnershipTransferredIterator struct {
 	Event *OwnableOwnershipTransferred // Event containing the contract specifics and raw log
@@ -529,23 +548,24 @@ func (_Ownable *OwnableFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts,
 	}), nil
 }
 
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_Ownable *OwnableFilterer) ParseOwnershipTransferred(log types.Log) (*OwnableOwnershipTransferred, error) {
+	event := new(OwnableOwnershipTransferred)
+	if err := _Ownable.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RequestableIABI is the input ABI used to generate the binding from.
 const RequestableIABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
-// RequestableIBin is the compiled bytecode used for deploying new contracts.
-const RequestableIBin = `0x`
-
-// DeployRequestableI deploys a new Ethereum contract, binding an instance of RequestableI to it.
-func DeployRequestableI(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableI, error) {
-	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableIBin), backend)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	return address, tx, &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
+// RequestableIFuncSigs maps the 4-byte function signature to its string representation.
+var RequestableIFuncSigs = map[string]string{
+	"141ecf46": "applyRequestInChildChain(bool,uint256,address,bytes32,bytes)",
+	"a9f79308": "applyRequestInRootChain(bool,uint256,address,bytes32,bytes)",
 }
 
 // RequestableI is an auto generated Go binding around an Ethereum contract.
@@ -735,8 +755,23 @@ func (_RequestableI *RequestableITransactorSession) ApplyRequestInRootChain(isEx
 // RequestableSimpleTokenABI is the input ABI used to generate the binding from.
 const RequestableSimpleTokenABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"who\",\"type\":\"address\"}],\"name\":\"getBalanceTrieKey\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"decodeTrieValue\",\"outputs\":[{\"name\":\"v\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"_requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"_trieValue\",\"type\":\"bytes\"}],\"name\":\"Request\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"}],\"name\":\"OwnershipRenounced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}]"
 
+// RequestableSimpleTokenFuncSigs maps the 4-byte function signature to its string representation.
+var RequestableSimpleTokenFuncSigs = map[string]string{
+	"141ecf46": "applyRequestInChildChain(bool,uint256,address,bytes32,bytes)",
+	"a9f79308": "applyRequestInRootChain(bool,uint256,address,bytes32,bytes)",
+	"27e235e3": "balances(address)",
+	"b9e59d09": "decodeTrieValue(bytes)",
+	"b18fcfdf": "getBalanceTrieKey(address)",
+	"40c10f19": "mint(address,uint256)",
+	"8da5cb5b": "owner()",
+	"715018a6": "renounceOwnership()",
+	"18160ddd": "totalSupply()",
+	"a9059cbb": "transfer(address,uint256)",
+	"f2fde38b": "transferOwnership(address)",
+}
+
 // RequestableSimpleTokenBin is the compiled bytecode used for deploying new contracts.
-const RequestableSimpleTokenBin = `0x608060405260008054600160a060020a031916331790556109d6806100256000396000f3006080604052600436106100ae5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663141ecf4681146100b357806318160ddd1461010257806327e235e31461012957806340c10f191461014a578063715018a6146101705780638da5cb5b14610185578063a9059cbb146101b6578063a9f79308146101da578063b18fcfdf14610215578063b9e59d0914610236578063f2fde38b1461028f575b600080fd5b3480156100bf57600080fd5b506100ee600480351515906024803591600160a060020a036044351691606435916084359182019101356102b0565b604080519115158252519081900360200190f35b34801561010e57600080fd5b50610117610550565b60408051918252519081900360200190f35b34801561013557600080fd5b50610117600160a060020a0360043516610556565b34801561015657600080fd5b5061016e600160a060020a0360043516602435610568565b005b34801561017c57600080fd5b5061016e610663565b34801561019157600080fd5b5061019a6106cf565b60408051600160a060020a039092168252519081900360200190f35b3480156101c257600080fd5b5061016e600160a060020a03600435166024356106de565b3480156101e657600080fd5b506100ee600480351515906024803591600160a060020a03604435169160643591608435918201910135610791565b34801561022157600080fd5b50610117600160a060020a036004351661089c565b34801561024257600080fd5b506040805160206004803580820135601f81018490048402850184019095528484526101179436949293602493928401919081908401838280828437509497506108c19650505050505050565b34801561029b57600080fd5b5061016e600160a060020a03600435166108da565b60008581526003602052604081205460ff16156102cc57600080fd5b86156103eb578315156102f857600054600160a060020a038681169116146102f357600080fd5b6103e6565b600184141561030657600080fd5b60408051600160a060020a03871681526002602082015281519081900390910190208414156100ae5761036883838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a038616600090815260026020526040902054101561038c57600080fd5b6103c583838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a038616600090815260026020526040902080549190910390555b6104af565b83151561041f576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0387161790556104af565b600184141561042d576104af565b60408051600160a060020a03871681526002602082015281519081900390910190208414156100ae5761048f83838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a0386166000908152600260205260409020805490910190555b600086815260036020908152604091829020805460ff1916600117905581518915158152600160a060020a038816918101919091529081018590526080606082018181529082018490527faf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b918991889188918891889160a0820184848082843760405192018290039850909650505050505050a15060019695505050505050565b60015481565b60026020526000908152604090205481565b600054600160a060020a0316331461057f57600080fd5b600154610592908263ffffffff6108fd16565b600155600160a060020a0382166000908152600260205260409020546105be908263ffffffff6108fd16565b600160a060020a03831660008181526002602090815260409182902093909355805191825291810183905281517f0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885929181900390910190a16040805160008152600160a060020a038416602082015280820183905290517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b600054600160a060020a0316331461067a57600080fd5b60008054604051600160a060020a03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a26000805473ffffffffffffffffffffffffffffffffffffffff19169055565b600054600160a060020a031681565b336000908152600260205260409020546106fe908263ffffffff61091616565b3360009081526002602052604080822092909255600160a060020a03841681522054610730908263ffffffff6108fd16565b600160a060020a03831660008181526002602090815260409182902093909355805133815292830191909152818101839052517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b60008581526003602052604081205460ff16156107ad57600080fd5b861561087b578315156107e7576000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0387161790556103e6565b60018414156107f5576103e6565b60408051600160a060020a03871681526002602082015281519081900390910190208414156103e65761085783838080601f016020809104026020016040519081016040528093929190818152602001838380828437506108c1945050505050565b600160a060020a0386166000908152600260205260409020805490910190556103e6565b8315156102f857600054600160a060020a038681169116146103e657600080fd5b60408051600160a060020a039290921682526002602083015280519182900301902090565b80516000906020146108d257600080fd5b506020015190565b600054600160a060020a031633146108f157600080fd5b6108fa8161092d565b50565b60008282018381101561090f57600080fd5b9392505050565b6000808383111561092657600080fd5b5050900390565b600160a060020a038116151561094257600080fd5b60008054604051600160a060020a03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a36000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03929092169190911790555600a165627a7a72305820cc0dade0ce868ede6eb4fb2bc67c857efcb2f0a4fa2a063f22f06fb2c8f1d6940029`
+var RequestableSimpleTokenBin = "0x6080604052600080546001600160a01b03191633179055610e80806100256000396000f3fe608060405234801561001057600080fd5b50600436106100a95760003560e01c80638da5cb5b116100715780638da5cb5b146101cb578063a9059cbb146101ef578063a9f793081461021b578063b18fcfdf146102ae578063b9e59d09146102d4578063f2fde38b1461037a576100a9565b8063141ecf46146100ae57806318160ddd1461015557806327e235e31461016f57806340c10f1914610195578063715018a6146101c3575b600080fd5b610141600480360360a08110156100c457600080fd5b81351515916020810135916001600160a01b036040830135169160608101359181019060a08101608082013564010000000081111561010257600080fd5b82018360208201111561011457600080fd5b8035906020019184600183028401116401000000008311171561013657600080fd5b5090925090506103a0565b604080519115158252519081900360200190f35b61015d610754565b60408051918252519081900360200190f35b61015d6004803603602081101561018557600080fd5b50356001600160a01b031661075a565b6101c1600480360360408110156101ab57600080fd5b506001600160a01b03813516906020013561076c565b005b6101c1610867565b6101d36108c6565b604080516001600160a01b039092168252519081900360200190f35b6101c16004803603604081101561020557600080fd5b506001600160a01b0381351690602001356108d5565b610141600480360360a081101561023157600080fd5b81351515916020810135916001600160a01b036040830135169160608101359181019060a08101608082013564010000000081111561026f57600080fd5b82018360208201111561028157600080fd5b803590602001918460018302840111640100000000831117156102a357600080fd5b509092509050610988565b61015d600480360360208110156102c457600080fd5b50356001600160a01b0316610bea565b61015d600480360360208110156102ea57600080fd5b81019060208101813564010000000081111561030557600080fd5b82018360208201111561031757600080fd5b8035906020019184600183028401116401000000008311171561033957600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550610c29945050505050565b6101c16004803603602081101561039057600080fd5b50356001600160a01b0316610c73565b60008581526003602052604081205460ff16156103ee5760405162461bcd60e51b815260040180806020018281038252602f815260200180610d6c602f913960400191505060405180910390fd5b86156105cf578361044a576000546001600160a01b038681169116146104455760405162461bcd60e51b8152600401808060200182810382526029815260200180610e236029913960400191505060405180910390fd5b6105ca565b600184141561048a5760405162461bcd60e51b8152600401808060200182810382526031815260200180610df26031913960400191505060405180910390fd5b8361049486610bea565b1415610593576104d983838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b038616600090815260026020526040902054101561052f5760405162461bcd60e51b815260040180806020018281038252602f815260200180610dc3602f913960400191505060405180910390fd5b61056e83838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b038616600090815260026020526040902080549190910390556105ca565b60405162461bcd60e51b8152600401808060200182810382526028815260200180610d9b6028913960400191505060405180910390fd5b6106a3565b836105f457600080546001600160a01b0319166001600160a01b0387161790556106a3565b60018414156106345760405162461bcd60e51b8152600401808060200182810382526031815260200180610df26031913960400191505060405180910390fd5b8361063e86610bea565b14156105935761068383838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b0386166000908152600260205260409020805490910190555b600086815260036020908152604091829020805460ff19166001179055815189151581526001600160a01b038816918101919091529081018590526080606082018181529082018490527faf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b918991889188918891889160a08201848480828437600083820152604051601f909101601f19169092018290039850909650505050505050a15060019695505050505050565b60015481565b60026020526000908152604090205481565b6000546001600160a01b0316331461078357600080fd5b600154610796908263ffffffff610c9616565b6001556001600160a01b0382166000908152600260205260409020546107c2908263ffffffff610c9616565b6001600160a01b03831660008181526002602090815260409182902093909355805191825291810183905281517f0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885929181900390910190a160408051600081526001600160a01b038416602082015280820183905290517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b6000546001600160a01b0316331461087e57600080fd5b600080546040516001600160a01b03909116917ff8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c6482091a2600080546001600160a01b0319169055565b6000546001600160a01b031681565b336000908152600260205260409020546108f5908263ffffffff610caf16565b33600090815260026020526040808220929092556001600160a01b03841681522054610927908263ffffffff610c9616565b6001600160a01b03831660008181526002602090815260409182902093909355805133815292830191909152818101839052517fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360600190a15050565b60008581526003602052604081205460ff16156109d65760405162461bcd60e51b815260040180806020018281038252602f815260200180610d6c602f913960400191505060405180910390fd5b8615610a825783610a0157600080546001600160a01b0319166001600160a01b0387161790556105ca565b6001841415610a0f576105ca565b83610a1986610bea565b14156105ca57610a5e83838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b0386166000908152600260205260409020805490910190556105ca565b83610ad3576000546001600160a01b038681169116146105ca5760405162461bcd60e51b8152600401808060200182810382526029815260200180610e236029913960400191505060405180910390fd5b6001841415610b135760405162461bcd60e51b8152600401808060200182810382526031815260200180610df26031913960400191505060405180910390fd5b83610b1d86610bea565b141561059357610b6283838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b0386166000908152600260205260409020541015610b8657600080fd5b610bc583838080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610c2992505050565b6001600160a01b038616600090815260026020526040902080549190910390556106a3565b60408051606092831b6bffffffffffffffffffffffff191660208083019190915260028284015282518083038401815293909101909152815191012090565b60008151602014610c6b5760405162461bcd60e51b8152600401808060200182810382526039815260200180610d336039913960400191505060405180910390fd5b506020015190565b6000546001600160a01b03163314610c8a57600080fd5b610c9381610cc4565b50565b600082820183811015610ca857600080fd5b9392505050565b600082821115610cbe57600080fd5b50900390565b6001600160a01b038116610cd757600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fe5265717565737461626c6553696d706c65546f6b656e3a206c656e677468206f6620747269652076616c7565206d75737420626520307832305265717565737461626c6553696d706c65546f6b656e3a207265717565737420616c7265616479206170706c6965645265717565737461626c6553696d706c65546f6b656e3a20756e6b6e6f776e2074726965206b65795265717565737453696d70696c65546f6b656e3a206e6f7420656e6f7567682062616c616e636520746f20657869745265717565737461626c6553696d706c65546f6b656e3a2063616e6e6f7420656e74657220746f74616c20737570706c795265717565737453696d706c65546f6b656e3a2072657175657374206d757374206265206f776e6572a265627a7a723058205a68b72a626b5da09b1815631a42e5d737fca125c49dc19d2c6694cb6d05b9a764736f6c63430005090032"
 
 // DeployRequestableSimpleToken deploys a new Ethereum contract, binding an instance of RequestableSimpleToken to it.
 func DeployRequestableSimpleToken(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableSimpleToken, error) {
@@ -744,6 +779,7 @@ func DeployRequestableSimpleToken(auth *bind.TransactOpts, backend bind.Contract
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableSimpleTokenBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -1272,6 +1308,17 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchMint(opts *b
 	}), nil
 }
 
+// ParseMint is a log parse operation binding the contract event 0x0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885.
+//
+// Solidity: event Mint(address _to, uint256 _value)
+func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) ParseMint(log types.Log) (*RequestableSimpleTokenMint, error) {
+	event := new(RequestableSimpleTokenMint)
+	if err := _RequestableSimpleToken.contract.UnpackLog(event, "Mint", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RequestableSimpleTokenOwnershipRenouncedIterator is returned from FilterOwnershipRenounced and is used to iterate over the raw logs and unpacked data for OwnershipRenounced events raised by the RequestableSimpleToken contract.
 type RequestableSimpleTokenOwnershipRenouncedIterator struct {
 	Event *RequestableSimpleTokenOwnershipRenounced // Event containing the contract specifics and raw log
@@ -1402,6 +1449,17 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchOwnershipRen
 			}
 		}
 	}), nil
+}
+
+// ParseOwnershipRenounced is a log parse operation binding the contract event 0xf8df31144d9c2f0f6b59d69b8b98abd5459d07f2742c4df920b25aae33c64820.
+//
+// Solidity: event OwnershipRenounced(address indexed previousOwner)
+func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) ParseOwnershipRenounced(log types.Log) (*RequestableSimpleTokenOwnershipRenounced, error) {
+	event := new(RequestableSimpleTokenOwnershipRenounced)
+	if err := _RequestableSimpleToken.contract.UnpackLog(event, "OwnershipRenounced", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RequestableSimpleTokenOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the RequestableSimpleToken contract.
@@ -1545,6 +1603,17 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchOwnershipTra
 	}), nil
 }
 
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) ParseOwnershipTransferred(log types.Log) (*RequestableSimpleTokenOwnershipTransferred, error) {
+	event := new(RequestableSimpleTokenOwnershipTransferred)
+	if err := _RequestableSimpleToken.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RequestableSimpleTokenRequestIterator is returned from FilterRequest and is used to iterate over the raw logs and unpacked data for Request events raised by the RequestableSimpleToken contract.
 type RequestableSimpleTokenRequestIterator struct {
 	Event *RequestableSimpleTokenRequest // Event containing the contract specifics and raw log
@@ -1668,6 +1737,17 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchRequest(opts
 			}
 		}
 	}), nil
+}
+
+// ParseRequest is a log parse operation binding the contract event 0xaf049e1d32035f6a4403975248f256e6bc3ac4f5417198f75d25dc5e6522666b.
+//
+// Solidity: event Request(bool _isExit, address _requestor, bytes32 _trieKey, bytes _trieValue)
+func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) ParseRequest(log types.Log) (*RequestableSimpleTokenRequest, error) {
+	event := new(RequestableSimpleTokenRequest)
+	if err := _RequestableSimpleToken.contract.UnpackLog(event, "Request", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RequestableSimpleTokenTransferIterator is returned from FilterTransfer and is used to iterate over the raw logs and unpacked data for Transfer events raised by the RequestableSimpleToken contract.
@@ -1794,11 +1874,22 @@ func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) WatchTransfer(opt
 	}), nil
 }
 
+// ParseTransfer is a log parse operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+//
+// Solidity: event Transfer(address _from, address _to, uint256 _value)
+func (_RequestableSimpleToken *RequestableSimpleTokenFilterer) ParseTransfer(log types.Log) (*RequestableSimpleTokenTransfer, error) {
+	event := new(RequestableSimpleTokenTransfer)
+	if err := _RequestableSimpleToken.contract.UnpackLog(event, "Transfer", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // SafeMathABI is the input ABI used to generate the binding from.
 const SafeMathABI = "[]"
 
 // SafeMathBin is the compiled bytecode used for deploying new contracts.
-const SafeMathBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a7230582077dd01411fe76a4319be092b6370ba52ea363d77483720cb3df4667b4db983540029`
+var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723058201da5f5be29b57b3320a859ffcc42395bd583e549ffc40551affe4a01a35b887d64736f6c63430005090032"
 
 // DeploySafeMath deploys a new Ethereum contract, binding an instance of SafeMath to it.
 func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *SafeMath, error) {
@@ -1806,6 +1897,7 @@ func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (comm
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(SafeMathBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err

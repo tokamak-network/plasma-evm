@@ -168,13 +168,16 @@ func (self *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPre
 	self.env.SetNumBlockMined(big.NewInt(0))
 	self.env.SetEpochLength(new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1)))
 	self.env.SetCurrentFork(e.ForkNumber)
+	self.env.SetEpochNumber(e.EpochNumber)
+	self.env.SetStartBlockNumber(e.StartBlockNumber)
+	self.env.SetEndBlockNumber(e.EndBlockNumber)
 
 	rawdb.WriteEpochEnv(self.db, self.env)
 
 	if e.IsRequest {
-		log.Info("ORB epoch is prepared, ORB epoch is started", "ORBepochLength", self.env.EpochLength)
+		log.Info("ORB epoch is prepared, ORB epoch is started", "epochLength", self.env.EpochLength)
 	} else {
-		log.Info("NRB epoch is prepared, NRB epoch is started", "NRBepochLength", self.env.EpochLength)
+		log.Info("NRB epoch is prepared, NRB epoch is started", "epochLength", self.env.EpochLength)
 	}
 	self.worker.start()
 }

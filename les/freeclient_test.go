@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ func testFreeClientPool(t *testing.T, connLimit, clientCount int) {
 			}
 			disconnCh <- i
 		}
-		pool = newFreeClientPool(db, 1, 10000, &clock, disconnFn, nil, nil)
+		pool = newFreeClientPool(db, 1, 10000, &clock, disconnFn)
 	)
 	pool.setLimits(connLimit, uint64(connLimit))
 
@@ -130,7 +130,7 @@ func testFreeClientPool(t *testing.T, connLimit, clientCount int) {
 
 	// close and restart pool
 	pool.stop()
-	pool = newFreeClientPool(db, 1, 10000, &clock, disconnFn, nil, nil)
+	pool = newFreeClientPool(db, 1, 10000, &clock, disconnFn)
 	pool.setLimits(connLimit, uint64(connLimit))
 
 	// try connecting all known peers (connLimit should be filled up)

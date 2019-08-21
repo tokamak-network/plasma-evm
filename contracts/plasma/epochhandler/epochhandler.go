@@ -31,7 +31,7 @@ var (
 const AddressABI = "[]"
 
 // AddressBin is the compiled bytecode used for deploying new contracts.
-const AddressBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a72305820e665db6b585c5509fcce0f747a603f8d16fd8ea63367357e2ac604507ea5d5910029`
+var AddressBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723058206fc5747bf3aa42e5e3b7cbe598456385bf018515ad193018c47587792e19655e64736f6c63430005090032"
 
 // DeployAddress deploys a new Ethereum contract, binding an instance of Address to it.
 func DeployAddress(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Address, error) {
@@ -39,6 +39,7 @@ func DeployAddress(auth *bind.TransactOpts, backend bind.ContractBackend) (commo
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(AddressBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -192,7 +193,7 @@ func (_Address *AddressTransactorRaw) Transact(opts *bind.TransactOpts, method s
 const BMTABI = "[]"
 
 // BMTBin is the compiled bytecode used for deploying new contracts.
-const BMTBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a72305820e0d1b0e70713d7d662ec7db5138b10cd728cf30852c05d1b9ecc7574a08be9b50029`
+var BMTBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a72305820ed3ff2f9a57068d474c79eee405d5ab813895bb146476d4963833cc4d0c2a3a464736f6c63430005090032"
 
 // DeployBMT deploys a new Ethereum contract, binding an instance of BMT to it.
 func DeployBMT(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *BMT, error) {
@@ -200,6 +201,7 @@ func DeployBMT(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Ad
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(BMTBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -352,8 +354,17 @@ func (_BMT *BMTTransactorRaw) Transact(opts *bind.TransactOpts, method string, p
 // DataABI is the input ABI used to generate the binding from.
 const DataABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"NA_TX_GAS_PRICE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NA_TX_GAS_LIMIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"APPLY_IN_ROOTCHAIN_SIGNATURE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes4\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"APPLY_IN_CHILDCHAIN_SIGNATURE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes4\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NA\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
+// DataFuncSigs maps the 4-byte function signature to its string representation.
+var DataFuncSigs = map[string]string{
+	"a89ca766": "APPLY_IN_CHILDCHAIN_SIGNATURE()",
+	"a7b6ae28": "APPLY_IN_ROOTCHAIN_SIGNATURE()",
+	"ab73ff05": "NA()",
+	"90e84f56": "NA_TX_GAS_LIMIT()",
+	"1927ac58": "NA_TX_GAS_PRICE()",
+}
+
 // DataBin is the compiled bytecode used for deploying new contracts.
-const DataBin = `0x610208610030600b82828239805160001a6073146000811461002057610022565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600436106100835763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631927ac58811461008857806390e84f56146100a6578063a7b6ae28146100ae578063a89ca766146100c3578063ab73ff05146100cb575b600080fd5b6100906100e0565b60405161009d919061017f565b60405180910390f35b6100906100e8565b6100b66100ef565b60405161009d9190610171565b6100b6610113565b6100d3610137565b60405161009d919061015d565b633b9aca0081565b620186a081565b7fa9f793080000000000000000000000000000000000000000000000000000000081565b7f141ecf460000000000000000000000000000000000000000000000000000000081565b600081565b6101458161018d565b82525050565b610145816101a6565b610145816101cb565b6020810161016b828461013c565b92915050565b6020810161016b828461014b565b6020810161016b8284610154565b73ffffffffffffffffffffffffffffffffffffffff1690565b7fffffffff000000000000000000000000000000000000000000000000000000001690565b905600a265627a7a72305820f7a6a5179edd292f483b20ca1f555b367be32fc7d8e80fb0ee1138d544a756ea6c6578706572696d656e74616cf50037`
+var DataBin = "0x6101cf610026600b82828239805160001a60731461001957fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600436106100615760003560e01c80631927ac581461006657806390e84f5614610080578063a7b6ae2814610088578063a89ca766146100ad578063ab73ff05146100b5575b600080fd5b61006e6100d9565b60408051918252519081900360200190f35b61006e6100e1565b6100906100e8565b604080516001600160e01b03199092168252519081900360200190f35b610090610103565b6100bd61011e565b604080516001600160a01b039092168252519081900360200190f35b633b9aca0081565b620186a081565b60405180603b6101608239603b019050604051809103902081565b60405180603c6101248239603c019050604051809103902081565b60008156fe6170706c7952657175657374496e4368696c64436861696e28626f6f6c2c75696e743235362c616464726573732c627974657333322c6279746573296170706c7952657175657374496e526f6f74436861696e28626f6f6c2c75696e743235362c616464726573732c627974657333322c627974657329a265627a7a72305820aaf0362f1175f8c322b4e191a40a7239a330933a21369a714c9db14d4d7fe57164736f6c63430005090032"
 
 // DeployData deploys a new Ethereum contract, binding an instance of Data to it.
 func DeployData(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Data, error) {
@@ -361,6 +372,7 @@ func DeployData(auth *bind.TransactOpts, backend bind.ContractBackend) (common.A
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(DataBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -641,10 +653,53 @@ func (_Data *DataCallerSession) NATXGASPRICE() (*big.Int, error) {
 }
 
 // EpochHandlerABI is the input ABI used to generate the binding from.
-const EpochHandlerABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitORB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareNREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareOREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareToSubmitURB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_prepareToSubmitNRB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
+const EpochHandlerABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareNRE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareORE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"EROIdToFinalize\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedEpoch\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareNREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareOREAfterURE\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"lastNonEmptyRequestEpoch\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"ERUIdToFinalize\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedEpochNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstNonEmptyRequestEpoch\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"submitHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"prepareToSubmitURB\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
+
+// EpochHandlerFuncSigs maps the 4-byte function signature to its string representation.
+var EpochHandlerFuncSigs = map[string]string{
+	"d691acd8": "COST_ERO()",
+	"8b5172d0": "COST_ERU()",
+	"94be3aa5": "COST_NRB()",
+	"b2ae9ba8": "COST_ORB()",
+	"192adc5b": "COST_URB()",
+	"033cfbed": "COST_URB_PREPARE()",
+	"08c4fff0": "CP_COMPUTATION()",
+	"8155717d": "CP_EXIT()",
+	"b17fa6e9": "CP_WITHHOLDING()",
+	"2dc6bb7b": "EROIdToFinalize()",
+	"b443f3cc": "EROs(uint256)",
+	"c54626cc": "ERUIdToFinalize()",
+	"f4f31de4": "ERUs(uint256)",
+	"ab96da2d": "NRELength()",
+	"de0ce17d": "NULL_ADDRESS()",
+	"ea7f22a8": "ORBs(uint256)",
+	"c2bc88fa": "PREPARE_TIMEOUT()",
+	"8eb288ca": "REQUEST_GAS()",
+	"c0e86064": "URBs(uint256)",
+	"183d2d1c": "currentFork()",
+	"7b929c27": "development()",
+	"e7b88b80": "epochHandler()",
+	"b8066bcb": "etherToken()",
+	"72ecb9a8": "firstFilledORENumber(uint256)",
+	"ca6f6380": "firstNonEmptyRequestEpoch(uint256)",
+	"4ba3a126": "forks(uint256)",
+	"fb788a27": "lastAppliedBlockNumber()",
+	"c8ad329f": "lastAppliedEpochNumber()",
+	"164bc2ae": "lastAppliedForkNumber()",
+	"b6715647": "lastNonEmptyRequestEpoch(uint256)",
+	"23691566": "numEnterForORB()",
+	"570ca735": "operator()",
+	"03787fa2": "prepareNRE()",
+	"5656225b": "prepareNREAfterURE()",
+	"12d87f07": "prepareORE()",
+	"5e9ef4f3": "prepareOREAfterURE()",
+	"e6925d08": "prepareToSubmitURB()",
+	"da0185f8": "requestableContracts(address)",
+	"e259faf7": "submitHandler()",
+}
 
 // EpochHandlerBin is the compiled bytecode used for deploying new contracts.
-const EpochHandlerBin = `0x608060405234801561001057600080fd5b5060018054600160a060020a031916301790556128ef806100326000396000f3006080604052600436106101b65763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed81146101bb57806308c4fff0146101e2578063164bc2ae146101f7578063183d2d1c1461020c578063192adc5b146102215780631f261d5914610236578063236915661461024b5780634ba3a126146102605780634dd594b5146102e65780635656225b146102f0578063570ca735146102f85780635e9ef4f31461032957806365d724bc1461033157806372ecb9a8146103465780637b929c271461035e5780638155717d146103875780638b5172d01461039c5780638eb288ca146103b157806394be3aa5146101bb578063ab96da2d146103c6578063b17fa6e9146103db578063b2ae9ba8146101bb578063b443f3cc146103f0578063b8066bcb14610503578063c0e8606414610518578063c2bc88fa1461057b578063d691acd8146101bb578063da0185f814610590578063de0ce17d146105b1578063e6925d08146105c6578063e7b88b80146105ce578063ea7f22a8146105e3578063f25fff57146105fb578063f4f31de414610603578063fb788a271461061b575b600080fd5b3480156101c757600080fd5b506101d0610630565b60408051918252519081900360200190f35b3480156101ee57600080fd5b506101d061063a565b34801561020357600080fd5b506101d061063f565b34801561021857600080fd5b506101d0610645565b34801561022d57600080fd5b506101d061064b565b34801561024257600080fd5b506101d0610655565b34801561025757600080fd5b506101d061065b565b34801561026c57600080fd5b50610278600435610661565b604080516001604060020a039c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b6102ee6106d3565b005b6102ee610ddb565b34801561030457600080fd5b5061030d610fcc565b60408051600160a060020a039092168252519081900360200190f35b6102ee610fe0565b34801561033d57600080fd5b506101d06111eb565b34801561035257600080fd5b506101d06004356111f1565b34801561036a57600080fd5b50610373611203565b604080519115158252519081900360200190f35b34801561039357600080fd5b506101d061120c565b3480156103a857600080fd5b506101d0611211565b3480156103bd57600080fd5b506101d061121b565b3480156103d257600080fd5b506101d0611222565b3480156103e757600080fd5b506101d0611228565b3480156103fc57600080fd5b5061040860043561122d565b604080516001604060020a038d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526fffffffffffffffffffffffffffffffff881660a0820152600160a060020a0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b838110156104be5781810151838201526020016104a6565b50505050905090810190601f1680156104eb5780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b34801561050f57600080fd5b5061030d611376565b34801561052457600080fd5b50610530600435611385565b6040805196151587526001604060020a0395861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b34801561058757600080fd5b506101d0611401565b34801561059c57600080fd5b5061030d600160a060020a0360043516611406565b3480156105bd57600080fd5b5061030d611421565b6102ee611426565b3480156105da57600080fd5b5061030d611abb565b3480156105ef57600080fd5b50610530600435611aca565b6102ee611ad8565b34801561060f57600080fd5b50610408600435611c70565b34801561062757600080fd5b506101d0611c7e565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b6006602052600090815260409020805460018201546002909201546001604060020a0380831693604060020a808504831694608060020a80820485169560c060020a9283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b600454600081815260066020526040812091819081908190158061070257506002850154608060020a900460ff165b151561070d57600080fd5b8454608060020a90046001604060020a03908116600181810180841660009081526003808b01602052604080832091909501861682529381206002808601805461010061ff00199091161790558585018054600160c060020a031660c060020a428a160217815590820180546201000062ff000019909116179055600b805495830180546fffffffffffffffff00000000000000001916604060020a978a1688021790558390555492995093975092955004909116111561087057600185015460c060020a90046001604060020a0316151561080a57600185018054600160c060020a031660c060020a6001604060020a03871602179055610851565b60028501546001604060020a03908116600090815260038701602052604090206001018054918616608060020a026000805160206128a48339815191529092169190911790555b60028501805467ffffffffffffffff19166001604060020a0386161790555b6004546000908152600560205260409020541580156108945750600283015460ff16155b156108b75760045460009081526005602052604090206001604060020a03851690555b600283015460ff166108f85782546108f3906001604060020a03808216604060020a909204811691909103600101166108ee611c84565b611c89565b6108fb565b60005b600284015490915060ff161561096f576001604060020a036000198501811660009081526003870160205260409020548454608060020a60c060020a92839004841681026000805160206128a48339815191529092169190911790810490921602600160c060020a039091161783556109f6565b6001604060020a036000198501811660009081526003870160205260409020546109a99160c060020a90910416600163ffffffff611cc416565b8354600019608060020a6001604060020a0393841681026000805160206128a483398151915290931692909217918204831684010190911660c060020a02600160c060020a039091161783555b6007541580610a1e57508254600754604060020a9091046001604060020a0316600019909101145b15610a335760028201805460ff191660011790555b600282015460ff161515610bc4576004546000908152600560205260409020546001604060020a038516148015610a7657506002830154640100000000900460ff165b15610ac8578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154858201805491851690920190931692909116919091179055610bbf565b6004546000908152600560205260409020541515610b21578254825467ffffffffffffffff199081166001604060020a03604060020a909304831617845560018086015490850180549092169216919091179055610bbf565b600283015460ff161515610b76578254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff1992831617855580860154908501805491841685019093169116179055610bbf565b8254825460016001604060020a03604060020a90930483168101831667ffffffffffffffff19928316178555808601548582018054918516909201909316929091169190911790555b610c54565b82548254604060020a9091046001604060020a031667ffffffffffffffff19909116178255600283015460ff161515610c2c57600183810154908301805467ffffffffffffffff19166001604060020a03928316840160001901909216919091179055610c54565b600180840154908301805467ffffffffffffffff19166001604060020a039092169190911790555b600282015460ff1615610c90578154604060020a6001604060020a038216026fffffffffffffffff000000000000000019909116178255610cff565b60075482546fffffffffffffffff00000000000000001916604060020a6000199092016001604060020a0316919091021782556009805460019190610cd59083611ce2565b81548110610cdf57fe5b60009182526020909120600290910201805460ff19169115159190911790555b60045483546002850154604080519384526001604060020a038089166020860152608060020a840481168583015260c060020a8404811660608601528084166080860152604060020a90930490921660a084015260ff808216151560c0850152600160e0850152600061010085015264010000000090910416151561012083015251600080516020612884833981519152918190036101400190a1600283015460ff1615610dd45784546000805160206128a483398151915216608060020a6001604060020a03861602178555610dd4611ad8565b5050505050565b60045460008181526006602081905260408220928291610e1e918591908490610e0b90600163ffffffff611ce216565b8152602001908152602001600020611cf9565b835460045460016001604060020a03608060020a9384900481168201808216600081815260038b0160209081526040808320548151988952918801939093529690960490921684830152606084018590526080840185905260a0840185905285151560c085015260e084018590526101008401949094526101208301919091525192945090925060008051602061288483398151915291908190036101400190a18115610fc7576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a8087026000805160206128a4833981519152909216919091178c5560028c01805470ff000000000000000000000000000000001916821790556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c081019390935260e08301819052610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610fc7611ad8565b505050565b6000546101009004600160a060020a031681565b6004546000818152600660208190526040822092829161102591859190849061101090600163ffffffff611ce216565b815260200190815260200160002060096120d0565b8354909250608060020a90046001604060020a031660010190508115156110645760045460009081526005602052604090206001604060020a03821690555b6004546001604060020a038083166000818152600387016020908152604080832054815196875291860193909352608060020a810484168584015260c060020a8104841660608601528084166080860152604060020a900490921660a084015284151560c0840152600160e0840181905261010084019290925261012083019190915251600080516020612884833981519152918190036101400190a18115610fc7576001808401546001604060020a0383811660008181526003880160209081526040808320805460c060020a9787168802600160c060020a039091161781558a54608060020a8087026000805160206128a4833981519152909216919091178c556004549154835192835293820195909552938204851684820152948104841660608401528084166080840152604060020a900490921660a082015260c0810184905260e0810193909352610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a1610fc7610ddb565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b600780548290811061123b57fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b019095528487526001604060020a0388169a50604060020a880460ff9081169a69010000000000000000008a0482169a6a01000000000000000000008b0483169a6b0100000000000000000000008104909316996c010000000000000000000000009093046fffffffffffffffffffffffffffffffff1698600160a060020a039081169897169690939183018282801561136c5780601f106113415761010080835404028352916020019161136c565b820191906000526020600020905b81548152906001019060200180831161134f57829003601f168201915b505050505090508b565b600254600160a060020a031681565b600a80548290811061139357fe5b60009182526020909120600290910201805460019091015460ff821692506001604060020a0361010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03604060020a9091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b6000806000806000806006600060045481526020019081526020016000209550600660006004546001018152602001908152602001600020945060045460001493508560010160089054906101000a90046001604060020a03166001018660000160006101000a8154816001604060020a0302191690836001604060020a031602179055508560000160009054906101000a90046001604060020a03168560000160186101000a8154816001604060020a0302191690836001604060020a031602179055508560040160008660000160189054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03168560000160086101000a8154816001604060020a0302191690836001604060020a031602179055508460000160089054906101000a90046001604060020a03168560000160106101000a8154816001604060020a0302191690836001604060020a031602179055508560010160089054906101000a90046001604060020a03168560010160086101000a8154816001604060020a0302191690836001604060020a03160217905550428560010160106101000a8154816001604060020a0302191690836001604060020a031602179055508460030160008660000160089054906101000a90046001604060020a03166001604060020a03168152602001908152602001600020925060018360020160016101000a81548160ff021916908315150217905550428360010160186101000a8154816001604060020a0302191690836001604060020a0316021790555060018360020160026101000a81548160ff02191690831515021790555060018360020160036101000a81548160ff021916908315150217905550836116f65785546001604060020a03604060020a9182900481166000908152600389016020526040902054600192900416016116f9565b60005b835467ffffffffffffffff19166001604060020a03918216178085556008546fffffffffffffffff000000000000000019909116604060020a600019909201831682021780865590810482169116111561174f57fe5b825461176e906001604060020a0380821691604060020a900416612585565b855484546000805160206128a48339815191521660c060020a9091046001604060020a03908116608060020a908102929092178087559294506117d0926001926117bb9291041685611cc4565b6001604060020a03169063ffffffff6125bf16565b83546001604060020a039190911660c060020a02600160c060020a03909116178355836118985785546001604060020a03604060020a909104811660009081526003880160205260409020546118939161185e916001916118499160c060020a8104821691608060020a9091041663ffffffff6125bf16565b6001604060020a03169063ffffffff611cc416565b87546001604060020a03604060020a9091048116600090815260038a016020526040902060010154169063ffffffff611cc416565b61189b565b60005b60018401805467ffffffffffffffff19166001604060020a03929092169190911790555060005b816001604060020a0316816001604060020a031610156119fe578254600190600487019060009061190390608060020a90046001604060020a031685611cc4565b6001604060020a03908116825260208201929092526040016000908120600501805460ff19169315159390931790925584546001926004890192909161195291608060020a9091041685611cc4565b6001604060020a0390811682526020820192909252604001600090812060050180549315156101000261ff00199094169390931790925560018501548554908216840192600489019290916119b691608060020a909104168563ffffffff611cc416565b6001604060020a039081168252602082019290925260400160002080546fffffffffffffffff00000000000000001916604060020a93909216929092021790556001016118c2565b60045485548454600286015460408051600190950185526001604060020a03604060020a9485900481166020870152608060020a840481168683015260c060020a84048116606087015283811660808701529390920490921660a0840152600060c084015260ff6201000083048116151560e08501526301000000830481161515610100850152640100000000909204909116151561012083015251600080516020612884833981519152918190036101400190a1505050505050565b600154600160a060020a031681565b600980548290811061139357fe5b600454600081815260066020526040812091819081901580611b0557506002840154608060020a900460ff165b1515611b1057600080fd5b5050815460016001604060020a03608060020a90920482168101918216600081815260038601602052604090209293508114611b7a57508254608060020a90046001604060020a03908116600090815260038501602052604090205460c060020a90048116600101165b60028201805461ff001916610100908117918290556001840180546001604060020a0342811660c060020a908102600160c060020a03938416179093558654868216608060020a9081026000805160206128a48339815191529092169190911780895560035488016000190183168502931692909217808855600454604080519182528a8416602083015293820483168185015293900416606083015260006080830181905260a0830181905260c0830181905260e083018190529282019290925264010000000090920460ff16151561012083015251600080516020612884833981519152918190036101400190a150505050565b600880548290811061123b57fe5b600d5481565b601490565b60008183811515611c9657fe5b0615611cb0578183811515611ca757fe5b04600101611cbd565b8183811515611cbb57fe5b045b9392505050565b60008282016001604060020a038085169082161015611cbd57600080fd5b60008083831115611cf257600080fd5b5050900390565b60008060008060008660020160109054906101000a900460ff16151515611d1f57600080fd5b8654608060020a90046001604060020a0316600090815260038801602052604090206002810154909450640100000000900460ff168015611d6a5750600284015462010000900460ff165b8015611d82575060028401546301000000900460ff16155b1515611d8d57600080fd5b8660010160009054906101000a90046001604060020a03168760030160008960000160109054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160186101000a8154816001604060020a0302191690836001604060020a031602179055508660000160109054906101000a90046001604060020a031660010192508560040160008760000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a03169150866003016000846001604060020a03168152602001908152602001600020935060018460020160016101000a81548160ff02191690831515021790555060018460020160046101000a81548160ff021916908315150217905550428460010160186101000a8154816001604060020a0302191690836001604060020a0316021790555085600301600083815260200190815260200160002060020160029054906101000a900460ff1615611f2c5781600101611f2e565b815b6000818152600388016020526040902060020154909150610100900460ff161515611fd6576001878101805486546000805160206128a4833981519152166001604060020a03918216608060020a908102919091178089559254600160c060020a039093169290911660c060020a029190911786556002808701805460ff1916841790558901805470ff000000000000000000000000000000001916909117905594506120c6565b600081815260038701602052604090206002015462010000900460ff1615611ffa57fe5b60018781015461201b916001604060020a039091169063ffffffff611cc416565b84546001604060020a0391909116608060020a026000805160206128a4833981519152909116178455808214612071576000818152600387016020526040902054608060020a90046001604060020a031661207d565b85546001604060020a03165b6002880180546fffffffffffffffff00000000000000001916604060020a6001604060020a039384168102919091179182905588548316910490911610156120c157fe5b600094505b5050505092915050565b6000806000806000806000808a60020160109054906101000a900460ff161515156120fa57600080fd5b8a54608060020a90046001604060020a0316600090815260038c0160205260409020600281015490975062010000900460ff168015612144575060028701546301000000900460ff165b151561214f57600080fd5b8a60000160109054906101000a90046001604060020a031660010195508960040160008b60000160009054906101000a90046001604060020a03166001604060020a0316815260200190815260200160002060000160009054906101000a90046001604060020a03166001604060020a031694508a6003016000876001604060020a03168152602001908152602001600020965060018760020160016101000a81548160ff02191690831515021790555060018760020160026101000a81548160ff02191690831515021790555060018760020160046101000a81548160ff021916908315150217905550428760010160186101000a8154816001604060020a0302191690836001604060020a0316021790555089600301600086815260200190815260200160002060020160029054906101000a900460ff166122965784600101612298565b845b93506122a26125db565b89546fffffffffffffffff00000000000000001916604060020a6001604060020a03928316021767ffffffffffffffff19908116928216929092178a5560018a0180549092169216919091179055600084815260038b016020526040902060020154610100900460ff16151561237057600287018054600160ff1990911681179091558b8101805489546000805160206128a4833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612577565b600084815260038b01602052604090206002015462010000900460ff16151561239557fe5b6002808b0154908801805460ff19166001604060020a039092168711919091179081905560ff161561240e5760018b8101805489546000805160206128a4833981519152166001604060020a03918216608060020a0217808b559154600160c060020a03909216911660c060020a021788559750612577565b8392505b600084815260038b016020526040902060010154604060020a90046001604060020a0316151561244757600283019250612412565b60018b810154612468916001604060020a039091169063ffffffff611cc416565b87546000805160206128a483398151915216608060020a6001604060020a039283168102919091178955600085815260038d01602090815260408083205493909304841680835260048f01909152919020548b549194508b92604060020a909104169081106124d357fe5b906000526020600020906002020190505b805461010090046001604060020a0316151561254657600191909101600081815260048b01602052604090205489549192918a91604060020a90046001604060020a031690811061253157fe5b906000526020600020906002020190506124e4565b60028b0180546fffffffffffffffff00000000000000001916604060020a6001604060020a03851602179055600097505b505050505050509392505050565b6000611cbd612592611c84565b6125b360016125a7868863ffffffff611ce216565b9063ffffffff61283316565b9063ffffffff611c8916565b6000806001604060020a038085169084161115611cf257600080fd5b6000806000806000806000806000806126006001600454611ce290919063ffffffff16565b96505b6000878152600660205260409020955061261c86612845565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff16612671578554608060020a90046001604060020a0316612687565b8554608060020a90046001604060020a03166001015b6001604060020a031693505b83851115612743576126ac87600163ffffffff611ce216565b600081815260066020526040902090975095506126c886612845565b86546001604060020a03608060020a9091048116600101811660009081526003890160205260409020600201549116955062010000900460ff1661271d578554608060020a90046001604060020a0316612733565b8554608060020a90046001604060020a03166001015b6001604060020a03169350612693565b6000848152600387016020526040902060020154610100900460ff161561280f5785546001604060020a03908116600090815260048801602090815260408083205490931680835260038a019091529190206002015490935062010000900460ff1615156127b2576001830192505b50506000818152600385016020908152604080832085845281842080546001604060020a03608060020a82048116875260048b0190955292909420548154604060020a9182900485169d5084169b50909104909116975090612827565b61282087600163ffffffff611ce216565b9650612603565b50505050505050909192565b600082820183811015611cbd57600080fd5b80546000906001604060020a0316151561285e57600080fd5b5080546001604060020a0390811660009081526004830160205260409020541691905056001a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3ffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffa165627a7a723058205ff42212bf6751db389bf5f2f758d4d6b6096775e668e18817cb8e5f922649100029`
+var EpochHandlerBin = "0x608060405234801561001057600080fd5b50600180546001600160a01b03191630179055612786806100326000396000f3fe6080604052600436106102305760003560e01c8063ab96da2d1161012e578063ca6f6380116100ab578063e6925d081161006f578063e6925d081461071f578063e7b88b8014610727578063ea7f22a81461073c578063f4f31de414610766578063fb788a271461079057610230565b8063ca6f638014610698578063d691acd814610235578063da0185f8146106c2578063de0ce17d146106f5578063e259faf71461070a57610230565b8063b8066bcb116100f2578063b8066bcb146105cf578063c0e86064146105e4578063c2bc88fa14610659578063c54626cc1461066e578063c8ad329f1461068357610230565b8063ab96da2d1461045f578063b17fa6e914610474578063b2ae9ba814610235578063b443f3cc14610489578063b6715647146105a557610230565b80634ba3a126116101bc5780637b929c27116101805780637b929c27146103f75780638155717d146104205780638b5172d0146104355780638eb288ca1461044a57806394be3aa51461023557610230565b80634ba3a126146102ec5780635656225b1461038c578063570ca735146103945780635e9ef4f3146103c557806372ecb9a8146103cd57610230565b8063164bc2ae11610203578063164bc2ae14610283578063183d2d1c14610298578063192adc5b146102ad57806323691566146102c25780632dc6bb7b146102d757610230565b8063033cfbed1461023557806303787fa21461025c57806308c4fff01461026657806312d87f071461027b575b600080fd5b34801561024157600080fd5b5061024a6107a5565b60408051918252519081900360200190f35b6102646107af565b005b34801561027257600080fd5b5061024a610932565b610264610937565b34801561028f57600080fd5b5061024a611133565b3480156102a457600080fd5b5061024a611139565b3480156102b957600080fd5b5061024a61113f565b3480156102ce57600080fd5b5061024a611149565b3480156102e357600080fd5b5061024a61114f565b3480156102f857600080fd5b506103166004803603602081101561030f57600080fd5b5035611155565b604080516001600160401b039d8e1681529b8d1660208d0152998c168b8b0152978b1660608b0152958a1660808a015293891660a089015291881660c0880152871660e0870152861661010086015285166101208501529093166101408301529115156101608201529051908190036101800190f35b6102646111cc565b3480156103a057600080fd5b506103a96113a6565b604080516001600160a01b039092168252519081900360200190f35b6102646113ba565b3480156103d957600080fd5b5061024a600480360360208110156103f057600080fd5b50356115b1565b34801561040357600080fd5b5061040c6115c3565b604080519115158252519081900360200190f35b34801561042c57600080fd5b5061024a6115cc565b34801561044157600080fd5b5061024a6115d1565b34801561045657600080fd5b5061024a6115db565b34801561046b57600080fd5b5061024a6115e2565b34801561048057600080fd5b5061024a6115e8565b34801561049557600080fd5b506104b3600480360360208110156104ac57600080fd5b50356115ed565b604080516001600160401b038d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526001600160801b03881660a08201526001600160a01b0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b83811015610560578181015183820152602001610548565b50505050905090810190601f16801561058d5780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b3480156105b157600080fd5b5061024a600480360360208110156105c857600080fd5b503561170e565b3480156105db57600080fd5b506103a9611720565b3480156105f057600080fd5b5061060e6004803603602081101561060757600080fd5b503561172f565b6040805196151587526001600160401b03958616602088015293851686850152918416606086015290921660808401526001600160a01b0390911660a0830152519081900360c00190f35b34801561066557600080fd5b5061024a611796565b34801561067a57600080fd5b5061024a61179b565b34801561068f57600080fd5b5061024a6117a1565b3480156106a457600080fd5b5061024a600480360360208110156106bb57600080fd5b50356117a7565b3480156106ce57600080fd5b506103a9600480360360208110156106e557600080fd5b50356001600160a01b03166117b9565b34801561070157600080fd5b506103a96117d4565b34801561071657600080fd5b506103a96117d9565b6102646117e8565b34801561073357600080fd5b506103a9611cf1565b34801561074857600080fd5b5061060e6004803603602081101561075f57600080fd5b5035611d00565b34801561077257600080fd5b506104b36004803603602081101561078957600080fd5b5035611d0d565b34801561079c57600080fd5b5061024a611d1a565b6509184e72a00081565b60055460008181526007602052604090209015806107d857506002810154600160c01b900460ff165b6107e157600080fd5b805460016001600160401b03600160801b90920482168101918216600081815260038501602052604090209190811461084857508254600160801b90046001600160401b039081166000908152600385016020526040902054600160401b90048116600101165b8154600160c81b60ff60c81b1990911617600160801b600160c01b031916600160801b426001600160401b0390811691909102919091176001600160401b03191682821617808455600454600160401b600160801b0319909116600160401b91840160001901831682021780855560055460408051918252878516602083015282851682820152928204909316606084015260006080840181905260a0840181905260c0840181905260e0840181905261010084015260ff600160e01b9091041615156101208301525160008051602061273283398151915291610140908290030190a150505050565b600f81565b600554600081815260076020526040902090158061096057506002810154600160c01b900460ff165b61096957600080fd5b8054600160801b908190046001600160401b03908116600181810180841660009081526003808801602052604080832091909501861682529381208454600160c81b60ff60c81b1990911617600160801b600160c01b0319164287169097029690961784558554600160d01b60ff60d01b19909116178655600c805487850180546001600160c01b0316600160c01b928916830217905591905591830154909492939190041615610ab05760028401546001600160401b0316610a48576002840180546001600160401b0319166001600160401b038516179055610a89565b600284810154600160401b90046001600160401b039081166000908152600387016020526040902090910180546001600160401b0319169185169190911790555b600284018054600160401b600160801b031916600160401b6001600160401b038616021790555b600554600090815260066020526040902054158015610ad857508154600160c01b900460ff16155b15610afb5760055460009081526006602052604090206001600160401b03841690555b8154600090600160c01b900460ff16610b4557600180840154610b40916001600160401b03808316600160401b9093048116929092030116610b3b611d20565b611d25565b610b48565b60005b8354909150600160c01b900460ff1615610baf576001600160401b0360001985018116600090815260038701602052604090205484546001600160401b031916600160401b9182900483161791821602600160401b600160801b0319909116178355610c28565b6001600160401b03600019850181166000908152600387016020526040902054610be991600160401b90910416600163ffffffff611d5c16565b8354600160401b600160801b03196001600160401b03199091166001600160401b0392831617908116600160401b918316840160001901909216021783555b6008541580610c5357506001830154600854600160401b9091046001600160401b0316600019909101145b15610c6a57815460ff60c01b1916600160c01b1782555b8154600160c01b900460ff16610e49576005546000908152600660205260409020546001600160401b038516148015610cab57508254600160e01b900460ff165b15610d0f576001808401805484830180546001600160401b03600160401b9093048316850183166001600160401b0319909116178082559254600160801b908190048316909401909116909202600160801b600160c01b0319909116179055610e44565b600554600090815260066020526040902054610d79576001808401805491840180546001600160401b0319166001600160401b03600160401b9094048416178082559154600160801b90819004909316909202600160801b600160c01b0319909116179055610e44565b8254600160c01b900460ff16610de9576001808401805484830180546001600160401b03600160401b909304831690940182166001600160401b0319909416939093178084559154600160801b908190048216850190911602600160801b600160c01b0319909116179055610e44565b6001808401805484830180546001600160401b03600160401b9093048316850183166001600160401b0319909116178082559254600160801b908190048316909401909116909202600160801b600160c01b03199091161790555b610efc565b6001838101549083018054600160401b9092046001600160401b03166001600160401b03199092169190911790558254600160c01b900460ff16610ec8576001838101549083018054600160801b600160c01b031916600160801b928390046001600160401b0390811685016000190116909202919091179055610efc565b6001838101549083018054600160801b600160c01b031916600160801b928390046001600160401b03169092029190911790555b8254600160c01b900460ff16610fad576005546000908152600e6020526040902054610f40576005546000908152600e602052604090206001600160401b03851690555b6005546000908152600d60205260409020548015610f8e57600081815260038701602052604090206002018054600160401b600160801b031916600160401b6001600160401b038816021790555b506005546000908152600d602052604090206001600160401b03851690555b8154600160c01b900460ff1615610feb57600182018054600160401b6001600160401b03821602600160401b600160801b0319909116179055611059565b60085460018381018054600160401b600160801b031916600160401b6000199094016001600160401b03169390930292909217909155600a805461102f9083611d7a565b8154811061103957fe5b60009182526020909120600290910201805460ff19169115159190911790555b6005548354600180860154604080519485526001600160401b03808a16602087015280851686830152600160401b80860482166060880152838216608088015290920490911660a085015260ff600160c01b84048116151560c086015260e08501929092526000610100850152600160e01b90920416151561012083015251600080516020612732833981519152918190036101400190a18254600160c01b900460ff161561112c578454600160801b600160c01b031916600160801b6001600160401b0386160217855561112c6107af565b5050505050565b600f5481565b60055481565b6551dac207a00081565b600c5481565b60125481565b6007602052600090815260409020805460018201546002909201546001600160401b0380831693600160401b808504831694600160801b808204851695600160c01b92839004861695858116958581048216958482048316959182900483169484841694918204841693908204169160ff9104168c565b600554600081815260076020819052604082209261120c91849184906111f990600163ffffffff611d7a16565b8152602001908152602001600020611d8f565b825460055460016001600160401b03600160801b90930483168101808416600081815260038901602090815260408083205481519788529187019390935290951684820152606084018590526080840185905260a0840185905285151560c085015260e0840185905261010084019490945261012083019190915291519293509091600080516020612732833981519152918190036101400190a181156113a1576001808401546001600160401b03838116600081815260038801602090815260408083208054600160401b9787168802600160401b600160801b03199091161781558a54600160801b8602600160801b600160c01b0319909116178b5560028b01805460ff60c01b1916600160c01b1790556005548154918901548351918252938101959095528086168583015286900485166060850152818516608085015294900490921660a082015260c081019390935260e08301819052610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a16113a16107af565b505050565b60005461010090046001600160a01b031681565b60055460008181526007602081905260408220926113fc91849184906113e790600163ffffffff611d7a16565b8152602001908152602001600020600a612051565b8254909150600160801b90046001600160401b0316600101816114375760055460009081526006602052604090206001600160401b03821690555b6005546001600160401b0380831660008181526003870160209081526040808320805460019182015483519889529388019590955284861687830152600160401b948590048616606088015282861660808801529390910490931660a085015285151560c085015260e0840182905261010084015261012083015251600080516020612732833981519152918190036101400190a181156113a1576001808401546001600160401b03838116600081815260038801602090815260408083208054600160401b9787168802600160401b600160801b03199091161781558a54600160801b8602600160801b600160c01b0319909116178b556005548154918901548351918252938101959095528086168583015286900485166060850152818516608085015294900490921660a082015260c0810184905260e0810193909352610100830152517f030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47918190036101200190a16113a16111cc565b60066020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60045481565b601481565b600881815481106115fa57fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b019095528487526001600160401b0388169a50600160401b880460ff9081169a600160481b8a0482169a600160501b8b0483169a600160581b810490931699600160601b9093046001600160801b0316986001600160a01b03908116989716969093918301828280156117045780601f106116d957610100808354040283529160200191611704565b820191906000526020600020905b8154815290600101906020018083116116e757829003601f168201915b505050505090508b565b600d6020526000908152604090205481565b6003546001600160a01b031681565b600b818154811061173c57fe5b60009182526020909120600290910201805460019091015460ff821692506001600160401b036101008304811692600160481b8104821692600160881b9091048216918116906001600160a01b03600160401b9091041686565b603c81565b60135481565b60105481565b600e6020526000908152604090205481565b6014602052600090815260409020546001600160a01b031681565b600081565b6002546001600160a01b031681565b600554600081815260076020908152604080832060018086018552828520818301805484546001600160401b03600160801b928390048116860181166001600160401b0319909216919091178087558454600160c01b91831682026001600160c01b039182161780875582810484168c52600489018b52898c2054600160401b9085168102600160401b600160801b03199092169190911781810485168602600160801b600160c01b031991821617808955965498880180544287169586029a8890048716880290831617909316989098179091559093041688526003830190965293909520805460ff60d81b1960ff60d01b199590960260ff60c81b19909116600160c81b179092169190911792909216600160d01b1792909216600160d81b178155909215908161194b5783546001600160401b03600160401b9182900481166000908152600387016020526040902060019081015492909204160161194e565b60005b6001820180546001600160401b0319166001600160401b0392831617808255600954600160401b600160801b0319909116600160401b60001990920184168202179182905581048216911611156119a157fe5b60018101546000906119c6906001600160401b0380821691600160401b900416612447565b845483546001600160401b0319166001600160401b03600160c01b909204821617808555919250611a1a91600191611a0591168463ffffffff611d5c16565b6001600160401b03169063ffffffff61248116565b82546001600160401b0391909116600160401b02600160401b600160801b031990911617825582611ae15784546001600160401b03600160401b9182900481166000908152600388016020526040902054611adc92611aa092600192611a8b9281048216911663ffffffff61248116565b6001600160401b03169063ffffffff611d5c16565b86546001600160401b03600160401b90910481166000908152600389016020526040902060010154600160801b9004169063ffffffff611d5c16565b611ae4565b60005b6001830180546001600160401b0392909216600160801b02600160801b600160c01b031990921691909117905560005b816001600160401b0316816001600160401b03161015611c405782546001906004870190600090611b54906001600160401b03168563ffffffff611d5c16565b6001600160401b03908116825260208201929092526040016000908120600501805460ff191693151593909317909255845460019260048901929091611b9b911685611d5c565b6001600160401b0390811682526020820192909252604001600090812060050180549315156101000261ff00199094169390931790925560018501548554600160801b909104821684019260048901929091611bfe91168563ffffffff611d5c16565b6001600160401b03908116825260208201929092526040016000208054600160401b600160801b031916600160401b9390921692909202179055600101611b14565b5060055484548354600185810154604080519290950182526001600160401b03600160401b94859004811660208401528381168387015284840481166060840152818116608084015293900490921660a0830152600060c083015260ff600160d01b82048116151560e0840152600160d81b820481161515610100840152600160e01b9091041615156101208201529051600080516020612732833981519152918190036101400190a15050505050565b6001546001600160a01b031681565b600a818154811061173c57fe5b600981815481106115fa57fe5b60115481565b601490565b6000818381611d3057fe5b0615611d4857818381611d3f57fe5b04600101611d53565b818381611d5157fe5b045b90505b92915050565b60008282016001600160401b038085169082161015611d5357600080fd5b600082821115611d8957600080fd5b50900390565b6002820154600090600160c01b900460ff1615611dab57600080fd5b8254600160801b90046001600160401b0316600090815260038401602052604090208054600160e01b900460ff168015611ded57508054600160d01b900460ff165b8015611e0257508054600160d81b900460ff16155b611e0b57600080fd5b5060018381015484546001600160401b03600160801b91829004811660009081526003808901602081815260408085208054600160401b600160801b031916988716600160401b02989098179097558a548a548616855260048b0182528785205490879004861690980180861685529181528684208054600160e01b600160c81b60ff60c81b199092169190911760ff60e01b191617600160801b600160c01b031916428716909702969096178655969093168083529088019095529283205491939092909160ff600160d01b9091041615611eea5781600101611eec565b815b6000818152600388016020526040902054909150600160c81b900460ff16611f76575050506001848101805483546001600160401b039182166001600160401b0319909116178085559154600160c01b600160401b600160801b03199093169116600160401b021760ff60c01b199081168217909355600286018054909316179091559050611d56565b6000818152600387016020526040902054600160d01b900460ff1615611f9857fe5b600187810154611fb9916001600160401b039091169063ffffffff611d5c16565b84546001600160401b0319166001600160401b0391909116178455818114611ffa5760008181526003870160205260409020546001600160401b0316612006565b85546001600160401b03165b600288018054600160801b600160c01b031916600160801b6001600160401b0393841681029190911791829055885483169104909116101561204457fe5b5060009695505050505050565b6002830154600090600160c01b900460ff161561206d57600080fd5b8354600160801b90046001600160401b0316600090815260038501602052604090208054600160d01b900460ff1680156120af57508054600160d81b900460ff165b6120b857600080fd5b50835483546001600160401b039081166000908152600486016020908152604080832054600160801b95869004851660010180861685526003808c0185528386208054600160e01b600160d01b600160c81b60ff60c81b199093169290921760ff60d01b1916821760ff60e01b191617600160801b600160c01b031916428a16909a0299909917815592909616808652958a019093529083205490949193929160ff91041661216a578160010161216c565b815b90506121766124a2565b600187018054600160401b600160801b031916600160401b6001600160401b0393841602176001600160401b03191692821692909217600160801b600160c01b031916600160801b93909116929092029190911790556000818152600388016020526040902054600160c81b900460ff1661224c575050815460ff60c01b1916600160c01b17808355600187810180546001600160401b03199093166001600160401b03938416178086559054600160401b931692909202600160401b600160801b031990921691909117909255509050612440565b6000818152600388016020526040902054600160d01b900460ff1661226d57fe5b60028701548454600160c01b6001600160401b03600160401b909304929092168411820260ff60c01b19909116178086550460ff16156122f0575050506001808601805483546001600160401b0319166001600160401b03918216178085559154600160401b911602600160401b600160801b0319909116179091559050612440565b805b6000828152600389016020526040902060010154600160c01b90046001600160401b0316612322576002016122f2565b600189810154612343916001600160401b039091169063ffffffff611d5c16565b85546001600160401b0319166001600160401b03918216178655600082815260038a016020908152604080832054841680845260048d019092528220548a5491938b92600160401b9092041690811061239857fe5b906000526020600020906002020190505b805461010090046001600160401b031661240957600191909101600081815260048b01602052604090205489549192918a91600160401b90046001600160401b03169081106123f457fe5b906000526020600020906002020190506123a9565b5060028a0180546001600160401b03909216600160801b02600160801b600160c01b03199092169190911790555060009450505050505b9392505050565b6000611d53612454611d20565b6124756001612469868863ffffffff611d7a16565b9063ffffffff6126e316565b9063ffffffff611d2516565b6000826001600160401b0316826001600160401b03161115611d8957600080fd5b6000806000806124be6001600554611d7a90919063ffffffff16565b90505b6000818152600760205260408120906124d9826126f5565b82546001600160401b03600160801b90910481166001018116600090815260038501602052604081205492909116925090600160d01b900460ff1661252f578254600160801b90046001600160401b0316612545565b8254600160801b90046001600160401b03166001015b6001600160401b031690505b808211156125ff5761256a84600163ffffffff611d7a16565b60008181526007602052604090209094509250612586836126f5565b83546001600160401b03600160801b90910481166001018116600090815260038601602052604090205491169250600160d01b900460ff166125d9578254600160801b90046001600160401b03166125ef565b8254600160801b90046001600160401b03166001015b6001600160401b03169050612551565b6000818152600384016020526040902054600160c81b900460ff16156126c35782546001600160401b0390811660009081526004850160209081526040808320549093168083526003870190915291902054600160d01b900460ff16612663576001015b6000908152600384016020908152604080832093835280832080546001600160401b0390811685526004909701909252909120546001928301549290910154600160401b91829004851698509184169650900490911692506126de915050565b6126d484600163ffffffff611d7a16565b93505050506124c1565b909192565b600082820183811015611d5357600080fd5b80546000906001600160401b031661270c57600080fd5b5080546001600160401b0390811660009081526004830160205260409020541691905056fe1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3a265627a7a7230582029cda85d2f5eaaea259f475511d36d64afa1c3ceae99edd38f25bc41facede6b64736f6c63430005090032"
 
 // DeployEpochHandler deploys a new Ethereum contract, binding an instance of EpochHandler to it.
 func DeployEpochHandler(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *EpochHandler, error) {
@@ -652,6 +707,7 @@ func DeployEpochHandler(auth *bind.TransactOpts, backend bind.ContractBackend) (
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(EpochHandlerBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -1035,6 +1091,32 @@ func (_EpochHandler *EpochHandlerCallerSession) CPWITHHOLDING() (*big.Int, error
 	return _EpochHandler.Contract.CPWITHHOLDING(&_EpochHandler.CallOpts)
 }
 
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCaller) EROIdToFinalize(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _EpochHandler.contract.Call(opts, out, "EROIdToFinalize")
+	return *ret0, err
+}
+
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerSession) EROIdToFinalize() (*big.Int, error) {
+	return _EpochHandler.Contract.EROIdToFinalize(&_EpochHandler.CallOpts)
+}
+
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCallerSession) EROIdToFinalize() (*big.Int, error) {
+	return _EpochHandler.Contract.EROIdToFinalize(&_EpochHandler.CallOpts)
+}
+
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
 // Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
@@ -1105,6 +1187,32 @@ func (_EpochHandler *EpochHandlerCallerSession) EROs(arg0 *big.Int) (struct {
 	TrieValue  []byte
 }, error) {
 	return _EpochHandler.Contract.EROs(&_EpochHandler.CallOpts, arg0)
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCaller) ERUIdToFinalize(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _EpochHandler.contract.Call(opts, out, "ERUIdToFinalize")
+	return *ret0, err
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerSession) ERUIdToFinalize() (*big.Int, error) {
+	return _EpochHandler.Contract.ERUIdToFinalize(&_EpochHandler.CallOpts)
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCallerSession) ERUIdToFinalize() (*big.Int, error) {
+	return _EpochHandler.Contract.ERUIdToFinalize(&_EpochHandler.CallOpts)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
@@ -1517,15 +1625,42 @@ func (_EpochHandler *EpochHandlerCallerSession) FirstFilledORENumber(arg0 *big.I
 	return _EpochHandler.Contract.FirstFilledORENumber(&_EpochHandler.CallOpts, arg0)
 }
 
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerCaller) FirstNonEmptyRequestEpoch(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _EpochHandler.contract.Call(opts, out, "firstNonEmptyRequestEpoch", arg0)
+	return *ret0, err
+}
+
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerSession) FirstNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _EpochHandler.Contract.FirstNonEmptyRequestEpoch(&_EpochHandler.CallOpts, arg0)
+}
+
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerCallerSession) FirstNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _EpochHandler.Contract.FirstNonEmptyRequestEpoch(&_EpochHandler.CallOpts, arg0)
+}
+
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerCaller) Forks(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -1539,6 +1674,7 @@ func (_EpochHandler *EpochHandlerCaller) Forks(opts *bind.CallOpts, arg0 *big.In
 		LastEpoch          uint64
 		FirstBlock         uint64
 		LastBlock          uint64
+		LastFinalizedEpoch uint64
 		LastFinalizedBlock uint64
 		Timestamp          uint64
 		FirstEnterEpoch    uint64
@@ -1553,13 +1689,14 @@ func (_EpochHandler *EpochHandlerCaller) Forks(opts *bind.CallOpts, arg0 *big.In
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -1572,13 +1709,14 @@ func (_EpochHandler *EpochHandlerSession) Forks(arg0 *big.Int) (struct {
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_EpochHandler *EpochHandlerCallerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -1615,56 +1753,30 @@ func (_EpochHandler *EpochHandlerCallerSession) LastAppliedBlockNumber() (*big.I
 	return _EpochHandler.Contract.LastAppliedBlockNumber(&_EpochHandler.CallOpts)
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_EpochHandler *EpochHandlerCaller) LastAppliedERO(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCaller) LastAppliedEpochNumber(opts *bind.CallOpts) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
 	)
 	out := ret0
-	err := _EpochHandler.contract.Call(opts, out, "lastAppliedERO")
+	err := _EpochHandler.contract.Call(opts, out, "lastAppliedEpochNumber")
 	return *ret0, err
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_EpochHandler *EpochHandlerSession) LastAppliedERO() (*big.Int, error) {
-	return _EpochHandler.Contract.LastAppliedERO(&_EpochHandler.CallOpts)
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_EpochHandler *EpochHandlerSession) LastAppliedEpochNumber() (*big.Int, error) {
+	return _EpochHandler.Contract.LastAppliedEpochNumber(&_EpochHandler.CallOpts)
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_EpochHandler *EpochHandlerCallerSession) LastAppliedERO() (*big.Int, error) {
-	return _EpochHandler.Contract.LastAppliedERO(&_EpochHandler.CallOpts)
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_EpochHandler *EpochHandlerCaller) LastAppliedERU(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _EpochHandler.contract.Call(opts, out, "lastAppliedERU")
-	return *ret0, err
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_EpochHandler *EpochHandlerSession) LastAppliedERU() (*big.Int, error) {
-	return _EpochHandler.Contract.LastAppliedERU(&_EpochHandler.CallOpts)
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_EpochHandler *EpochHandlerCallerSession) LastAppliedERU() (*big.Int, error) {
-	return _EpochHandler.Contract.LastAppliedERU(&_EpochHandler.CallOpts)
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_EpochHandler *EpochHandlerCallerSession) LastAppliedEpochNumber() (*big.Int, error) {
+	return _EpochHandler.Contract.LastAppliedEpochNumber(&_EpochHandler.CallOpts)
 }
 
 // LastAppliedForkNumber is a free data retrieval call binding the contract method 0x164bc2ae.
@@ -1691,6 +1803,32 @@ func (_EpochHandler *EpochHandlerSession) LastAppliedForkNumber() (*big.Int, err
 // Solidity: function lastAppliedForkNumber() constant returns(uint256)
 func (_EpochHandler *EpochHandlerCallerSession) LastAppliedForkNumber() (*big.Int, error) {
 	return _EpochHandler.Contract.LastAppliedForkNumber(&_EpochHandler.CallOpts)
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerCaller) LastNonEmptyRequestEpoch(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _EpochHandler.contract.Call(opts, out, "lastNonEmptyRequestEpoch", arg0)
+	return *ret0, err
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerSession) LastNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _EpochHandler.Contract.LastNonEmptyRequestEpoch(&_EpochHandler.CallOpts, arg0)
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_EpochHandler *EpochHandlerCallerSession) LastNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _EpochHandler.Contract.LastNonEmptyRequestEpoch(&_EpochHandler.CallOpts, arg0)
 }
 
 // NumEnterForORB is a free data retrieval call binding the contract method 0x23691566.
@@ -1771,46 +1909,51 @@ func (_EpochHandler *EpochHandlerCallerSession) RequestableContracts(arg0 common
 	return _EpochHandler.Contract.RequestableContracts(&_EpochHandler.CallOpts, arg0)
 }
 
-// PrepareToSubmitNRB is a paid mutator transaction binding the contract method 0xf25fff57.
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
 //
-// Solidity: function _prepareToSubmitNRB() returns()
-func (_EpochHandler *EpochHandlerTransactor) PrepareToSubmitNRB(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _EpochHandler.contract.Transact(opts, "_prepareToSubmitNRB")
+// Solidity: function submitHandler() constant returns(address)
+func (_EpochHandler *EpochHandlerCaller) SubmitHandler(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _EpochHandler.contract.Call(opts, out, "submitHandler")
+	return *ret0, err
 }
 
-// PrepareToSubmitNRB is a paid mutator transaction binding the contract method 0xf25fff57.
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
 //
-// Solidity: function _prepareToSubmitNRB() returns()
-func (_EpochHandler *EpochHandlerSession) PrepareToSubmitNRB() (*types.Transaction, error) {
-	return _EpochHandler.Contract.PrepareToSubmitNRB(&_EpochHandler.TransactOpts)
+// Solidity: function submitHandler() constant returns(address)
+func (_EpochHandler *EpochHandlerSession) SubmitHandler() (common.Address, error) {
+	return _EpochHandler.Contract.SubmitHandler(&_EpochHandler.CallOpts)
 }
 
-// PrepareToSubmitNRB is a paid mutator transaction binding the contract method 0xf25fff57.
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
 //
-// Solidity: function _prepareToSubmitNRB() returns()
-func (_EpochHandler *EpochHandlerTransactorSession) PrepareToSubmitNRB() (*types.Transaction, error) {
-	return _EpochHandler.Contract.PrepareToSubmitNRB(&_EpochHandler.TransactOpts)
+// Solidity: function submitHandler() constant returns(address)
+func (_EpochHandler *EpochHandlerCallerSession) SubmitHandler() (common.Address, error) {
+	return _EpochHandler.Contract.SubmitHandler(&_EpochHandler.CallOpts)
 }
 
-// PrepareToSubmitORB is a paid mutator transaction binding the contract method 0x4dd594b5.
+// PrepareNRE is a paid mutator transaction binding the contract method 0x03787fa2.
 //
-// Solidity: function _prepareToSubmitORB() returns()
-func (_EpochHandler *EpochHandlerTransactor) PrepareToSubmitORB(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _EpochHandler.contract.Transact(opts, "_prepareToSubmitORB")
+// Solidity: function prepareNRE() returns()
+func (_EpochHandler *EpochHandlerTransactor) PrepareNRE(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _EpochHandler.contract.Transact(opts, "prepareNRE")
 }
 
-// PrepareToSubmitORB is a paid mutator transaction binding the contract method 0x4dd594b5.
+// PrepareNRE is a paid mutator transaction binding the contract method 0x03787fa2.
 //
-// Solidity: function _prepareToSubmitORB() returns()
-func (_EpochHandler *EpochHandlerSession) PrepareToSubmitORB() (*types.Transaction, error) {
-	return _EpochHandler.Contract.PrepareToSubmitORB(&_EpochHandler.TransactOpts)
+// Solidity: function prepareNRE() returns()
+func (_EpochHandler *EpochHandlerSession) PrepareNRE() (*types.Transaction, error) {
+	return _EpochHandler.Contract.PrepareNRE(&_EpochHandler.TransactOpts)
 }
 
-// PrepareToSubmitORB is a paid mutator transaction binding the contract method 0x4dd594b5.
+// PrepareNRE is a paid mutator transaction binding the contract method 0x03787fa2.
 //
-// Solidity: function _prepareToSubmitORB() returns()
-func (_EpochHandler *EpochHandlerTransactorSession) PrepareToSubmitORB() (*types.Transaction, error) {
-	return _EpochHandler.Contract.PrepareToSubmitORB(&_EpochHandler.TransactOpts)
+// Solidity: function prepareNRE() returns()
+func (_EpochHandler *EpochHandlerTransactorSession) PrepareNRE() (*types.Transaction, error) {
+	return _EpochHandler.Contract.PrepareNRE(&_EpochHandler.TransactOpts)
 }
 
 // PrepareNREAfterURE is a paid mutator transaction binding the contract method 0x5656225b.
@@ -1832,6 +1975,27 @@ func (_EpochHandler *EpochHandlerSession) PrepareNREAfterURE() (*types.Transacti
 // Solidity: function prepareNREAfterURE() returns()
 func (_EpochHandler *EpochHandlerTransactorSession) PrepareNREAfterURE() (*types.Transaction, error) {
 	return _EpochHandler.Contract.PrepareNREAfterURE(&_EpochHandler.TransactOpts)
+}
+
+// PrepareORE is a paid mutator transaction binding the contract method 0x12d87f07.
+//
+// Solidity: function prepareORE() returns()
+func (_EpochHandler *EpochHandlerTransactor) PrepareORE(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _EpochHandler.contract.Transact(opts, "prepareORE")
+}
+
+// PrepareORE is a paid mutator transaction binding the contract method 0x12d87f07.
+//
+// Solidity: function prepareORE() returns()
+func (_EpochHandler *EpochHandlerSession) PrepareORE() (*types.Transaction, error) {
+	return _EpochHandler.Contract.PrepareORE(&_EpochHandler.TransactOpts)
+}
+
+// PrepareORE is a paid mutator transaction binding the contract method 0x12d87f07.
+//
+// Solidity: function prepareORE() returns()
+func (_EpochHandler *EpochHandlerTransactorSession) PrepareORE() (*types.Transaction, error) {
+	return _EpochHandler.Contract.PrepareORE(&_EpochHandler.TransactOpts)
 }
 
 // PrepareOREAfterURE is a paid mutator transaction binding the contract method 0x5e9ef4f3.
@@ -1999,6 +2163,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchBlockFinalized(opts *bind.WatchO
 	}), nil
 }
 
+// ParseBlockFinalized is a log parse operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
+//
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
+func (_EpochHandler *EpochHandlerFilterer) ParseBlockFinalized(log types.Log) (*EpochHandlerBlockFinalized, error) {
+	event := new(EpochHandlerBlockFinalized)
+	if err := _EpochHandler.contract.UnpackLog(event, "BlockFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerBlockSubmittedIterator is returned from FilterBlockSubmitted and is used to iterate over the raw logs and unpacked data for BlockSubmitted events raised by the EpochHandler contract.
 type EpochHandlerBlockSubmittedIterator struct {
 	Event *EpochHandlerBlockSubmitted // Event containing the contract specifics and raw log
@@ -2123,6 +2298,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchBlockSubmitted(opts *bind.WatchO
 			}
 		}
 	}), nil
+}
+
+// ParseBlockSubmitted is a log parse operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
+//
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseBlockSubmitted(log types.Log) (*EpochHandlerBlockSubmitted, error) {
+	event := new(EpochHandlerBlockSubmitted)
+	if err := _EpochHandler.contract.UnpackLog(event, "BlockSubmitted", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerERUCreatedIterator is returned from FilterERUCreated and is used to iterate over the raw logs and unpacked data for ERUCreated events raised by the EpochHandler contract.
@@ -2251,6 +2437,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchERUCreated(opts *bind.WatchOpts,
 	}), nil
 }
 
+// ParseERUCreated is a log parse operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
+//
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
+func (_EpochHandler *EpochHandlerFilterer) ParseERUCreated(log types.Log) (*EpochHandlerERUCreated, error) {
+	event := new(EpochHandlerERUCreated)
+	if err := _EpochHandler.contract.UnpackLog(event, "ERUCreated", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerEpochFilledIterator is returned from FilterEpochFilled and is used to iterate over the raw logs and unpacked data for EpochFilled events raised by the EpochHandler contract.
 type EpochHandlerEpochFilledIterator struct {
 	Event *EpochHandlerEpochFilled // Event containing the contract specifics and raw log
@@ -2372,6 +2569,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchEpochFilled(opts *bind.WatchOpts
 			}
 		}
 	}), nil
+}
+
+// ParseEpochFilled is a log parse operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
+//
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
+func (_EpochHandler *EpochHandlerFilterer) ParseEpochFilled(log types.Log) (*EpochHandlerEpochFilled, error) {
+	event := new(EpochHandlerEpochFilled)
+	if err := _EpochHandler.contract.UnpackLog(event, "EpochFilled", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerEpochFillingIterator is returned from FilterEpochFilling and is used to iterate over the raw logs and unpacked data for EpochFilling events raised by the EpochHandler contract.
@@ -2497,6 +2705,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchEpochFilling(opts *bind.WatchOpt
 	}), nil
 }
 
+// ParseEpochFilling is a log parse operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
+//
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
+func (_EpochHandler *EpochHandlerFilterer) ParseEpochFilling(log types.Log) (*EpochHandlerEpochFilling, error) {
+	event := new(EpochHandlerEpochFilling)
+	if err := _EpochHandler.contract.UnpackLog(event, "EpochFilling", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerEpochFinalizedIterator is returned from FilterEpochFinalized and is used to iterate over the raw logs and unpacked data for EpochFinalized events raised by the EpochHandler contract.
 type EpochHandlerEpochFinalizedIterator struct {
 	Event *EpochHandlerEpochFinalized // Event containing the contract specifics and raw log
@@ -2620,6 +2839,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchEpochFinalized(opts *bind.WatchO
 			}
 		}
 	}), nil
+}
+
+// ParseEpochFinalized is a log parse operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
+//
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
+func (_EpochHandler *EpochHandlerFilterer) ParseEpochFinalized(log types.Log) (*EpochHandlerEpochFinalized, error) {
+	event := new(EpochHandlerEpochFinalized)
+	if err := _EpochHandler.contract.UnpackLog(event, "EpochFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerEpochPreparedIterator is returned from FilterEpochPrepared and is used to iterate over the raw logs and unpacked data for EpochPrepared events raised by the EpochHandler contract.
@@ -2753,6 +2983,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchEpochPrepared(opts *bind.WatchOp
 	}), nil
 }
 
+// ParseEpochPrepared is a log parse operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
+//
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
+func (_EpochHandler *EpochHandlerFilterer) ParseEpochPrepared(log types.Log) (*EpochHandlerEpochPrepared, error) {
+	event := new(EpochHandlerEpochPrepared)
+	if err := _EpochHandler.contract.UnpackLog(event, "EpochPrepared", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerEpochRebasedIterator is returned from FilterEpochRebased and is used to iterate over the raw logs and unpacked data for EpochRebased events raised by the EpochHandler contract.
 type EpochHandlerEpochRebasedIterator struct {
 	Event *EpochHandlerEpochRebased // Event containing the contract specifics and raw log
@@ -2883,6 +3124,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchEpochRebased(opts *bind.WatchOpt
 	}), nil
 }
 
+// ParseEpochRebased is a log parse operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
+//
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseEpochRebased(log types.Log) (*EpochHandlerEpochRebased, error) {
+	event := new(EpochHandlerEpochRebased)
+	if err := _EpochHandler.contract.UnpackLog(event, "EpochRebased", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerForkedIterator is returned from FilterForked and is used to iterate over the raw logs and unpacked data for Forked events raised by the EpochHandler contract.
 type EpochHandlerForkedIterator struct {
 	Event *EpochHandlerForked // Event containing the contract specifics and raw log
@@ -3005,6 +3257,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchForked(opts *bind.WatchOpts, sin
 			}
 		}
 	}), nil
+}
+
+// ParseForked is a log parse operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
+//
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
+func (_EpochHandler *EpochHandlerFilterer) ParseForked(log types.Log) (*EpochHandlerForked, error) {
+	event := new(EpochHandlerForked)
+	if err := _EpochHandler.contract.UnpackLog(event, "Forked", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerRequestAppliedIterator is returned from FilterRequestApplied and is used to iterate over the raw logs and unpacked data for RequestApplied events raised by the EpochHandler contract.
@@ -3130,6 +3393,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchRequestApplied(opts *bind.WatchO
 	}), nil
 }
 
+// ParseRequestApplied is a log parse operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
+//
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseRequestApplied(log types.Log) (*EpochHandlerRequestApplied, error) {
+	event := new(EpochHandlerRequestApplied)
+	if err := _EpochHandler.contract.UnpackLog(event, "RequestApplied", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerRequestChallengedIterator is returned from FilterRequestChallenged and is used to iterate over the raw logs and unpacked data for RequestChallenged events raised by the EpochHandler contract.
 type EpochHandlerRequestChallengedIterator struct {
 	Event *EpochHandlerRequestChallenged // Event containing the contract specifics and raw log
@@ -3251,6 +3525,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchRequestChallenged(opts *bind.Wat
 			}
 		}
 	}), nil
+}
+
+// ParseRequestChallenged is a log parse operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
+//
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseRequestChallenged(log types.Log) (*EpochHandlerRequestChallenged, error) {
+	event := new(EpochHandlerRequestChallenged)
+	if err := _EpochHandler.contract.UnpackLog(event, "RequestChallenged", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerRequestCreatedIterator is returned from FilterRequestCreated and is used to iterate over the raw logs and unpacked data for RequestCreated events raised by the EpochHandler contract.
@@ -3382,6 +3667,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchRequestCreated(opts *bind.WatchO
 	}), nil
 }
 
+// ParseRequestCreated is a log parse operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
+//
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseRequestCreated(log types.Log) (*EpochHandlerRequestCreated, error) {
+	event := new(EpochHandlerRequestCreated)
+	if err := _EpochHandler.contract.UnpackLog(event, "RequestCreated", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerRequestFinalizedIterator is returned from FilterRequestFinalized and is used to iterate over the raw logs and unpacked data for RequestFinalized events raised by the EpochHandler contract.
 type EpochHandlerRequestFinalizedIterator struct {
 	Event *EpochHandlerRequestFinalized // Event containing the contract specifics and raw log
@@ -3503,6 +3799,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchRequestFinalized(opts *bind.Watc
 			}
 		}
 	}), nil
+}
+
+// ParseRequestFinalized is a log parse operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
+//
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseRequestFinalized(log types.Log) (*EpochHandlerRequestFinalized, error) {
+	event := new(EpochHandlerRequestFinalized)
+	if err := _EpochHandler.contract.UnpackLog(event, "RequestFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // EpochHandlerRequestableContractMappedIterator is returned from FilterRequestableContractMapped and is used to iterate over the raw logs and unpacked data for RequestableContractMapped events raised by the EpochHandler contract.
@@ -3628,6 +3935,17 @@ func (_EpochHandler *EpochHandlerFilterer) WatchRequestableContractMapped(opts *
 	}), nil
 }
 
+// ParseRequestableContractMapped is a log parse operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
+//
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
+func (_EpochHandler *EpochHandlerFilterer) ParseRequestableContractMapped(log types.Log) (*EpochHandlerRequestableContractMapped, error) {
+	event := new(EpochHandlerRequestableContractMapped)
+	if err := _EpochHandler.contract.UnpackLog(event, "RequestableContractMapped", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // EpochHandlerSessionTimeoutIterator is returned from FilterSessionTimeout and is used to iterate over the raw logs and unpacked data for SessionTimeout events raised by the EpochHandler contract.
 type EpochHandlerSessionTimeoutIterator struct {
 	Event *EpochHandlerSessionTimeout // Event containing the contract specifics and raw log
@@ -3750,11 +4068,22 @@ func (_EpochHandler *EpochHandlerFilterer) WatchSessionTimeout(opts *bind.WatchO
 	}), nil
 }
 
+// ParseSessionTimeout is a log parse operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
+//
+// Solidity: event SessionTimeout(bool userActivated)
+func (_EpochHandler *EpochHandlerFilterer) ParseSessionTimeout(log types.Log) (*EpochHandlerSessionTimeout, error) {
+	event := new(EpochHandlerSessionTimeout)
+	if err := _EpochHandler.contract.UnpackLog(event, "SessionTimeout", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // MathABI is the input ABI used to generate the binding from.
 const MathABI = "[]"
 
 // MathBin is the compiled bytecode used for deploying new contracts.
-const MathBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a7230582070fa6eb0cb7a631d2978dfd027d28c10cc0b3967dae2288b2a5ff0d6c9a476fc0029`
+var MathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723058206088d9a17c63d845fc404648ce68aba3c54f7dbdff2d9924b40a8968ead52c2464736f6c63430005090032"
 
 // DeployMath deploys a new Ethereum contract, binding an instance of Math to it.
 func DeployMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Math, error) {
@@ -3762,6 +4091,7 @@ func DeployMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.A
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(MathBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -3915,7 +4245,7 @@ func (_Math *MathTransactorRaw) Transact(opts *bind.TransactOpts, method string,
 const RLPABI = "[]"
 
 // RLPBin is the compiled bytecode used for deploying new contracts.
-const RLPBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a723058206d058bb901168727f1a2b64180e1b4e71111721ff46ab883a41ce354f753c6e80029`
+var RLPBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723058204db3d0cb00c0c2e12d8032084b4855a375dca50756a4038557090ded2527ab8f64736f6c63430005090032"
 
 // DeployRLP deploys a new Ethereum contract, binding an instance of RLP to it.
 func DeployRLP(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RLP, error) {
@@ -3923,6 +4253,7 @@ func DeployRLP(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Ad
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RLPBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -4076,7 +4407,7 @@ func (_RLP *RLPTransactorRaw) Transact(opts *bind.TransactOpts, method string, p
 const RLPEncodeABI = "[]"
 
 // RLPEncodeBin is the compiled bytecode used for deploying new contracts.
-const RLPEncodeBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a72305820860672072daa09b905ffc40c8e11d71c1c9f8c3df13678ac1b9cc692f19d205a0029`
+var RLPEncodeBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a72305820cbe97fecd12ec670b6bce1a4cfbc545712415858846d4d018e052f1fbd2c5ef064736f6c63430005090032"
 
 // DeployRLPEncode deploys a new Ethereum contract, binding an instance of RLPEncode to it.
 func DeployRLPEncode(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RLPEncode, error) {
@@ -4084,6 +4415,7 @@ func DeployRLPEncode(auth *bind.TransactOpts, backend bind.ContractBackend) (com
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RLPEncodeBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -4236,20 +4568,10 @@ func (_RLPEncode *RLPEncodeTransactorRaw) Transact(opts *bind.TransactOpts, meth
 // RequestableIABI is the input ABI used to generate the binding from.
 const RequestableIABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInChildChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"requestId\",\"type\":\"uint256\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"name\":\"applyRequestInRootChain\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
-// RequestableIBin is the compiled bytecode used for deploying new contracts.
-const RequestableIBin = `0x`
-
-// DeployRequestableI deploys a new Ethereum contract, binding an instance of RequestableI to it.
-func DeployRequestableI(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RequestableI, error) {
-	parsed, err := abi.JSON(strings.NewReader(RequestableIABI))
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RequestableIBin), backend)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-	return address, tx, &RequestableI{RequestableICaller: RequestableICaller{contract: contract}, RequestableITransactor: RequestableITransactor{contract: contract}, RequestableIFilterer: RequestableIFilterer{contract: contract}}, nil
+// RequestableIFuncSigs maps the 4-byte function signature to its string representation.
+var RequestableIFuncSigs = map[string]string{
+	"141ecf46": "applyRequestInChildChain(bool,uint256,address,bytes32,bytes)",
+	"a9f79308": "applyRequestInRootChain(bool,uint256,address,bytes32,bytes)",
 }
 
 // RequestableI is an auto generated Go binding around an Ethereum contract.
@@ -4440,7 +4762,7 @@ func (_RequestableI *RequestableITransactorSession) ApplyRequestInRootChain(isEx
 const RootChainEventABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"SessionTimeout\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newFork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"forkedBlockNumber\",\"type\":\"uint256\"}],\"name\":\"Forked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"rebase\",\"type\":\"bool\"}],\"name\":\"EpochPrepared\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilling\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestStart\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestEnd\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochIsEmpty\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"EpochRebased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"fork\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"isRequest\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"BlockSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"weiAmount\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"isExit\",\"type\":\"bool\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"requestor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"trieKey\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"trieValue\",\"type\":\"bytes32\"}],\"name\":\"ERUCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"name\":\"BlockFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"forkNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"epochNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"startBlockNumber\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"endBlockNumber\",\"type\":\"uint256\"}],\"name\":\"EpochFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestFinalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestApplied\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"userActivated\",\"type\":\"bool\"}],\"name\":\"RequestChallenged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"contractInRootchain\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"contractInChildchain\",\"type\":\"address\"}],\"name\":\"RequestableContractMapped\",\"type\":\"event\"}]"
 
 // RootChainEventBin is the compiled bytecode used for deploying new contracts.
-const RootChainEventBin = `0x6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820a946d4df1370616d18bf1eabb1001b8f4b3a001e8cc51fb7503e3d6710dbdedc0029`
+var RootChainEventBin = "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a723058206ee580968ba091e6149f220d7bda19eec17b48b5deecd8f525ce1bf39929c05e64736f6c63430005090032"
 
 // DeployRootChainEvent deploys a new Ethereum contract, binding an instance of RootChainEvent to it.
 func DeployRootChainEvent(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RootChainEvent, error) {
@@ -4448,6 +4770,7 @@ func DeployRootChainEvent(auth *bind.TransactOpts, backend bind.ContractBackend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RootChainEventBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -4720,6 +5043,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchBlockFinalized(opts *bind.Wa
 	}), nil
 }
 
+// ParseBlockFinalized is a log parse operation binding the contract event 0xfb96205e4b3633fd57aa805b26b51ecf528714a10241a4af015929dce86768d9.
+//
+// Solidity: event BlockFinalized(uint256 forkNumber, uint256 blockNumber)
+func (_RootChainEvent *RootChainEventFilterer) ParseBlockFinalized(log types.Log) (*RootChainEventBlockFinalized, error) {
+	event := new(RootChainEventBlockFinalized)
+	if err := _RootChainEvent.contract.UnpackLog(event, "BlockFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventBlockSubmittedIterator is returned from FilterBlockSubmitted and is used to iterate over the raw logs and unpacked data for BlockSubmitted events raised by the RootChainEvent contract.
 type RootChainEventBlockSubmittedIterator struct {
 	Event *RootChainEventBlockSubmitted // Event containing the contract specifics and raw log
@@ -4844,6 +5178,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchBlockSubmitted(opts *bind.Wa
 			}
 		}
 	}), nil
+}
+
+// ParseBlockSubmitted is a log parse operation binding the contract event 0x3d4a04291c66b06f39a4ecb817875b12b5485a05ec563133a56a905305c48e55.
+//
+// Solidity: event BlockSubmitted(uint256 fork, uint256 epochNumber, uint256 blockNumber, bool isRequest, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseBlockSubmitted(log types.Log) (*RootChainEventBlockSubmitted, error) {
+	event := new(RootChainEventBlockSubmitted)
+	if err := _RootChainEvent.contract.UnpackLog(event, "BlockSubmitted", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventERUCreatedIterator is returned from FilterERUCreated and is used to iterate over the raw logs and unpacked data for ERUCreated events raised by the RootChainEvent contract.
@@ -4972,6 +5317,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchERUCreated(opts *bind.WatchO
 	}), nil
 }
 
+// ParseERUCreated is a log parse operation binding the contract event 0xfcbdc2083dadd644b854d91b49aef8db06b8f5a3d5c1192de38ca0ba271d5a0d.
+//
+// Solidity: event ERUCreated(uint256 requestId, address requestor, address to, bytes trieKey, bytes32 trieValue)
+func (_RootChainEvent *RootChainEventFilterer) ParseERUCreated(log types.Log) (*RootChainEventERUCreated, error) {
+	event := new(RootChainEventERUCreated)
+	if err := _RootChainEvent.contract.UnpackLog(event, "ERUCreated", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventEpochFilledIterator is returned from FilterEpochFilled and is used to iterate over the raw logs and unpacked data for EpochFilled events raised by the RootChainEvent contract.
 type RootChainEventEpochFilledIterator struct {
 	Event *RootChainEventEpochFilled // Event containing the contract specifics and raw log
@@ -5093,6 +5449,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchEpochFilled(opts *bind.Watch
 			}
 		}
 	}), nil
+}
+
+// ParseEpochFilled is a log parse operation binding the contract event 0x2fdeb407bf5c2b621f04b5c784822dae806c45b49a68aba413cc270128c96816.
+//
+// Solidity: event EpochFilled(uint256 forkNumber, uint256 epochNumber)
+func (_RootChainEvent *RootChainEventFilterer) ParseEpochFilled(log types.Log) (*RootChainEventEpochFilled, error) {
+	event := new(RootChainEventEpochFilled)
+	if err := _RootChainEvent.contract.UnpackLog(event, "EpochFilled", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventEpochFillingIterator is returned from FilterEpochFilling and is used to iterate over the raw logs and unpacked data for EpochFilling events raised by the RootChainEvent contract.
@@ -5218,6 +5585,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchEpochFilling(opts *bind.Watc
 	}), nil
 }
 
+// ParseEpochFilling is a log parse operation binding the contract event 0x27b09f0953d27bbff306fe25b2987ac5a813248ac30cb2bbd5daf95e7b0e6dc0.
+//
+// Solidity: event EpochFilling(uint256 forkNumber, uint256 epochNumber)
+func (_RootChainEvent *RootChainEventFilterer) ParseEpochFilling(log types.Log) (*RootChainEventEpochFilling, error) {
+	event := new(RootChainEventEpochFilling)
+	if err := _RootChainEvent.contract.UnpackLog(event, "EpochFilling", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventEpochFinalizedIterator is returned from FilterEpochFinalized and is used to iterate over the raw logs and unpacked data for EpochFinalized events raised by the RootChainEvent contract.
 type RootChainEventEpochFinalizedIterator struct {
 	Event *RootChainEventEpochFinalized // Event containing the contract specifics and raw log
@@ -5341,6 +5719,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchEpochFinalized(opts *bind.Wa
 			}
 		}
 	}), nil
+}
+
+// ParseEpochFinalized is a log parse operation binding the contract event 0x70801d4d63b3da6c19ba7349911f45bed5a99ccdfb51b8138c105872529bebd5.
+//
+// Solidity: event EpochFinalized(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber)
+func (_RootChainEvent *RootChainEventFilterer) ParseEpochFinalized(log types.Log) (*RootChainEventEpochFinalized, error) {
+	event := new(RootChainEventEpochFinalized)
+	if err := _RootChainEvent.contract.UnpackLog(event, "EpochFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventEpochPreparedIterator is returned from FilterEpochPrepared and is used to iterate over the raw logs and unpacked data for EpochPrepared events raised by the RootChainEvent contract.
@@ -5474,6 +5863,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchEpochPrepared(opts *bind.Wat
 	}), nil
 }
 
+// ParseEpochPrepared is a log parse operation binding the contract event 0x1a69c0760aa329b76f72579129869013ebd3d41594db019c0e997b939fcb32e3.
+//
+// Solidity: event EpochPrepared(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated, bool rebase)
+func (_RootChainEvent *RootChainEventFilterer) ParseEpochPrepared(log types.Log) (*RootChainEventEpochPrepared, error) {
+	event := new(RootChainEventEpochPrepared)
+	if err := _RootChainEvent.contract.UnpackLog(event, "EpochPrepared", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventEpochRebasedIterator is returned from FilterEpochRebased and is used to iterate over the raw logs and unpacked data for EpochRebased events raised by the RootChainEvent contract.
 type RootChainEventEpochRebasedIterator struct {
 	Event *RootChainEventEpochRebased // Event containing the contract specifics and raw log
@@ -5604,6 +6004,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchEpochRebased(opts *bind.Watc
 	}), nil
 }
 
+// ParseEpochRebased is a log parse operation binding the contract event 0x030c1c69405c93021f28f57557240dee939a320b826a1fd0d39bf6e629ecab47.
+//
+// Solidity: event EpochRebased(uint256 forkNumber, uint256 epochNumber, uint256 startBlockNumber, uint256 endBlockNumber, uint256 requestStart, uint256 requestEnd, bool epochIsEmpty, bool isRequest, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseEpochRebased(log types.Log) (*RootChainEventEpochRebased, error) {
+	event := new(RootChainEventEpochRebased)
+	if err := _RootChainEvent.contract.UnpackLog(event, "EpochRebased", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventForkedIterator is returned from FilterForked and is used to iterate over the raw logs and unpacked data for Forked events raised by the RootChainEvent contract.
 type RootChainEventForkedIterator struct {
 	Event *RootChainEventForked // Event containing the contract specifics and raw log
@@ -5726,6 +6137,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchForked(opts *bind.WatchOpts,
 			}
 		}
 	}), nil
+}
+
+// ParseForked is a log parse operation binding the contract event 0x0647d42ab02f6e0ae76959757dcb6aa6feac1d4ba6f077f1223fb4b1b429f06c.
+//
+// Solidity: event Forked(uint256 newFork, uint256 epochNumber, uint256 forkedBlockNumber)
+func (_RootChainEvent *RootChainEventFilterer) ParseForked(log types.Log) (*RootChainEventForked, error) {
+	event := new(RootChainEventForked)
+	if err := _RootChainEvent.contract.UnpackLog(event, "Forked", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventRequestAppliedIterator is returned from FilterRequestApplied and is used to iterate over the raw logs and unpacked data for RequestApplied events raised by the RootChainEvent contract.
@@ -5851,6 +6273,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchRequestApplied(opts *bind.Wa
 	}), nil
 }
 
+// ParseRequestApplied is a log parse operation binding the contract event 0x6940a01870e576ceb735867e13863646d517ce10e66c0133186a4ebdfe9388c2.
+//
+// Solidity: event RequestApplied(uint256 requestId, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseRequestApplied(log types.Log) (*RootChainEventRequestApplied, error) {
+	event := new(RootChainEventRequestApplied)
+	if err := _RootChainEvent.contract.UnpackLog(event, "RequestApplied", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventRequestChallengedIterator is returned from FilterRequestChallenged and is used to iterate over the raw logs and unpacked data for RequestChallenged events raised by the RootChainEvent contract.
 type RootChainEventRequestChallengedIterator struct {
 	Event *RootChainEventRequestChallenged // Event containing the contract specifics and raw log
@@ -5972,6 +6405,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchRequestChallenged(opts *bind
 			}
 		}
 	}), nil
+}
+
+// ParseRequestChallenged is a log parse operation binding the contract event 0xc8135db115644ed4ae193313c4c801235ef740d2a57a8d5e6fe26ab66635698a.
+//
+// Solidity: event RequestChallenged(uint256 requestId, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseRequestChallenged(log types.Log) (*RootChainEventRequestChallenged, error) {
+	event := new(RootChainEventRequestChallenged)
+	if err := _RootChainEvent.contract.UnpackLog(event, "RequestChallenged", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventRequestCreatedIterator is returned from FilterRequestCreated and is used to iterate over the raw logs and unpacked data for RequestCreated events raised by the RootChainEvent contract.
@@ -6103,6 +6547,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchRequestCreated(opts *bind.Wa
 	}), nil
 }
 
+// ParseRequestCreated is a log parse operation binding the contract event 0x879922cf5fcada9ebaf8bd7424dc62877f4b220cae07fb6695cc1e8f94c52b4d.
+//
+// Solidity: event RequestCreated(uint256 requestId, address requestor, address to, uint256 weiAmount, bytes32 trieKey, bytes trieValue, bool isExit, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseRequestCreated(log types.Log) (*RootChainEventRequestCreated, error) {
+	event := new(RootChainEventRequestCreated)
+	if err := _RootChainEvent.contract.UnpackLog(event, "RequestCreated", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventRequestFinalizedIterator is returned from FilterRequestFinalized and is used to iterate over the raw logs and unpacked data for RequestFinalized events raised by the RootChainEvent contract.
 type RootChainEventRequestFinalizedIterator struct {
 	Event *RootChainEventRequestFinalized // Event containing the contract specifics and raw log
@@ -6224,6 +6679,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchRequestFinalized(opts *bind.
 			}
 		}
 	}), nil
+}
+
+// ParseRequestFinalized is a log parse operation binding the contract event 0x134017cf3262b18f892ee95dde3b0aec9a80cc70a7c96f09c64bd237aceb0473.
+//
+// Solidity: event RequestFinalized(uint256 requestId, bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseRequestFinalized(log types.Log) (*RootChainEventRequestFinalized, error) {
+	event := new(RootChainEventRequestFinalized)
+	if err := _RootChainEvent.contract.UnpackLog(event, "RequestFinalized", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainEventRequestableContractMappedIterator is returned from FilterRequestableContractMapped and is used to iterate over the raw logs and unpacked data for RequestableContractMapped events raised by the RootChainEvent contract.
@@ -6349,6 +6815,17 @@ func (_RootChainEvent *RootChainEventFilterer) WatchRequestableContractMapped(op
 	}), nil
 }
 
+// ParseRequestableContractMapped is a log parse operation binding the contract event 0xc5ec2ed49686197edd2ed642c7e6096893cc81e6658cde2527030316037715d0.
+//
+// Solidity: event RequestableContractMapped(address contractInRootchain, address contractInChildchain)
+func (_RootChainEvent *RootChainEventFilterer) ParseRequestableContractMapped(log types.Log) (*RootChainEventRequestableContractMapped, error) {
+	event := new(RootChainEventRequestableContractMapped)
+	if err := _RootChainEvent.contract.UnpackLog(event, "RequestableContractMapped", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainEventSessionTimeoutIterator is returned from FilterSessionTimeout and is used to iterate over the raw logs and unpacked data for SessionTimeout events raised by the RootChainEvent contract.
 type RootChainEventSessionTimeoutIterator struct {
 	Event *RootChainEventSessionTimeout // Event containing the contract specifics and raw log
@@ -6471,11 +6948,60 @@ func (_RootChainEvent *RootChainEventFilterer) WatchSessionTimeout(opts *bind.Wa
 	}), nil
 }
 
+// ParseSessionTimeout is a log parse operation binding the contract event 0x2122ec719581cd177f225f59a1ee005831211196831f8f1ccffa817d2e7bd108.
+//
+// Solidity: event SessionTimeout(bool userActivated)
+func (_RootChainEvent *RootChainEventFilterer) ParseSessionTimeout(log types.Log) (*RootChainEventSessionTimeout, error) {
+	event := new(RootChainEventSessionTimeout)
+	if err := _RootChainEvent.contract.UnpackLog(event, "SessionTimeout", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // RootChainStorageABI is the input ABI used to generate the binding from.
-const RootChainStorageABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const RootChainStorageABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB_PREPARE\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_COMPUTATION\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedForkNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"currentFork\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_URB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numEnterForORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"EROIdToFinalize\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"forks\",\"outputs\":[{\"name\":\"forkedBlock\",\"type\":\"uint64\"},{\"name\":\"firstEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEpoch\",\"type\":\"uint64\"},{\"name\":\"firstBlock\",\"type\":\"uint64\"},{\"name\":\"lastBlock\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedEpoch\",\"type\":\"uint64\"},{\"name\":\"lastFinalizedBlock\",\"type\":\"uint64\"},{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"firstEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"lastEnterEpoch\",\"type\":\"uint64\"},{\"name\":\"nextBlockToRebase\",\"type\":\"uint64\"},{\"name\":\"rebased\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"operator\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstFilledORENumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"development\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_EXIT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERU\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"REQUEST_GAS\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_NRB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NRELength\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"CP_WITHHOLDING\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ORB\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"EROs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"lastNonEmptyRequestEpoch\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"etherToken\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"URBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"PREPARE_TIMEOUT\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"ERUIdToFinalize\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedEpochNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"firstNonEmptyRequestEpoch\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"COST_ERO\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"requestableContracts\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"NULL_ADDRESS\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"submitHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"epochHandler\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ORBs\",\"outputs\":[{\"name\":\"submitted\",\"type\":\"bool\"},{\"name\":\"numEnter\",\"type\":\"uint64\"},{\"name\":\"epochNumber\",\"type\":\"uint64\"},{\"name\":\"requestStart\",\"type\":\"uint64\"},{\"name\":\"requestEnd\",\"type\":\"uint64\"},{\"name\":\"trie\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"ERUs\",\"outputs\":[{\"name\":\"timestamp\",\"type\":\"uint64\"},{\"name\":\"isExit\",\"type\":\"bool\"},{\"name\":\"isTransfer\",\"type\":\"bool\"},{\"name\":\"finalized\",\"type\":\"bool\"},{\"name\":\"challenged\",\"type\":\"bool\"},{\"name\":\"value\",\"type\":\"uint128\"},{\"name\":\"requestor\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"trieKey\",\"type\":\"bytes32\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"trieValue\",\"type\":\"bytes\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"lastAppliedBlockNumber\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
+
+// RootChainStorageFuncSigs maps the 4-byte function signature to its string representation.
+var RootChainStorageFuncSigs = map[string]string{
+	"d691acd8": "COST_ERO()",
+	"8b5172d0": "COST_ERU()",
+	"94be3aa5": "COST_NRB()",
+	"b2ae9ba8": "COST_ORB()",
+	"192adc5b": "COST_URB()",
+	"033cfbed": "COST_URB_PREPARE()",
+	"08c4fff0": "CP_COMPUTATION()",
+	"8155717d": "CP_EXIT()",
+	"b17fa6e9": "CP_WITHHOLDING()",
+	"2dc6bb7b": "EROIdToFinalize()",
+	"b443f3cc": "EROs(uint256)",
+	"c54626cc": "ERUIdToFinalize()",
+	"f4f31de4": "ERUs(uint256)",
+	"ab96da2d": "NRELength()",
+	"de0ce17d": "NULL_ADDRESS()",
+	"ea7f22a8": "ORBs(uint256)",
+	"c2bc88fa": "PREPARE_TIMEOUT()",
+	"8eb288ca": "REQUEST_GAS()",
+	"c0e86064": "URBs(uint256)",
+	"183d2d1c": "currentFork()",
+	"7b929c27": "development()",
+	"e7b88b80": "epochHandler()",
+	"b8066bcb": "etherToken()",
+	"72ecb9a8": "firstFilledORENumber(uint256)",
+	"ca6f6380": "firstNonEmptyRequestEpoch(uint256)",
+	"4ba3a126": "forks(uint256)",
+	"fb788a27": "lastAppliedBlockNumber()",
+	"c8ad329f": "lastAppliedEpochNumber()",
+	"164bc2ae": "lastAppliedForkNumber()",
+	"b6715647": "lastNonEmptyRequestEpoch(uint256)",
+	"23691566": "numEnterForORB()",
+	"570ca735": "operator()",
+	"da0185f8": "requestableContracts(address)",
+	"e259faf7": "submitHandler()",
+}
 
 // RootChainStorageBin is the compiled bytecode used for deploying new contracts.
-const RootChainStorageBin = `0x608060405234801561001057600080fd5b50610955806100206000396000f30060806040526004361061017f5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663033cfbed811461018457806308c4fff0146101ab578063164bc2ae146101c0578063183d2d1c146101d5578063192adc5b146101ea5780631f261d59146101ff57806323691566146102145780634ba3a12614610229578063570ca735146102b057806365d724bc146102e157806372ecb9a8146102f65780637b929c271461030e5780638155717d146103375780638b5172d01461034c5780638eb288ca1461036157806394be3aa514610184578063ab96da2d14610376578063b17fa6e91461038b578063b2ae9ba814610184578063b443f3cc146103a0578063b8066bcb146104b4578063c0e86064146104c9578063c2bc88fa1461052d578063d691acd814610184578063da0185f814610542578063de0ce17d14610563578063e7b88b8014610578578063ea7f22a81461058d578063f4f31de4146105a5578063fb788a27146105bd575b600080fd5b34801561019057600080fd5b506101996105d2565b60408051918252519081900360200190f35b3480156101b757600080fd5b506101996105dc565b3480156101cc57600080fd5b506101996105e1565b3480156101e157600080fd5b506101996105e7565b3480156101f657600080fd5b506101996105ed565b34801561020b57600080fd5b506101996105f7565b34801561022057600080fd5b506101996105fd565b34801561023557600080fd5b50610241600435610603565b6040805167ffffffffffffffff9c8d1681529a8c1660208c0152988b168a8a0152968a1660608a0152948916608089015292881660a088015290871660c0870152861660e086015285166101008501529093166101208301529115156101408201529051908190036101600190f35b3480156102bc57600080fd5b506102c561069d565b60408051600160a060020a039092168252519081900360200190f35b3480156102ed57600080fd5b506101996106b1565b34801561030257600080fd5b506101996004356106b7565b34801561031a57600080fd5b506103236106c9565b604080519115158252519081900360200190f35b34801561034357600080fd5b506101996106d2565b34801561035857600080fd5b506101996106d7565b34801561036d57600080fd5b506101996106e1565b34801561038257600080fd5b506101996106e8565b34801561039757600080fd5b506101996106ee565b3480156103ac57600080fd5b506103b86004356106f3565b6040805167ffffffffffffffff8d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526fffffffffffffffffffffffffffffffff881660a0820152600160a060020a0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b8381101561046f578181015183820152602001610457565b50505050905090810190601f16801561049c5780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b3480156104c057600080fd5b506102c5610842565b3480156104d557600080fd5b506104e1600435610851565b60408051961515875267ffffffffffffffff95861660208801529385168685015291841660608601529092166080840152600160a060020a0390911660a0830152519081900360c00190f35b34801561053957600080fd5b506101996108d3565b34801561054e57600080fd5b506102c5600160a060020a03600435166108d8565b34801561056f57600080fd5b506102c56108f3565b34801561058457600080fd5b506102c56108f8565b34801561059957600080fd5b506104e1600435610907565b3480156105b157600080fd5b506103b8600435610915565b3480156105c957600080fd5b50610199610923565b6509184e72a00081565b600f81565b600c5481565b60045481565b6551dac207a00081565b600f5481565b600b5481565b60066020526000908152604090208054600182015460029092015467ffffffffffffffff808316936801000000000000000080850483169470010000000000000000000000000000000080820485169578010000000000000000000000000000000000000000000000009283900486169585811695858104821695848204831695909104821693838316939182049092169160ff9104168b565b6000546101009004600160a060020a031681565b600e5481565b60056020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60035481565b601481565b600780548290811061070157fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b0190955284875267ffffffffffffffff88169a5068010000000000000000880460ff9081169a69010000000000000000008a0482169a6a01000000000000000000008b0483169a6b0100000000000000000000008104909316996c010000000000000000000000009093046fffffffffffffffffffffffffffffffff1698600160a060020a03908116989716969093918301828280156108385780601f1061080d57610100808354040283529160200191610838565b820191906000526020600020905b81548152906001019060200180831161081b57829003601f168201915b505050505090508b565b600254600160a060020a031681565b600a80548290811061085f57fe5b60009182526020909120600290910201805460019091015460ff8216925067ffffffffffffffff61010083048116926901000000000000000000810482169271010000000000000000000000000000000000909104821691811690600160a060020a03680100000000000000009091041686565b603c81565b601060205260009081526040902054600160a060020a031681565b600081565b600154600160a060020a031681565b600980548290811061085f57fe5b600880548290811061070157fe5b600d54815600a165627a7a723058204b9f4c672c65116cd5c0f5573240855dd95f385f94e5bb1a0ff15add4eb2d6170029`
+var RootChainStorageBin = "0x608060405234801561001057600080fd5b5061091b806100206000396000f3fe608060405234801561001057600080fd5b50600436106102065760003560e01c8063b2ae9ba81161011a578063ca6f6380116100ad578063e259faf71161007c578063e259faf71461056f578063e7b88b8014610577578063ea7f22a81461057f578063f4f31de41461059c578063fb788a27146105b957610206565b8063ca6f638014610524578063d691acd81461020b578063da0185f814610541578063de0ce17d1461056757610206565b8063c0e86064116100e9578063c0e86064146104a3578063c2bc88fa1461050c578063c54626cc14610514578063c8ad329f1461051c57610206565b8063b2ae9ba81461020b578063b443f3cc1461036e578063b67156471461047e578063b8066bcb1461049b57610206565b8063570ca7351161019d5780638b5172d01161016c5780638b5172d01461034e5780638eb288ca1461035657806394be3aa51461020b578063ab96da2d1461035e578063b17fa6e91461036657610206565b8063570ca735146102e957806372ecb9a81461030d5780637b929c271461032a5780638155717d1461034657610206565b8063192adc5b116101d9578063192adc5b1461023d57806323691566146102455780632dc6bb7b1461024d5780634ba3a1261461025557610206565b8063033cfbed1461020b57806308c4fff014610225578063164bc2ae1461022d578063183d2d1c14610235575b600080fd5b6102136105c1565b60408051918252519081900360200190f35b6102136105cb565b6102136105d0565b6102136105d6565b6102136105dc565b6102136105e6565b6102136105ec565b6102726004803603602081101561026b57600080fd5b50356105f2565b6040805167ffffffffffffffff9d8e1681529b8d1660208d0152998c168b8b0152978b1660608b0152958a1660808a015293891660a089015291881660c0880152871660e0870152861661010086015285166101208501529093166101408301529115156101608201529051908190036101800190f35b6102f161066a565b604080516001600160a01b039092168252519081900360200190f35b6102136004803603602081101561032357600080fd5b503561067e565b610332610690565b604080519115158252519081900360200190f35b610213610699565b61021361069e565b6102136106a8565b6102136106af565b6102136106b5565b61038b6004803603602081101561038457600080fd5b50356106ba565b6040805167ffffffffffffffff8d1681528b15156020808301919091528b151592820192909252891515606082015288151560808201526001600160801b03881660a08201526001600160a01b0380881660c0830152861660e082015261010081018590526101208101849052610160610140820181815284519183019190915283519192909161018084019185019080838360005b83811015610439578181015183820152602001610421565b50505050905090810190601f1680156104665780820380516001836020036101000a031916815260200191505b509c5050505050505050505050505060405180910390f35b6102136004803603602081101561049457600080fd5b50356107dc565b6102f16107ee565b6104c0600480360360208110156104b957600080fd5b50356107fd565b60408051961515875267ffffffffffffffff958616602088015293851686850152918416606086015290921660808401526001600160a01b0390911660a0830152519081900360c00190f35b610213610865565b61021361086a565b610213610870565b6102136004803603602081101561053a57600080fd5b5035610876565b6102f16004803603602081101561055757600080fd5b50356001600160a01b0316610888565b6102f16108a3565b6102f16108a8565b6102f16108b7565b6104c06004803603602081101561059557600080fd5b50356108c6565b61038b600480360360208110156105b257600080fd5b50356108d3565b6102136108e0565b6509184e72a00081565b600f81565b600f5481565b60055481565b6551dac207a00081565b600c5481565b60125481565b60076020526000908152604090208054600182015460029092015467ffffffffffffffff80831693600160401b808504831694600160801b808204851695600160c01b92839004861695858116958581048216958482048316959182900483169484841694918204841693908204169160ff9104168c565b60005461010090046001600160a01b031681565b60066020526000908152604090205481565b60005460ff1681565b600a81565b6512309ce5400081565b620186a081565b60045481565b601481565b600881815481106106c757fe5b6000918252602091829020600691909102018054600180830154600280850154600386015460048701546005880180546040805161010099831615999099026000190190911695909504601f81018b90048b0288018b0190955284875267ffffffffffffffff88169a50600160401b880460ff9081169a600160481b8a0482169a600160501b8b0483169a600160581b810490931699600160601b9093046001600160801b0316986001600160a01b03908116989716969093918301828280156107d25780601f106107a7576101008083540402835291602001916107d2565b820191906000526020600020905b8154815290600101906020018083116107b557829003601f168201915b505050505090508b565b600d6020526000908152604090205481565b6003546001600160a01b031681565b600b818154811061080a57fe5b60009182526020909120600290910201805460019091015460ff8216925067ffffffffffffffff6101008304811692600160481b8104821692600160881b9091048216918116906001600160a01b03600160401b9091041686565b603c81565b60135481565b60105481565b600e6020526000908152604090205481565b6014602052600090815260409020546001600160a01b031681565b600081565b6002546001600160a01b031681565b6001546001600160a01b031681565b600a818154811061080a57fe5b600981815481106106c757fe5b6011548156fea265627a7a7230582032b282f30304a93e27cf3923dd26b846ceee3a3ccb8149f011de32df3002ce4764736f6c63430005090032"
 
 // DeployRootChainStorage deploys a new Ethereum contract, binding an instance of RootChainStorage to it.
 func DeployRootChainStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RootChainStorage, error) {
@@ -6483,6 +7009,7 @@ func DeployRootChainStorage(auth *bind.TransactOpts, backend bind.ContractBacken
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RootChainStorageBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -6866,6 +7393,32 @@ func (_RootChainStorage *RootChainStorageCallerSession) CPWITHHOLDING() (*big.In
 	return _RootChainStorage.Contract.CPWITHHOLDING(&_RootChainStorage.CallOpts)
 }
 
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCaller) EROIdToFinalize(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _RootChainStorage.contract.Call(opts, out, "EROIdToFinalize")
+	return *ret0, err
+}
+
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageSession) EROIdToFinalize() (*big.Int, error) {
+	return _RootChainStorage.Contract.EROIdToFinalize(&_RootChainStorage.CallOpts)
+}
+
+// EROIdToFinalize is a free data retrieval call binding the contract method 0x2dc6bb7b.
+//
+// Solidity: function EROIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCallerSession) EROIdToFinalize() (*big.Int, error) {
+	return _RootChainStorage.Contract.EROIdToFinalize(&_RootChainStorage.CallOpts)
+}
+
 // EROs is a free data retrieval call binding the contract method 0xb443f3cc.
 //
 // Solidity: function EROs(uint256 ) constant returns(uint64 timestamp, bool isExit, bool isTransfer, bool finalized, bool challenged, uint128 value, address requestor, address to, bytes32 trieKey, bytes32 hash, bytes trieValue)
@@ -6936,6 +7489,32 @@ func (_RootChainStorage *RootChainStorageCallerSession) EROs(arg0 *big.Int) (str
 	TrieValue  []byte
 }, error) {
 	return _RootChainStorage.Contract.EROs(&_RootChainStorage.CallOpts, arg0)
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCaller) ERUIdToFinalize(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _RootChainStorage.contract.Call(opts, out, "ERUIdToFinalize")
+	return *ret0, err
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageSession) ERUIdToFinalize() (*big.Int, error) {
+	return _RootChainStorage.Contract.ERUIdToFinalize(&_RootChainStorage.CallOpts)
+}
+
+// ERUIdToFinalize is a free data retrieval call binding the contract method 0xc54626cc.
+//
+// Solidity: function ERUIdToFinalize() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCallerSession) ERUIdToFinalize() (*big.Int, error) {
+	return _RootChainStorage.Contract.ERUIdToFinalize(&_RootChainStorage.CallOpts)
 }
 
 // ERUs is a free data retrieval call binding the contract method 0xf4f31de4.
@@ -7348,15 +7927,42 @@ func (_RootChainStorage *RootChainStorageCallerSession) FirstFilledORENumber(arg
 	return _RootChainStorage.Contract.FirstFilledORENumber(&_RootChainStorage.CallOpts, arg0)
 }
 
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCaller) FirstNonEmptyRequestEpoch(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _RootChainStorage.contract.Call(opts, out, "firstNonEmptyRequestEpoch", arg0)
+	return *ret0, err
+}
+
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageSession) FirstNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _RootChainStorage.Contract.FirstNonEmptyRequestEpoch(&_RootChainStorage.CallOpts, arg0)
+}
+
+// FirstNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xca6f6380.
+//
+// Solidity: function firstNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCallerSession) FirstNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _RootChainStorage.Contract.FirstNonEmptyRequestEpoch(&_RootChainStorage.CallOpts, arg0)
+}
+
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageCaller) Forks(opts *bind.CallOpts, arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -7370,6 +7976,7 @@ func (_RootChainStorage *RootChainStorageCaller) Forks(opts *bind.CallOpts, arg0
 		LastEpoch          uint64
 		FirstBlock         uint64
 		LastBlock          uint64
+		LastFinalizedEpoch uint64
 		LastFinalizedBlock uint64
 		Timestamp          uint64
 		FirstEnterEpoch    uint64
@@ -7384,13 +7991,14 @@ func (_RootChainStorage *RootChainStorageCaller) Forks(opts *bind.CallOpts, arg0
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -7403,13 +8011,14 @@ func (_RootChainStorage *RootChainStorageSession) Forks(arg0 *big.Int) (struct {
 
 // Forks is a free data retrieval call binding the contract method 0x4ba3a126.
 //
-// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
+// Solidity: function forks(uint256 ) constant returns(uint64 forkedBlock, uint64 firstEpoch, uint64 lastEpoch, uint64 firstBlock, uint64 lastBlock, uint64 lastFinalizedEpoch, uint64 lastFinalizedBlock, uint64 timestamp, uint64 firstEnterEpoch, uint64 lastEnterEpoch, uint64 nextBlockToRebase, bool rebased)
 func (_RootChainStorage *RootChainStorageCallerSession) Forks(arg0 *big.Int) (struct {
 	ForkedBlock        uint64
 	FirstEpoch         uint64
 	LastEpoch          uint64
 	FirstBlock         uint64
 	LastBlock          uint64
+	LastFinalizedEpoch uint64
 	LastFinalizedBlock uint64
 	Timestamp          uint64
 	FirstEnterEpoch    uint64
@@ -7446,56 +8055,30 @@ func (_RootChainStorage *RootChainStorageCallerSession) LastAppliedBlockNumber()
 	return _RootChainStorage.Contract.LastAppliedBlockNumber(&_RootChainStorage.CallOpts)
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageCaller) LastAppliedERO(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCaller) LastAppliedEpochNumber(opts *bind.CallOpts) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
 	)
 	out := ret0
-	err := _RootChainStorage.contract.Call(opts, out, "lastAppliedERO")
+	err := _RootChainStorage.contract.Call(opts, out, "lastAppliedEpochNumber")
 	return *ret0, err
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageSession) LastAppliedERO() (*big.Int, error) {
-	return _RootChainStorage.Contract.LastAppliedERO(&_RootChainStorage.CallOpts)
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageSession) LastAppliedEpochNumber() (*big.Int, error) {
+	return _RootChainStorage.Contract.LastAppliedEpochNumber(&_RootChainStorage.CallOpts)
 }
 
-// LastAppliedERO is a free data retrieval call binding the contract method 0x65d724bc.
+// LastAppliedEpochNumber is a free data retrieval call binding the contract method 0xc8ad329f.
 //
-// Solidity: function lastAppliedERO() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageCallerSession) LastAppliedERO() (*big.Int, error) {
-	return _RootChainStorage.Contract.LastAppliedERO(&_RootChainStorage.CallOpts)
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageCaller) LastAppliedERU(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _RootChainStorage.contract.Call(opts, out, "lastAppliedERU")
-	return *ret0, err
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageSession) LastAppliedERU() (*big.Int, error) {
-	return _RootChainStorage.Contract.LastAppliedERU(&_RootChainStorage.CallOpts)
-}
-
-// LastAppliedERU is a free data retrieval call binding the contract method 0x1f261d59.
-//
-// Solidity: function lastAppliedERU() constant returns(uint256)
-func (_RootChainStorage *RootChainStorageCallerSession) LastAppliedERU() (*big.Int, error) {
-	return _RootChainStorage.Contract.LastAppliedERU(&_RootChainStorage.CallOpts)
+// Solidity: function lastAppliedEpochNumber() constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCallerSession) LastAppliedEpochNumber() (*big.Int, error) {
+	return _RootChainStorage.Contract.LastAppliedEpochNumber(&_RootChainStorage.CallOpts)
 }
 
 // LastAppliedForkNumber is a free data retrieval call binding the contract method 0x164bc2ae.
@@ -7522,6 +8105,32 @@ func (_RootChainStorage *RootChainStorageSession) LastAppliedForkNumber() (*big.
 // Solidity: function lastAppliedForkNumber() constant returns(uint256)
 func (_RootChainStorage *RootChainStorageCallerSession) LastAppliedForkNumber() (*big.Int, error) {
 	return _RootChainStorage.Contract.LastAppliedForkNumber(&_RootChainStorage.CallOpts)
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCaller) LastNonEmptyRequestEpoch(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _RootChainStorage.contract.Call(opts, out, "lastNonEmptyRequestEpoch", arg0)
+	return *ret0, err
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageSession) LastNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _RootChainStorage.Contract.LastNonEmptyRequestEpoch(&_RootChainStorage.CallOpts, arg0)
+}
+
+// LastNonEmptyRequestEpoch is a free data retrieval call binding the contract method 0xb6715647.
+//
+// Solidity: function lastNonEmptyRequestEpoch(uint256 ) constant returns(uint256)
+func (_RootChainStorage *RootChainStorageCallerSession) LastNonEmptyRequestEpoch(arg0 *big.Int) (*big.Int, error) {
+	return _RootChainStorage.Contract.LastNonEmptyRequestEpoch(&_RootChainStorage.CallOpts, arg0)
 }
 
 // NumEnterForORB is a free data retrieval call binding the contract method 0x23691566.
@@ -7602,11 +8211,37 @@ func (_RootChainStorage *RootChainStorageCallerSession) RequestableContracts(arg
 	return _RootChainStorage.Contract.RequestableContracts(&_RootChainStorage.CallOpts, arg0)
 }
 
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
+//
+// Solidity: function submitHandler() constant returns(address)
+func (_RootChainStorage *RootChainStorageCaller) SubmitHandler(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _RootChainStorage.contract.Call(opts, out, "submitHandler")
+	return *ret0, err
+}
+
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
+//
+// Solidity: function submitHandler() constant returns(address)
+func (_RootChainStorage *RootChainStorageSession) SubmitHandler() (common.Address, error) {
+	return _RootChainStorage.Contract.SubmitHandler(&_RootChainStorage.CallOpts)
+}
+
+// SubmitHandler is a free data retrieval call binding the contract method 0xe259faf7.
+//
+// Solidity: function submitHandler() constant returns(address)
+func (_RootChainStorage *RootChainStorageCallerSession) SubmitHandler() (common.Address, error) {
+	return _RootChainStorage.Contract.SubmitHandler(&_RootChainStorage.CallOpts)
+}
+
 // SafeMathABI is the input ABI used to generate the binding from.
 const SafeMathABI = "[]"
 
 // SafeMathBin is the compiled bytecode used for deploying new contracts.
-const SafeMathBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f30073000000000000000000000000000000000000000030146080604052600080fd00a165627a7a7230582077dd01411fe76a4319be092b6370ba52ea363d77483720cb3df4667b4db983540029`
+var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723058201da5f5be29b57b3320a859ffcc42395bd583e549ffc40551affe4a01a35b887d64736f6c63430005090032"
 
 // DeploySafeMath deploys a new Ethereum contract, binding an instance of SafeMath to it.
 func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *SafeMath, error) {
@@ -7614,6 +8249,7 @@ func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (comm
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+
 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(SafeMathBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
