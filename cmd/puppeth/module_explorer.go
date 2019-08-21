@@ -59,8 +59,8 @@ services:
             - "{{.EthPort}}:{{.EthPort}}/udp"{{if not .VHost}}
             - "{{.WebPort}}:4000"{{end}}
         environment:
-						- ROOTCHAIN_URL={{.RootChainURL}}
-						- ETH_PORT={{.EthPort}}
+            - ROOTCHAIN_URL={{.RootChainURL}}
+            - ETH_PORT={{.EthPort}}
             - ETH_NAME={{.EthName}}
             - BLOCK_TRANSFORMER={{.Transformer}}{{if .VHost}}
             - VIRTUAL_HOST={{.VHost}}
