@@ -46,9 +46,10 @@ const (
 func (pls *LightEthereum) startBloomHandlers(sectionSize uint64) {
 	for i := 0; i < bloomServiceThreads; i++ {
 		go func() {
+			defer eth.wg.Done()
 			for {
 				select {
-				case <-pls.shutdownChan:
+				case <-pls.closeCh:
 					return
 
 				case request := <-pls.bloomRequests:
