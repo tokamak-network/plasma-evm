@@ -264,6 +264,53 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "PLASMA EVM - DEVELOPMENT MODE",
+		Flags: []cli.Flag{
+			utils.DeveloperFlag,
+			utils.DeveloperPeriodFlag,
+			utils.DeveloperKeyFlag,
+		},
+	},
+	{
+		Name: "PLASMA EVM - OPERATOR",
+		Flags: []cli.Flag{
+			utils.OperatorAddressFlag,
+			utils.OperatorKeyFlag,
+			utils.OperatorMinEtherFlag,
+			utils.MinerRecommitIntervalFlag,
+		},
+	},
+	{
+		Name: "PLASMA EVM - ROOTCHAIN TRANSACTION MANAGER",
+		Flags: []cli.Flag{
+			utils.TxGasPriceFlag,
+			utils.TxMinGasPriceFlag,
+			utils.TxMaxGasPriceFlag,
+			utils.TxResubmitFlag,
+		},
+	},
+	{
+		Name: "PLASMA EVM - STAMINA",
+		Flags: []cli.Flag{
+			utils.StaminaMinDepositFlag,
+			utils.StaminaRecoverEpochLengthFlag,
+			utils.StaminaWithdrawalDelayFlag,
+		},
+	},
+	{
+		Name: "PLASMA EVM - CHALLENGER",
+		Flags: []cli.Flag{
+			utils.PlasmaRootChainChallenger,
+		},
+	},
+	{
+		Name: "PLASMA EVM - ROOTCHAIN CONTRACT",
+		Flags: []cli.Flag{
+			utils.RootChainUrlFlag,
+			utils.RootChainContractFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }
