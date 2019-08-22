@@ -1568,12 +1568,14 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 				err     error
 			)
 
-			if account, err = ks.ImportECDSA(key, ""); err != nil {
-				Fatalf("Faild to import developer account: %v", err)
+			addr := crypto.PubkeyToAddress(key.PublicKey)
+			if _, err := ks.Find(accounts.Account{Address: addr}); err != nil {
+				if account, err = ks.ImportECDSA(key, ""); err != nil {
+					Fatalf("Faild to import developer account: %v", err)
+				}
 			}
 
 			log.Info("Unlocking developer account", "address", account.Address)
-
 			if err = ks.Unlock(account, ""); err != nil {
 				Fatalf("Failed to unlock developer account: %v", err)
 			}
