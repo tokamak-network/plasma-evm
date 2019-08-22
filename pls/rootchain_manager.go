@@ -184,6 +184,8 @@ func (rcm *RootChainManager) run() error {
 
 // watchEvents watchs RootChain contract events
 func (rcm *RootChainManager) watchEvents() error {
+	closed := false
+
 	filterer, err := rootchain.NewRootChainFilterer(rcm.config.RootChainContract, rcm.backend)
 	if err != nil {
 		return err
@@ -236,16 +238,49 @@ func (rcm *RootChainManager) watchEvents() error {
 	epochPrepareWatchCh := make(chan *rootchain.RootChainEpochPrepared)
 	blockFinalizedWatchCh := make(chan *rootchain.RootChainBlockFinalized)
 
-	log.Info("Watching epoch prepared event", "start block number", startBlockNumber)
+	log.Info("Watching epoch prepared event", "startBlockNumber", startBlockNumber)
 	epochPrepareSub, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Watching block finalized event", "start block number", startBlockNumber)
+	log.Info("Watching block finalized event", "startBlockNumber", startBlockNumber)
 	blockFinalizedSub, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
 	if err != nil {
 		return err
+	}
+
+	resubTimer := time.NewTimer(0)
+	<-resubTimer.C
+	resub := func() {
+		if closed {
+			return
+		}
+
+		startBlockNumber := rcm.blockchain.GetRootchainBlockNumber() + 1
+		watchOpts := &bind.WatchOpts{
+			Context: context.Background(),
+			Start:   &startBlockNumber,
+		}
+
+		log.Info("Re-subsribe EpochPrepared event", "startBlockNumber", startBlockNumber)
+		epochPrepareSub2, err := filterer.WatchEpochPrepared(watchOpts, epochPrepareWatchCh)
+		if err != nil {
+			log.Error("Failed to re-subscribe event", "err", err)
+			resubTimer.Reset(5 * time.Second)
+			return
+		}
+		epochPrepareSub = epochPrepareSub2
+
+		log.Info("Watching block finalized event", "startBlockNumber", startBlockNumber)
+		blockFinalizedSub2, err := filterer.WatchBlockFinalized(watchOpts, blockFinalizedWatchCh)
+		if err != nil {
+			log.Error("Failed to re-subscribe event", "err", err)
+			resubTimer.Reset(5 * time.Second)
+			return
+		}
+
+		blockFinalizedSub = blockFinalizedSub2
 	}
 
 	// TODO: wait untli previous submit transaction is mined.
@@ -261,10 +296,8 @@ func (rcm *RootChainManager) watchEvents() error {
 			case err := <-epochPrepareSub.Err():
 				if err != nil {
 					log.Error("Epoch prepared event subscription error", "err", err)
-
+					resub()
 				}
-				rcm.stopFn()
-				return
 
 			case e := <-blockFinalizedWatchCh:
 				if e != nil {
@@ -274,11 +307,12 @@ func (rcm *RootChainManager) watchEvents() error {
 			case err := <-blockFinalizedSub.Err():
 				if err != nil {
 					log.Error("Block finalized event subscription error", "err", err)
+					resub()
 				}
-				rcm.stopFn()
 				return
 
 			case <-rcm.quit:
+				closed = true
 				return
 			}
 		}
@@ -817,9 +851,6 @@ func (rcm *RootChainManager) pingBackend() {
 		case <-ticker.C:
 			if _, err := rcm.backend.SyncProgress(context.Background()); err != nil {
 				log.Error("Rootchain provider doesn't respond", "err", err)
-				ticker.Stop()
-				rcm.stopFn()
-				return
 			}
 		case <-rcm.quit:
 			ticker.Stop()

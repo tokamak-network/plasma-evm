@@ -59,6 +59,8 @@ type TransactionManager struct {
 
 	nonce map[common.Address]uint64 // account nonce
 
+	lastInspectTime time.Time
+
 	numKnownErr map[common.Hash]uint64 // number of know transaction error
 
 	taskCh chan *RawTransaction
@@ -607,38 +609,16 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
-	tm.inspect(addr)
+	if time.Since(tm.lastInspectTime) > time.Second*5 {
+		tm.inspect(addr)
+	}
 
 	// short circuit if unconfirmed is nil or empty.
 	if tm.unconfirmed[addr] == nil || len(tm.unconfirmed[addr]) == 0 {
 		return
 	}
 
-	// remove already confirmed raw transactions
-	numConfirmed := ReadNumConfirmedRawTxs(tm.db, addr)
-	currentBlockNumber := new(big.Int).Set(tm.currentBlockNumber)
-	i := 0
-	for ; i < len(tm.unconfirmed[addr]); i++ {
-		raw := tm.unconfirmed[addr][i]
-		log.Debug("check raw is confirmed", "addr", addr, "caption", raw.getCaption())
-
-		if !raw.Confirmed(tm.backend, currentBlockNumber) {
-			log.Debug("raw is not confirmed")
-			break
-		}
-		log.Info("Transaction is confirmed", "addr", addr, "caption", raw.getCaption())
-		raw.ConfirmedIndex = numConfirmed
-		tm.confirmed[addr] = append(tm.confirmed[addr], raw)
-		WriteConfirmedTx(tm.db, addr, numConfirmed, raw)
-		numConfirmed++
-	}
-
-	if i != 0 {
-		tm.unconfirmed[addr] = tm.unconfirmed[addr][i:]
-		WriteNumConfirmedRawTxs(tm.db, addr, numConfirmed)
-		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
-	}
-
+	// re-add removed raw transaction into queue
 	var lastRemovedRaw *RawTransaction
 	var newUnconfirmed RawTransactions
 	for _, raw := range tm.unconfirmed[addr] {
@@ -666,7 +646,32 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 
 		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
 		WritePendingTxs(tm.db, addr, tm.pending[addr])
-		log.Debug("Last pending transaction updated", "index", lastRemovedRaw.ConfirmedIndex)
+	}
+
+	// remove already confirmed raw transactions
+	numConfirmed := ReadNumConfirmedRawTxs(tm.db, addr)
+	currentBlockNumber := new(big.Int).Set(tm.currentBlockNumber)
+	i := 0
+	for ; i < len(tm.unconfirmed[addr]); i++ {
+		raw := tm.unconfirmed[addr][i]
+		log.Debug("check raw is confirmed", "addr", addr, "caption", raw.getCaption())
+
+		if !raw.Confirmed(tm.backend, currentBlockNumber) {
+			break
+		}
+
+		log.Info("Transaction is confirmed", "addr", addr, "caption", raw.getCaption())
+		raw.ConfirmedIndex = numConfirmed
+		tm.confirmed[addr] = append(tm.confirmed[addr], raw)
+		WriteConfirmedTx(tm.db, addr, numConfirmed, raw)
+		numConfirmed++
+	}
+
+	// update database
+	if i != 0 {
+		tm.unconfirmed[addr] = tm.unconfirmed[addr][i:]
+		WriteNumConfirmedRawTxs(tm.db, addr, numConfirmed)
+		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
 	}
 }
 
@@ -683,6 +688,8 @@ func (tm *TransactionManager) indexOf(addr common.Address) int {
 
 // TODO: use SubscribeNewHead with disconnection handling
 func (tm *TransactionManager) confirmLoop() {
+	closed := false
+
 	newHeaderCh := make(chan *types.Header)
 	sub, err := tm.backend.SubscribeNewHead(context.Background(), newHeaderCh)
 	defer sub.Unsubscribe()
@@ -695,6 +702,10 @@ func (tm *TransactionManager) confirmLoop() {
 	<-reconnTimer.C
 
 	reconn := func() {
+		if closed {
+			return
+		}
+
 		sub2, err := tm.backend.SubscribeNewHead(context.Background(), newHeaderCh)
 
 		if err != nil {
@@ -702,7 +713,7 @@ func (tm *TransactionManager) confirmLoop() {
 			reconnTimer.Reset(5 * time.Second)
 		} else {
 			sub = sub2
-			log.Info("Re-subscribe root chian new block event")
+			log.Info("Re-subscribe root chian new block event", "err", err)
 		}
 	}
 
@@ -711,6 +722,7 @@ func (tm *TransactionManager) confirmLoop() {
 	for {
 		select {
 		case <-tm.quit:
+			closed = true
 			reconnTimer.Stop()
 			return
 
@@ -738,7 +750,8 @@ func (tm *TransactionManager) confirmLoop() {
 				tm.confirmQueue(addr)
 			}
 
-		case <-sub.Err():
+		case err := <-sub.Err():
+			log.Error("New block event unsubscribed", "err", err)
 			reconn()
 
 		case _, ok := <-reconnTimer.C:
@@ -758,6 +771,8 @@ func (tm *TransactionManager) inspect(addr common.Address) {
 	unconfirmed := len(tm.unconfirmed[addr])
 	pending := len(tm.pending[addr])
 	log.Debug("Inspect queue", "addr", addr, "total", confirmed+unconfirmed+pending, "confirmed", confirmed, "unconfiemd", unconfirmed, "pending", pending)
+
+	tm.lastInspectTime = time.Now()
 }
 
 func gasPriceToString(gp *big.Int) string {

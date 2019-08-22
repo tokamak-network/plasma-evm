@@ -3,11 +3,11 @@ package tx
 import (
 	"context"
 	"fmt"
-	"github.com/Onther-Tech/plasma-evm"
 	"github.com/pkg/errors"
 	"math/big"
 	"sync"
 
+	"github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
@@ -193,7 +193,11 @@ func (raw *RawTransaction) Confirmed(backend *ethclient.Client, currentBlockNumb
 		return false
 	}
 
-	receipt, _ := backend.TransactionReceipt(context.Background(), raw.MinedTxHash)
+	receipt, err := backend.TransactionReceipt(context.Background(), raw.MinedTxHash)
+	if err != nil {
+		return false
+	}
+
 	if receipt == nil {
 		return false
 	}
