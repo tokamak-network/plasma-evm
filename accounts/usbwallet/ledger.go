@@ -32,6 +32,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/rlp"
 )
@@ -341,7 +342,7 @@ func (w *ledgerDriver) ledgerSign(derivationPath []uint32, tx *types.Transaction
 		op = ledgerP1ContTransactionData
 	}
 	// Extract the Ethereum signature and do a sanity validation
-	if len(reply) != 65 {
+	if len(reply) != crypto.SignatureLength {
 		return common.Address{}, nil, errors.New("reply lacks signature")
 	}
 	signature := append(reply[1:], reply[0])
