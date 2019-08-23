@@ -273,7 +273,17 @@ func (tm *TransactionManager) Start() {
 		// subscribe new block mined event
 		newHeaderEvents := make(chan *types.Header)
 		newHeaderSub, err := tm.backend.SubscribeNewHead(context.Background(), newHeaderEvents)
-		defer newHeaderSub.Unsubscribe()
+
+		close := func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("New block event unsubscription", "err", err)
+				}
+			}()
+			newHeaderSub.Unsubscribe()
+		}
+
+		defer close()
 
 		if err != nil {
 			log.Error("Failed to subscribe new block event", "err", err)
@@ -692,7 +702,18 @@ func (tm *TransactionManager) confirmLoop() {
 
 	newHeaderCh := make(chan *types.Header)
 	sub, err := tm.backend.SubscribeNewHead(context.Background(), newHeaderCh)
-	defer sub.Unsubscribe()
+
+	close := func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error("New block event unsubscription", "err", err)
+			}
+		}()
+		sub.Unsubscribe()
+	}
+
+	defer close()
+
 	if err != nil {
 		log.Error("Failed to subscribe root chian new block event", "err", err)
 		return
