@@ -377,17 +377,19 @@ func (tm *TransactionManager) Start() {
 
 			// resubmit transaction with nonce increased.
 			if strings.Contains(errMessage, "nonce too low") || strings.Contains(errMessage, "nonce is too low") {
-				// increase nonce immediately if only 1 transaction is pending.
-				if len(raw.PendingTxs) == 1 {
-					tm.nonce[addr], err = tm.backend.NonceAt(context.Background(), addr, nil)
-					if err != nil {
-						log.Error("Failed to read account nonce", "err", err)
-					} else {
-						raw.Nonce = big.NewInt(int64(tm.nonce[addr]))
-						WriteAddrNonce(tm.db, addr, tm.nonce[addr])
-					}
-					return f()
+				// increase nonce immediately
+				previousNonce := raw.Nonce.Uint64()
+
+				tm.nonce[addr], err = tm.backend.NonceAt(context.Background(), addr, nil)
+
+				if err != nil {
+					log.Error("Failed to read account nonce", "err", err)
+				} else {
+					log.Warn("Account nonce has increased by another transaction", "previousNonce", previousNonce, "currentNonce", tm.nonce[addr])
+					raw.Nonce = big.NewInt(int64(tm.nonce[addr]))
+					WriteAddrNonce(tm.db, addr, tm.nonce[addr])
 				}
+				return f()
 
 				// if more than 1 transactions are pending, increase nonce carefully.
 				// TODO: count and increase nonce
@@ -478,7 +480,7 @@ func (tm *TransactionManager) Start() {
 						}
 
 						if err2 == ethereum.NotFound {
-							log.Warn("Transaction not found. It may be pending", "err", err2, "hash", hash.Hex())
+							log.Warn("Ethereum Transaction not found. It may be pending", "err", err2, "hash", hash.Hex())
 							adjusted = true
 							tm.adjustGasPrice(raw, false)
 						}
