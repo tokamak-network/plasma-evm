@@ -411,14 +411,6 @@ func (rcm *RootChainManager) runSubmitter() {
 	plasmaBlockMinedEvents := rcm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	defer plasmaBlockMinedEvents.Unsubscribe()
 
-	blockSubmitEvents := make(chan *rootchain.RootChainBlockSubmitted)
-	blockSubmitWatchOpts := &bind.WatchOpts{
-		Start:   nil,
-		Context: context.Background(),
-	}
-	blockFilterer, _ := rcm.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
-	defer blockFilterer.Unsubscribe()
-
 	submitBlockOrEpoch := func(block *types.Block) error {
 		rcm.lock.Lock()
 		rcm.minerEnv.Lock()
