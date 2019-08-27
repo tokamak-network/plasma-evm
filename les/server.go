@@ -111,9 +111,7 @@ func NewLesServer(e *pls.Plasma, config *pls.Config) (*LesServer, error) {
 		maxCapacity = totalRecharge
 	}
 	srv.fcManager.SetCapacityLimits(srv.freeCapacity, maxCapacity, srv.freeCapacity*2)
-
 	srv.clientPool = newClientPool(srv.chainDb, srv.freeCapacity, 10000, mclock.System{}, func(id enode.ID) { go srv.peers.Unregister(peerIdToString(id)) })
-	srv.peers.notify(srv.clientPool)
 
 	checkpoint := srv.latestLocalCheckpoint()
 	if !checkpoint.Empty() {
