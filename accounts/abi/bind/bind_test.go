@@ -1290,7 +1290,7 @@ var bindTests = []struct {
 
 		  event bar(uint256 i);
 		  event bar(uint256 i, uint256 j);
-			
+
 		  function foo(uint256 i) public {
 			  emit bar(i);
 		  }
@@ -1305,10 +1305,10 @@ var bindTests = []struct {
 		"math/big"
 		"time"
 
-		"github.com/ethereum/go-ethereum/accounts/abi/bind"
-		"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
-		"github.com/ethereum/go-ethereum/core"
-		"github.com/ethereum/go-ethereum/crypto"
+		"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+		"github.com/Onther-Tech/plasma-evm/accounts/abi/bind/backends"
+		"github.com/Onther-Tech/plasma-evm/core"
+		"github.com/Onther-Tech/plasma-evm/crypto"
 		`,
 		`
 		// Initialize test accounts

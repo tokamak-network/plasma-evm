@@ -46,7 +46,7 @@ const (
 func (pls *LightEthereum) startBloomHandlers(sectionSize uint64) {
 	for i := 0; i < bloomServiceThreads; i++ {
 		go func() {
-			defer eth.wg.Done()
+			defer pls.wg.Done()
 			for {
 				select {
 				case <-pls.closeCh:

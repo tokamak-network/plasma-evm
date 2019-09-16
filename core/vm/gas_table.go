@@ -17,6 +17,8 @@
 package vm
 
 import (
+	"errors"
+
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/params"

@@ -35,7 +35,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
@@ -159,7 +158,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract co
 	return SetupGenesisBlockWithOverride(db, genesis, rootChainContract, operator, staminaConfig, instanceDir, nil)
 }
 
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, overrideIstanbul *big.Int) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string, overrideIstanbul *big.Int) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}

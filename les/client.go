@@ -73,7 +73,7 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul)
 	genesisBlock := rawdb.ReadBlock(chainDb, genesisHash, 0)
 	config.RootChainContract = common.BytesToAddress(genesisBlock.Extra())
 

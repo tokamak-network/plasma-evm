@@ -253,7 +253,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 
 		// Pay intrinsic gas
-		gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+		gas, err := IntrinsicGas(st.data, contractCreation, homestead, istanbul)
 		if err != nil {
 			return nil, 0, false, err
 		}

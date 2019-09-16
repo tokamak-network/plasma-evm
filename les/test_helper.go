@@ -36,7 +36,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/les/flowcontrol"
@@ -44,6 +43,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
 )
 
 var (
@@ -199,7 +199,7 @@ func newTestClientHandler(backend *backends.SimulatedBackend, odr *LesOdr, index
 	client := &LightEthereum{
 		lesCommons: lesCommons{
 			genesis:     genesis.Hash(),
-			config:      &eth.Config{LightPeers: 100, NetworkId: NetworkId},
+			config:      &pls.Config{LightPeers: 100, NetworkId: NetworkId},
 			chainConfig: params.AllEthashProtocolChanges,
 			iConfig:     light.TestClientIndexerConfig,
 			chainDb:     db,
@@ -262,7 +262,7 @@ func newTestServerHandler(blocks int, indexers []*core.ChainIndexer, db ethdb.Da
 	server := &LesServer{
 		lesCommons: lesCommons{
 			genesis:     genesis.Hash(),
-			config:      &eth.Config{LightPeers: 100, NetworkId: NetworkId},
+			config:      &pls.Config{LightPeers: 100, NetworkId: NetworkId},
 			chainConfig: params.AllEthashProtocolChanges,
 			iConfig:     light.TestServerIndexerConfig,
 			chainDb:     db,
