@@ -65,6 +65,7 @@ type RootChainManager struct {
 	minerEnv *epoch.EpochEnvironment
 	state    *rootchainState
 
+	// TODO: use DB
 	// fork => block number => invalidExits
 	invalidExits map[uint64]map[uint64]invalidExits
 

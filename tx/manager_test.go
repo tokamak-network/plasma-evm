@@ -16,6 +16,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
+	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
@@ -49,6 +50,8 @@ var (
 	defaultResubmit        = 3 * time.Second
 	maxTxFee        *big.Int
 
+	signer types.EIP155Signer
+
 	err error
 )
 
@@ -63,14 +66,16 @@ func init() {
 		log.Error("Failed to connect rootchian provider", "err", err)
 	}
 
-	networkId, err := backend.NetworkID(context.Background())
-	testConfig.ChainId = new(big.Int).Set(networkId)
+	chainID, err := backend.ChainID(context.Background())
+	testConfig.ChainId = new(big.Int).Set(chainID)
+
+	signer = types.NewEIP155Signer(testConfig.ChainId)
 
 	if err != nil {
 		log.Error("Failed to read rootchain network id", "err", err)
 	}
 
-	log.Info("rootchain connected", "network id", networkId)
+	log.Info("rootchain connected", "chainID", chainID)
 
 	for _, hex := range keysHex {
 		key, err := crypto.HexToECDSA(hex)
@@ -165,18 +170,46 @@ func TestRestart(t *testing.T) {
 
 	<-timer.C
 
-	// restart TransactionManager
+	// stop TransactionManager
 	tm.Stop()
 
+	// addr[0] send n2 transactions through JSONRPC
+	n2 := 10
+	nonce, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+	var txs types.Transactions
+
+	ticker := time.NewTicker(testConfig.Interval)
+	defer ticker.Stop()
+
+	for i := 0; i < n2; i++ {
+		tx := types.NewTransaction(nonce+uint64(i), addrs[0], big.NewInt(int64(2e18+i)), 21000, big.NewInt(params.GWei*2), nil)
+		signedTx, err := types.SignTx(tx, signer, keys[0])
+
+		if err != nil {
+			log.Error("Failed to sign transaction", "err", err)
+			t.FailNow()
+		}
+
+		if err = backend.SendTransaction(context.Background(), signedTx); err != nil {
+			log.Error("Failed to send transaction directly", "err", err)
+			t.FailNow()
+		}
+
+		txs = append(txs, signedTx)
+
+		<-ticker.C
+	}
+
+	// start TransactionManager
 	<-time.NewTimer(5 * time.Second).C
 	tm = makeTestManager(db)
 	tm.Start()
 	log.Info("TranasctionManager restarted")
 
-	// addrs[0] sends n2 transactions
-	n2 := 10
+	// addrs[0] sends n3 transactions
+	n3 := 10
 
-	for i := 0; i < n2; i++ {
+	for i := 0; i < n3; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i+n1)), []byte{}, false, fmt.Sprintf("raw tx %d", n1+i))
 		if err := tm.Add(accs[0], rawTx, false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
@@ -189,8 +222,26 @@ func TestRestart(t *testing.T) {
 	<-timer2.C
 	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
-	if nonce2-nonce1 != uint64(n1+n2) {
-		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1+n2, nonce2)
+	var numMinedDirectTxs int
+	for _, tx := range txs {
+		if receipt, _ := backend.TransactionReceipt(context.Background(), tx.Hash()); receipt != nil {
+			numMinedDirectTxs += 1
+		}
+	}
+
+	if numMinedDirectTxs == 0 {
+		t.Fatal("Direct transaction is not mined")
+	}
+	t.Logf("n1: %d", n1)
+	t.Logf("n2: %d", n2)
+	t.Logf("n3: %d", n3)
+	t.Logf("Mined direct transactions: %d", numMinedDirectTxs)
+
+	actualNonceDiff := nonce2 - nonce1
+	expectedNonceDiff := uint64(n1 + numMinedDirectTxs + n3)
+
+	if actualNonceDiff != expectedNonceDiff {
+		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, expectedNonceDiff, nonce2)
 	}
 
 	if ReadNumAddr(tm.db) != 1 {
