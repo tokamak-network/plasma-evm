@@ -338,28 +338,30 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		recommit = time.Duration(int64(next))
 	}
 	// clearPending cleans the stale pending tasks.
-	//clearPending := func(number uint64) {
-	//	w.pendingMu.Lock()
-	//	for h, t := range w.pendingTasks {
-	//		if t.block.NumberU64()+staleThreshold <= number {
-	//			delete(w.pendingTasks, h)
-	//		}
-	//	}
-	//	w.pendingMu.Unlock()
-	//}
+	clearPending := func(number uint64) {
+		w.pendingMu.Lock()
+		for h, t := range w.pendingTasks {
+			if t.block.NumberU64()+staleThreshold <= number {
+				delete(w.pendingTasks, h)
+			}
+		}
+		w.pendingMu.Unlock()
+	}
 
 	for {
 		select {
 
 		// clear pending task when miner is started
 		case <-w.startCh:
+			clearPending(w.chain.CurrentBlock().NumberU64())
 			timer.Reset(recommit)
 			commit(true, commitInterruptResubmit)
 
-			//clearPending(w.chain.CurrentBlock().NumberU64())
-
+		// TODO: fix for rebase
 		// just consume chain head event
-		case <-w.chainHeadCh:
+		case head := <-w.chainHeadCh:
+			clearPending(head.Block.NumberU64())
+			timestamp = time.Now().Unix()
 
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
