@@ -260,7 +260,9 @@ type txpoolResetRequest struct {
 	oldHead, newHead *types.Header
 }
 
-const txPoolInitCap = 20000
+const (
+	txPoolInitCap = 20000
+)
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
@@ -710,7 +712,7 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	// Try to insert the transaction into the future queue
 	from, _ := types.Sender(pool.signer, tx) // already validated
 	if pool.queue[from] == nil {
-		pool.queue[from] = newTxList(false, 5000)
+		pool.queue[from] = newTxList(false)
 	}
 	inserted, old := pool.queue[from].Add(tx, pool.config.PriceBump)
 	if !inserted {
@@ -769,7 +771,7 @@ func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
 func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.Transaction) bool {
 	// Try to insert the transaction into the pending queue
 	if pool.pending[addr] == nil {
-		pool.pending[addr] = newTxList(true, 5000)
+		pool.pending[addr] = newTxList(true)
 	}
 	list := pool.pending[addr]
 
@@ -1040,7 +1042,7 @@ func (pool *TxPool) scheduleReorgLoop() {
 			// request one later if they want the events sent.
 			addr, _ := types.Sender(pool.signer, tx)
 			if _, ok := queuedEvents[addr]; !ok {
-				queuedEvents[addr] = newTxSortedMap(txPoolInitCap)
+				queuedEvents[addr] = newTxSortedMap()
 			}
 			queuedEvents[addr].Put(tx)
 
@@ -1089,7 +1091,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	for _, tx := range promoted {
 		addr, _ := types.Sender(pool.signer, tx)
 		if _, ok := events[addr]; !ok {
-			events[addr] = newTxSortedMap(txPoolInitCap)
+			events[addr] = newTxSortedMap()
 		}
 		events[addr].Put(tx)
 	}
