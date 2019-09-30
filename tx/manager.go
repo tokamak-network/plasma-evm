@@ -306,10 +306,15 @@ func (tm *TransactionManager) Start() {
 
 			// short circuit
 			if raw.LastSentBlockNumber != 0 && raw.LastSentBlockNumber+SendDelay <= blockNumber {
+				log.Debug("Too early to send transaction", "delay", SendDelay)
+				raw.LastSentBlockNumber = tm.currentBlockNumber.Uint64()
 				return common.Hash{}, nil
 			}
 
+			tm.gasPriceLock.Lock()
 			tx := raw.ToTransaction(tm.gasPrice)
+			tm.gasPriceLock.Unlock()
+
 			signedTx, err := tm.ks.SignTx(from, tx, tm.config.ChainId)
 
 			if err != nil {
@@ -336,7 +341,7 @@ func (tm *TransactionManager) Start() {
 			err = tm.backend.SendTransaction(context.Background(), signedTx)
 
 			if err == nil {
-				log.Info("Transaction sent", "hash", signedTx.Hash(), "nonce", raw.Nonce, "caption", raw.getCaption())
+				log.Info("Transaction sent", "hash", signedTx.Hash(), "nonce", raw.Nonce, "caption", raw.getCaption(), "gasprice", signedTx.GasPrice())
 				return signedTx.Hash(), nil
 			}
 
@@ -446,7 +451,7 @@ func (tm *TransactionManager) Start() {
 
 						// resubmit transaction in pending intarval loop
 						if err == core.ErrReplaceUnderpriced {
-							log.Debug("Gas price is adjusted for underpriced transaction error")
+							log.Debug("Gas price is fixed for underpriced transaction error")
 							tm.adjustGasPrice(raw, false)
 							hash, err = send(addr, raw)
 							return
@@ -460,7 +465,6 @@ func (tm *TransactionManager) Start() {
 						}
 
 						receipt, err2 := tm.backend.TransactionReceipt(context.Background(), hash)
-						adjusted := false
 
 						// short circuit if tx is already mined
 						if receipt != nil {
@@ -473,20 +477,22 @@ func (tm *TransactionManager) Start() {
 							return
 						}
 
+						fixed := false
+
 						// handle previous submit errors
 						if err == ErrKnownTransaction {
-							log.Debug("Gas price is adjusted for known transaction error")
-							adjusted = true
+							log.Debug("Gas price is fixed for known transaction error")
+							fixed = true
 						}
 
 						if err2 == ethereum.NotFound {
 							log.Warn("Ethereum Transaction not found. It may be pending", "err", err2, "hash", hash.Hex())
-							adjusted = true
+							fixed = true
 							tm.adjustGasPrice(raw, false)
 						}
 
-						if err != nil && !adjusted {
-							log.Debug("Gas price is adjusted for unknown transaction error")
+						if err != nil && !fixed {
+							log.Debug("Unknown transaction error", "err", err)
 							tm.adjustGasPrice(raw, false)
 						}
 
@@ -506,54 +512,54 @@ func (tm *TransactionManager) Start() {
 	}()
 }
 
-// adjustGasPrice adjust gas prices at reasonable prices.
+// adjustGasPrice adjust gas prices at a reasonable price.
 func (tm *TransactionManager) adjustGasPrice(raw *RawTransaction, decrease bool) {
 	tm.gasPriceLock.Lock()
 	defer tm.gasPriceLock.Unlock()
 
-	var previousTxGasPrice *big.Int
+	var previousGasPrice *big.Int
 
-	if raw.Mined(tm.backend) {
-		minedTx, _, _ := tm.backend.TransactionByHash(context.Background(), raw.MinedTxHash)
-		previousTxGasPrice = new(big.Int).Set(minedTx.GasPrice())
-	} else {
-		if len(raw.PendingTxs) == 0 {
-			previousTxGasPrice = new(big.Int).Set(tm.gasPrice)
-		} else {
-			lastPendingTx := raw.PendingTxs[len(raw.PendingTxs)-1]
-			previousTxGasPrice = new(big.Int).Set(lastPendingTx.GasPrice())
+	if (raw.MinedTxHash != common.Hash{}) {
+		tx, isPending, err := tm.backend.TransactionByHash(context.Background(), raw.MinedTxHash)
+		if isPending || err != nil {
+			return
 		}
+		previousGasPrice = tx.GasPrice()
+	} else if len(raw.PendingTxs) == 0 {
+		previousGasPrice = new(big.Int).Set(tm.gasPrice)
+	} else {
+		lastPendingTx := raw.PendingTxs[len(raw.PendingTxs)-1]
+		previousGasPrice = new(big.Int).Set(lastPendingTx.GasPrice())
 	}
 
-	previousGwei := gasPriceToString(tm.gasPrice)
+	gasPrice := new(big.Int).Set(previousGasPrice)
 
 	if decrease {
-		if tm.gasPrice.Cmp(previousTxGasPrice) < 0 {
-			tm.gasPrice = new(big.Int).Set(previousTxGasPrice)
-		} else {
-			tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(4))
-		}
-
-		if tm.gasPrice.Cmp(tm.config.MinGasPrice) < 0 {
-			tm.gasPrice.Set(tm.config.MinGasPrice)
-		}
+		// new gas price = previous gas price * 0.4
+		gasPrice = new(big.Int).Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(4))
 	} else {
-		if tm.gasPrice.Cmp(previousTxGasPrice) > 0 {
-			tm.gasPrice = new(big.Int).Set(previousTxGasPrice)
-		} else {
-			tm.gasPrice.Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(12))
-		}
-
-		if tm.gasPrice.Cmp(tm.config.MaxGasPrice) > 0 {
-			tm.gasPrice.Set(tm.config.MaxGasPrice)
-		}
+		// new gas price = previous gas price * 1.2
+		gasPrice = new(big.Int).Mul(new(big.Int).Div(tm.gasPrice, big.NewInt(10)), big.NewInt(12))
 	}
 
-	WriteGasPrice(tm.db, tm.gasPrice)
+	// make target gas price in range
+	if gasPrice.Cmp(tm.config.MinGasPrice) < 0 {
+		gasPrice.Set(tm.config.MinGasPrice)
+	}
+	if gasPrice.Cmp(tm.config.MaxGasPrice) > 0 {
+		gasPrice.Set(tm.config.MaxGasPrice)
+	}
 
-	previousTxGasPriceGwei := gasPriceToString(previousTxGasPrice)
+	tm.gasPrice = new(big.Int).Set(gasPrice)
+
+	WriteGasPrice(tm.db, gasPrice)
+
+	previousGwei := gasPriceToString(previousGasPrice)
 	adjustGwei := gasPriceToString(tm.gasPrice)
-	log.Info("Gas price adjusted", "caption", raw.getCaption(), "decrease", decrease, "previousTxGasPriceGwei ", previousTxGasPriceGwei, "previous", previousGwei, "adjusted", adjustGwei)
+
+	log.Info("Gas price adjusted", "caption", raw.getCaption(), "decrease", decrease,
+		"previous", previousGwei,
+		"adjusted", adjustGwei)
 }
 
 // clearQueue check raw transaction is mined. Mined raw transactions move to unconfirmed pending.
@@ -749,26 +755,32 @@ func (tm *TransactionManager) confirmLoop() {
 			reconnTimer.Stop()
 			return
 
-		case b, ok := <-newHeaderCh:
+		case header, ok := <-newHeaderCh:
 			if !ok {
 				continue
 			}
 
 			if lastConfirmed == 0 {
-				lastConfirmed = b.Number.Uint64()
+				lastConfirmed = header.Number.Uint64()
 			}
 
-			log.Info("New root chain block mined", "number", b.Number)
-
-			tm.lock.Lock()
-			tm.currentBlockNumber.Set(b.Number)
-			tm.lock.Unlock()
-
-			if lastConfirmed+ConfirmationDelay < b.Number.Uint64() {
+			block, err := tm.backend.BlockByHash(context.Background(), header.Hash())
+			if err != nil {
+				log.Error("Failed to read root chain block", "err", err)
 				continue
 			}
 
-			lastConfirmed = b.Number.Uint64()
+			log.Info("New root chain block mined", "number", header.Number, "numTxs", len(block.Transactions()), "gasUsed", header.GasUsed, "gasLimit", header.GasLimit)
+
+			tm.lock.Lock()
+			tm.currentBlockNumber.Set(header.Number)
+			tm.lock.Unlock()
+
+			if lastConfirmed+ConfirmationDelay < header.Number.Uint64() {
+				continue
+			}
+
+			lastConfirmed = header.Number.Uint64()
 			for _, addr := range tm.addresses {
 				tm.confirmQueue(addr)
 			}
@@ -799,5 +811,8 @@ func (tm *TransactionManager) inspect(addr common.Address) {
 }
 
 func gasPriceToString(gp *big.Int) string {
-	return new(big.Float).Quo(new(big.Float).SetInt(gp), new(big.Float).SetInt64(params.GWei)).String() + " Gwei"
+	ngp := new(big.Float).Quo(new(big.Float).SetInt(gp), new(big.Float).SetInt64(params.GWei))
+	ngp.SetPrec(10)
+
+	return ngp.String() + " Gwei"
 }
