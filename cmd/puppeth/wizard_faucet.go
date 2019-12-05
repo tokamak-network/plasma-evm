@@ -51,6 +51,11 @@ func (w *wizard) deployFaucet() {
 	infos.node.genesis, _ = json.MarshalIndent(w.conf.Genesis, "", "  ")
 	infos.node.network = w.conf.Genesis.Config.ChainID.Int64()
 
+	// Figure out which URL to listen for root chain JSONRPC endpoint
+	fmt.Println()
+	fmt.Printf("What URL to listen on root chain JSONRPC?\n")
+	infos.node.rootchainURL = w.readURL().String()
+
 	// Figure out which port to listen on
 	fmt.Println()
 	fmt.Printf("Which port should the faucet listen on? (default = %d)\n", infos.port)

@@ -44,7 +44,7 @@ EXPOSE 8080 30305 30305/udp
 ENTRYPOINT [ \
 	"faucet", "--genesis", "/genesis.json", "--network", "{{.NetworkID}}", "--bootnodes", "{{.Bootnodes}}", "--ethstats", "{{.Ethstats}}", "--ethport", "{{.EthPort}}",     \
 	"--faucet.name", "{{.FaucetName}}", "--faucet.amount", "{{.FaucetAmount}}", "--faucet.minutes", "{{.FaucetMinutes}}", "--faucet.tiers", "{{.FaucetTiers}}",             \
-	"--account.json", "/account.json", "--account.pass", "/account.pass"                                                                                                    \
+	"--rootchain.url", "{{.RootChainURL}}", "--account.json", "/account.json", "--account.pass", "/account.pass"                                                                                                    \
 	{{if .CaptchaToken}}, "--captcha.token", "{{.CaptchaToken}}", "--captcha.secret", "{{.CaptchaSecret}}"{{end}}{{if .NoAuth}}, "--noauth"{{end}}                          \
 ]`
 
@@ -64,6 +64,7 @@ services:
     volumes:
       - {{.Datadir}}:/root/.faucet
     environment:
+      - ROOTCHAIN_URL={{.RootChainURL}}
       - ETH_PORT={{.EthPort}}
       - ETH_NAME={{.EthName}}
       - FAUCET_AMOUNT={{.FaucetAmount}}
@@ -93,6 +94,7 @@ func deployFaucet(client *sshClient, network string, bootnodes []string, config 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(faucetDockerfile)).Execute(dockerfile, map[string]interface{}{
 		"NetworkID":     config.node.network,
+		"RootChainURL": config.node.rootchainURL,
 		"Bootnodes":     strings.Join(bootnodes, ","),
 		"Ethstats":      config.node.ethstats,
 		"EthPort":       config.node.port,
@@ -109,6 +111,7 @@ func deployFaucet(client *sshClient, network string, bootnodes []string, config 
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(faucetComposefile)).Execute(composefile, map[string]interface{}{
 		"Network":       network,
+		"RootChainURL":  config.node.rootchainURL,
 		"Datadir":       config.node.datadir,
 		"VHost":         config.host,
 		"ApiPort":       config.port,
@@ -229,6 +232,7 @@ func checkFaucet(client *sshClient, network string) (*faucetInfos, error) {
 	// Container available, assemble and return the useful infos
 	return &faucetInfos{
 		node: &nodeInfos{
+			rootchainURL:    infos.envvars["ROOTCHAIN_URL"],
 			datadir:         infos.volumes["/root/.faucet"],
 			port:            infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
 			ethstats:        infos.envvars["ETH_NAME"],
