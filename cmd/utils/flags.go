@@ -796,6 +796,31 @@ var (
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
 	}
+	RootChainTONFlag = cli.StringFlag{
+		Name:  "rootchain.ton",
+		Usage: "Address of TON token contract",
+	}
+	RootChainWTONFlag = cli.StringFlag{
+		Name:  "rootchain.wton",
+		Usage: "Address of WTON token contract",
+	}
+	RootChainDepositManagerFlag = cli.StringFlag{
+		Name:  "rootchain.depositManager",
+		Usage: "Address of Deposit Manager contract",
+	}
+	RootChainRegistryFlag = cli.StringFlag{
+		Name:  "rootchain.registry",
+		Usage: "Address of RootChainRegistry contract",
+	}
+	RootChainSeigManagerFlag = cli.StringFlag{
+		Name:  "rootchain.seigManager",
+		Usage: "Address of SeigManager contract",
+	}
+	RootChainGasPriceFlag = BigFlag{
+		Name:  "rootchain.gasPrice",
+		Usage: "Transaction gas price to root chain",
+		Value: big.NewInt(10 * params.GWei),
+	}
 
 	// Transaction Flags
 	TxGasPriceFlag = BigFlag{
