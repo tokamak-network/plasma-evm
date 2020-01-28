@@ -71,7 +71,7 @@ participating.
 It expects the genesis file as argument.`,
 	}
 	deployCommand = cli.Command{
-		Action:    utils.MigrateFlags(deployContract),
+		Action:    utils.MigrateFlags(deployRootChain),
 		Name:      "deploy",
 		Usage:     "Deploy RootChain contract and make genesis file",
 		ArgsUsage: "<genesisPath> <chainId> <withPETH> <NRELength>",
@@ -332,7 +332,7 @@ func initGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-func deployContract(ctx *cli.Context) error {
+func deployRootChain(ctx *cli.Context) error {
 	if len(ctx.Args()) != 4 {
 		utils.Fatalf("Expected 4 parameters, not %d", len(ctx.Args()))
 	}
