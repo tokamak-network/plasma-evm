@@ -171,7 +171,7 @@ func DeployManagers(
 			return
 		}
 
-		if err = wait(backend, tx.Hash()); err != nil {
+		if err = WaitTx(backend, tx.Hash()); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy TON: %v", err))
 			return
 		}
@@ -194,7 +194,7 @@ func DeployManagers(
 			return
 		}
 
-		if err = wait(backend, tx.Hash()); err != nil {
+		if err = WaitTx(backend, tx.Hash()); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy WTON: %v", err))
 			return
 		}
@@ -220,7 +220,7 @@ func DeployManagers(
 		return
 	}
 
-	if err = wait(backend, tx.Hash()); err != nil {
+	if err = WaitTx(backend, tx.Hash()); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy RootChainRegistry: %v", err))
 		return
 	}
@@ -233,7 +233,7 @@ func DeployManagers(
 		return
 	}
 
-	if err = wait(backend, tx.Hash()); err != nil {
+	if err = WaitTx(backend, tx.Hash()); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy DepositManager: %v", err))
 		return
 	}
@@ -246,7 +246,7 @@ func DeployManagers(
 		return
 	}
 
-	if err = wait(backend, tx.Hash()); err != nil {
+	if err = WaitTx(backend, tx.Hash()); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy SeigManager: %v", err))
 		return
 	}
@@ -258,7 +258,7 @@ func DeployManagers(
 		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
 		return
 	}
-	if err = wait(backend, tx.Hash()); err != nil {
+	if err = WaitTx(backend, tx.Hash()); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
 		return
 	}
@@ -276,7 +276,7 @@ func DeployManagers(
 			err = errors.New(fmt.Sprintf("Failed to set SeigManager to %s: %v", target, err))
 			return
 		}
-		if err = wait(backend, tx.Hash()); err != nil {
+		if err = WaitTx(backend, tx.Hash()); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to set SeigManager to %s: %v", target, err))
 			return
 		}
@@ -287,7 +287,7 @@ func DeployManagers(
 	return
 }
 
-func wait(backend *ethclient.Client, hash common.Hash) error {
+func WaitTx(backend *ethclient.Client, hash common.Hash) error {
 	var receipt *types.Receipt
 
 	<-time.NewTimer(1 * time.Second).C
