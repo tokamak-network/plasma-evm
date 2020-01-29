@@ -29,6 +29,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/stakingmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/wton"
@@ -133,6 +134,23 @@ use --rootchain.ton, --rootchain.wton flags to use already deployed token contra
 Register RootChain contract to RootChainRegistry`,
 			},
 			{
+				Name:      "balances",
+				Usage:     "Print balances of token and stake",
+				ArgsUsage: " <to>",
+				Action:    utils.MigrateFlags(getBalances),
+				Category:  "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.OperatorAddressFlag,
+					utils.OperatorKeyFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+Mint TON to account`,
+			},
+			{
 				Name:      "mintTON",
 				Usage:     "Mint TON to account",
 				ArgsUsage: " <to> <amount>",
@@ -160,7 +178,6 @@ Mint TON to account`,
 					utils.RootChainUrlFlag,
 					utils.OperatorAddressFlag,
 					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
@@ -180,7 +197,6 @@ NOTE: <tonAmount> is in WAD, (decialms 18)
 					utils.RootChainUrlFlag,
 					utils.OperatorAddressFlag,
 					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
@@ -193,14 +209,14 @@ NOTE: <wtonAmount> is in RAY, (decialms 27)
 				Name:      "stake",
 				Usage:     "Stake WTON",
 				ArgsUsage: "<amount>",
-				Action:    utils.MigrateFlags(deployManagers),
+				Action:    utils.MigrateFlags(stakeWTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
 					utils.OperatorAddressFlag,
 					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
+					utils.RootChainGasPriceFlag,
 				},
 				Description: `
 Stake WTON`,
@@ -314,6 +330,10 @@ func parseIntString(str string, decimals int) string {
 }
 
 func bigIntToString(v *big.Int, decimals int) string {
+	if v.Cmp(big.NewInt(0)) == 0 {
+		return "0"
+	}
+
 	if decimals != 18 && decimals != 27 {
 		utils.Fatalf("decimals should be 18 or 27, not %d", decimals)
 	}
@@ -325,6 +345,17 @@ func bigIntToString(v *big.Int, decimals int) string {
 	return q.String() + "." + d.String()
 }
 
+func toWAD(v *big.Int) *big.Int {
+	p := new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
+	q, _ := new(big.Int).DivMod(v, p, new(big.Int))
+	return q
+}
+
+func toRAY(v *big.Int) *big.Int {
+	p := new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
+	return new(big.Int).Mul(v, p)
+}
+
 func deployManagers(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
 		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
@@ -332,8 +363,7 @@ func deployManagers(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -396,8 +426,7 @@ func deployManagers(ctx *cli.Context) error {
 func getManagers(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -419,8 +448,7 @@ func getManagers(ctx *cli.Context) error {
 func setManagers(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -489,11 +517,24 @@ func setManagers(ctx *cli.Context) error {
 	return nil
 }
 
+func getRootChainAddr(reader ethdb.Reader) (rootchainAddr common.Address, err error) {
+	data := rawdb.ReadGenesis(reader)
+	genesis := new(core.Genesis)
+	if err = json.Unmarshal(data, genesis); err != nil {
+		return
+	}
+
+	rootchainAddr = common.BytesToAddress(genesis.ExtraData)
+	if (rootchainAddr == common.Address{}) {
+		utils.Fatalf("RootChain address is NULL ADDRESS")
+	}
+	return
+}
+
 func registerRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -501,17 +542,14 @@ func registerRootChain(ctx *cli.Context) error {
 
 	managers := getManagerConfig(chaindb)
 
-	if (managers.RootChainRegistry == common.Address{}) {
+	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
 	}
 
-	data := rawdb.ReadGenesis(chaindb)
-	genesis := new(core.Genesis)
-	if err = json.Unmarshal(data, genesis); err != nil {
+	rootchainAddr, err := getRootChainAddr(chaindb)
+	if err != nil {
 		return err
 	}
-
-	rootchainAddr := common.BytesToAddress(genesis.ExtraData)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
@@ -527,20 +565,226 @@ func registerRootChain(ctx *cli.Context) error {
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
+	// load contract instances
 	registry, err := stakingmanager.NewRootChainRegistry(managers.RootChainRegistry, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load RootChainRegistry contract: %v", err)
+	}
+	rootchainCtr, err := rootchain.NewRootChain(rootchainAddr, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load RootChain contract: %v", err)
+
+	}
+
+	// send transactions
+
+	// 1. register SeigManager to RootChain
+	f1 := func() error {
+		var tx *types.Transaction
+		var err error
+
+		seigManagerAddr, err := rootchainCtr.SeigManager(&bind.CallOpts{Pending: false})
+		if err != nil {
+			return err
+		}
+
+		if seigManagerAddr == managers.SeigManager {
+			log.Warn("SeigManager already registered to RootChain")
+			return nil
+		}
+
+		if (seigManagerAddr != common.Address{}) && (seigManagerAddr != managers.SeigManager) {
+			return errors.New("RootChain already set SeigManager to another contract: " + seigManagerAddr.String())
+		}
+
+		if tx, err = rootchainCtr.SetSeigManager(opt, managers.SeigManager); err != nil {
+			return err
+		}
+
+		if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+			return err
+		}
+		log.Info("Registered SeigManager to RootChain", "registry", managers.RootChainRegistry, "rootchain", rootchainAddr, "seigManager", managers.SeigManager, "tx", tx.Hash())
+
+		return nil
+	}
+
+	// 2. register RootChain to SeigManager
+	f2 := func() error {
+		var tx *types.Transaction
+		var err error
+
+		registered, err := registry.Rootchains(&bind.CallOpts{Pending: false}, rootchainAddr)
+		if err != nil {
+			return err
+		}
+
+		if registered {
+			log.Warn("RootChain already registered to SeigManager")
+			return nil
+		}
+
+		if tx, err = registry.RegisterAndDeployCoinage(opt, rootchainAddr, managers.SeigManager); err != nil {
+			return err
+		}
+
+		if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+			return err
+		}
+		log.Info("Registered RootChain to SeigManager", "registry", managers.RootChainRegistry, "rootchain", rootchainAddr, "seigManager", managers.SeigManager, "tx", tx.Hash())
+
+		return nil
+	}
+
+	if err = f1(); err != nil {
+		return err
+	}
+	if err = f2(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getBalances(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
+	}
+
+	var (
+		depositor common.Address
+	)
+
+	depositor = common.HexToAddress(ctx.Args()[0])
+
+	stack, cfg := makeConfigNode(ctx)
+
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed depositor open database: %v", err)
+		return err
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	if (managers.TON == common.Address{}) ||
+		(managers.WTON == common.Address{}) ||
+		(managers.DepositManager == common.Address{}) ||
+		(managers.RootChainRegistry == common.Address{}) ||
+		(managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+	}
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed depositor connect rootchain: %v", err)
+	}
+
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+
+	opt := &bind.CallOpts{Pending: false}
+
+	rootchainAddr, err := getRootChainAddr(chaindb)
 	if err != nil {
 		return err
 	}
 
-	var tx *types.Transaction
-	if tx, err = registry.Register(opt, rootchainAddr); err != nil {
-		return err
-	}
-	log.Info("Register RootChain", "registry", managers.RootChainRegistry, "rootchain", rootchainAddr, "tx", tx.Hash())
+	var (
+		TON            *ton.TON
+		WTON           *wton.WTON
+		depositManager *stakingmanager.DepositManager
+		seigManager    *stakingmanager.SeigManager
 
-	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
-		return err
+		tot     *stakingmanager.ERC20
+		coinage *stakingmanager.ERC20
+
+		tonBalance  *big.Int
+		wtonBalance *big.Int
+
+		accStaked   *big.Int
+		accUnstaked *big.Int
+		deposit     *big.Int
+
+		totalStake          *big.Int
+		totalStakeRootChain *big.Int
+
+		uncomittedStakeOf *big.Int
+		stakeOf           *big.Int
+	)
+
+	// load contract instances
+	if TON, err = ton.NewTON(managers.TON, backend); err != nil {
+		utils.Fatalf("Failed depositor load TON contract: %v", err)
 	}
+	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
+		utils.Fatalf("Failed depositor load WTON contract: %v", err)
+	}
+	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+		utils.Fatalf("Failed depositor load DepositManager contract: %v", err)
+	}
+	if seigManager, err = stakingmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
+		utils.Fatalf("Failed depositor load SeigManager contract: %v", err)
+	}
+
+	totAddr, err := seigManager.Tot(opt)
+	if err != nil {
+		utils.Fatalf("Failed depositor load tot address: %v", err)
+	}
+	coinageAddr, err := seigManager.Coinages(opt, rootchainAddr)
+	if err != nil {
+		utils.Fatalf("Failed depositor load coinage address: %v", err)
+	}
+
+	if tot, err = stakingmanager.NewERC20(totAddr, backend); err != nil {
+		utils.Fatalf("Failed depositor load tot contract: %v", err)
+	}
+	if coinage, err = stakingmanager.NewERC20(coinageAddr, backend); err != nil {
+		utils.Fatalf("Failed depositor load tot contract: %v", err)
+	}
+
+	// read balances
+	if tonBalance, err = TON.BalanceOf(opt, depositor); err != nil {
+		utils.Fatalf("Failed depositor read TON balance: %v", err)
+	}
+	if wtonBalance, err = WTON.BalanceOf(opt, depositor); err != nil {
+		utils.Fatalf("Failed depositor read WTON balance: %v", err)
+	}
+	if accStaked, err = depositManager.AccStaked(opt, rootchainAddr, depositor); err != nil {
+		utils.Fatalf("Failed depositor read accumulated stake: %v", err)
+	}
+	if accUnstaked, err = depositManager.AccUnstaked(opt, rootchainAddr, depositor); err != nil {
+		utils.Fatalf("Failed depositor read accumulated unstake: %v", err)
+	}
+	if totalStake, err = tot.TotalSupply(opt); err != nil {
+		log.Warn("Failed depositor read total stake", "err", err)
+		totalStake = big.NewInt(0)
+	}
+	if totalStakeRootChain, err = coinage.TotalSupply(opt); err != nil {
+		log.Warn("Failed depositor read total stake of root chain", "err", err)
+		totalStakeRootChain = big.NewInt(0)
+	}
+	if uncomittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
+		log.Warn("Failed depositor read uncomitted stake", "err", err)
+		uncomittedStakeOf = big.NewInt(0)
+	}
+	if stakeOf, err = seigManager.StakeOf(opt, rootchainAddr, depositor); err != nil {
+		log.Warn("Failed depositor read stake", "err", err)
+		stakeOf = big.NewInt(0)
+	}
+
+	deposit = new(big.Int).Sub(accStaked, accUnstaked)
+
+	// print balances
+	log.Info("TON Balance", "amount", bigIntToString(tonBalance, params.TONDecimals)+" TON", "depositor", depositor)
+	log.Info("WON Balance", "amount", bigIntToString(wtonBalance, params.WTONDecimals)+" WTON", "depositor", depositor)
+	log.Info("Deposit", "amount", bigIntToString(deposit, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+
+	log.Info("Total Stake", "amount", bigIntToString(totalStake, params.WTONDecimals)+" WTON")
+	log.Info("Total Stake of Root Chain", "amount", bigIntToString(totalStakeRootChain, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr)
+
+	log.Info("Uncomitted Stake", "amount", bigIntToString(uncomittedStakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+	log.Info("Comitted Stake", "amount", bigIntToString(stakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 
 	return nil
 }
@@ -567,8 +811,7 @@ func mintTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -611,6 +854,44 @@ func mintTON(ctx *cli.Context) error {
 	return nil
 }
 
+type approvable interface {
+	Approve(opts *bind.TransactOpts, spender common.Address, amount *big.Int) (*types.Transaction, error)
+	Allowance(opts *bind.CallOpts, owner common.Address, spender common.Address) (*big.Int, error)
+}
+
+func approveToken(
+	name string,
+	contract approvable,
+	backend *ethclient.Client,
+	opts *bind.TransactOpts,
+	spender common.Address, target *big.Int,
+	decimals int,
+) {
+
+	current, err := contract.Allowance(&bind.CallOpts{Pending: false}, opts.From, spender)
+
+	if current.Cmp(target) >= 0 {
+		return
+	}
+
+	diff := new(big.Int).Sub(target, current)
+
+	log.Warn("Allowances is inefficient", "current", bigIntToString(current, decimals), "target", bigIntToString(target, decimals), "diff", bigIntToString(diff, decimals))
+	log.Warn(fmt.Sprintf("Approve to deposit %s", name), "amount", bigIntToString(target, decimals))
+
+	var tx *types.Transaction
+
+	if tx, err = contract.Approve(opts, spender, target); err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+
+	log.Warn(fmt.Sprintf("Approved to deposit %s", name), "amount", bigIntToString(target, decimals), "tx", tx.Hash())
+
+}
+
 func swapFromTON(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
@@ -619,25 +900,21 @@ func swapFromTON(ctx *cli.Context) error {
 	decimals := params.TONDecimals
 
 	var (
-		to     common.Address
 		amount *big.Int
 
 		ok bool
 	)
 
-	to = common.HexToAddress(ctx.Args()[0])
-	amountStr := parseIntString(ctx.Args()[1], decimals)
+	amountStr := parseIntString(ctx.Args()[0], decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
 	managers := getManagerConfig(chaindb)
@@ -659,16 +936,34 @@ func swapFromTON(ctx *cli.Context) error {
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
+	// load contract instances
+	TON, err := ton.NewTON(managers.TON, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load TON contract: %v", err)
+	}
 	WTON, err := wton.NewWTON(managers.WTON, backend)
 	if err != nil {
-		return err
+		utils.Fatalf("Failed to load WTON contract: %v", err)
 	}
+
+	// check TON balance
+	tonBalance, err := TON.BalanceOf(&bind.CallOpts{Pending: false}, opt.From)
+	if err != nil {
+		utils.Fatalf("Failed to read TON balance: %v", err)
+	}
+
+	if tonBalance.Cmp(amount) < 0 {
+		utils.Fatalf("Insufficient TON Balance (%s)", bigIntToString(tonBalance, params.TONDecimals))
+	}
+
+	// send transaction(s)
+	approveToken("TON", TON, backend, opt, managers.WTON, amount, params.TONDecimals)
 
 	var tx *types.Transaction
 	if tx, err = WTON.SwapFromTON(opt, amount); err != nil {
-		return err
+		utils.Fatalf("Failed to send transaction: %v", err)
 	}
-	log.Info("Swap from TON to WTON", "to", to, "amount", bigIntToString(amount, decimals)+" TON", "tx", tx.Hash())
+	log.Info("Swap from TON to WTON", "amount", bigIntToString(amount, decimals)+" TON", "from", opt.From, "tx", tx.Hash())
 
 	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
 		return err
@@ -685,22 +980,19 @@ func swapToTON(ctx *cli.Context) error {
 	decimals := params.WTONDecimals
 
 	var (
-		to     common.Address
 		amount *big.Int
 
 		ok bool
 	)
 
-	to = common.HexToAddress(ctx.Args()[0])
-	amountStr := parseIntString(ctx.Args()[1], decimals)
+	amountStr := parseIntString(ctx.Args()[0], decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
 
-	// TODO: other database name for light client?
-	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -725,20 +1017,127 @@ func swapToTON(ctx *cli.Context) error {
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
+	// load contract instance
 	WTON, err := wton.NewWTON(managers.WTON, backend)
 	if err != nil {
 		return err
 	}
 
+	// check WTON balance
+	wtonBalance, err := WTON.BalanceOf(&bind.CallOpts{Pending: false}, opt.From)
+	if err != nil {
+		utils.Fatalf("Failed to read WTON balance: %v", err)
+	}
+
+	if wtonBalance.Cmp(amount) < 0 {
+		utils.Fatalf("Insufficient WTON Balance (%s)", bigIntToString(wtonBalance, params.WTONDecimals))
+	}
+
+	// send transaction
 	var tx *types.Transaction
 	if tx, err = WTON.SwapToTON(opt, amount); err != nil {
 		return err
 	}
-	log.Info("Swap from WTON to TON", "to", to, "amount", bigIntToString(amount, decimals)+" WTON", "tx", tx.Hash())
+	log.Info("Swap from WTON to TON", "amount", bigIntToString(amount, decimals)+" WTON", "from", opt.From, "tx", tx.Hash())
 
 	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func stakeWTON(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	decimals := params.WTONDecimals
+
+	var (
+		amount *big.Int
+
+		ok bool
+
+		tx *types.Transaction
+	)
+
+	amountStr := parseIntString(ctx.Args()[0], decimals)
+	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
+		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	rootchainAddr, err := getRootChainAddr(chaindb)
+	if err != nil {
+		return err
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	if (managers.TON == common.Address{}) ||
+		(managers.WTON == common.Address{}) ||
+		(managers.DepositManager == common.Address{}) ||
+		(managers.RootChainRegistry == common.Address{}) ||
+		(managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+	}
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+
+	var (
+		WTON           *wton.WTON
+		depositManager *stakingmanager.DepositManager
+	)
+
+	// load contract instances
+	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
+		utils.Fatalf("Failed to load WTON contract: %v", err)
+	}
+	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+		utils.Fatalf("Failed to load DepositManager contract: %v", err)
+	}
+
+	// check WTON balance
+	wtonBalance, err := WTON.BalanceOf(&bind.CallOpts{Pending: false}, opt.From)
+	if err != nil {
+		utils.Fatalf("Failed to read WTON balance: %v", err)
+	}
+
+	if wtonBalance.Cmp(amount) < 0 {
+		utils.Fatalf("Insufficient WTON Balance (%s)", bigIntToString(wtonBalance, params.WTONDecimals))
+	}
+
+	// send transaction(s)
+	approveToken("WTON", WTON, backend, opt, managers.DepositManager, amount, params.WTONDecimals)
+
+	if tx, err = depositManager.Deposit(opt, rootchainAddr, amount); err != nil {
+		return err
+	}
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	log.Info("Deposit WTON to RootChain", "rootchain", rootchainAddr, "amount", bigIntToString(amount, decimals)+" WTON", "tx", tx.Hash())
 
 	return nil
 }
