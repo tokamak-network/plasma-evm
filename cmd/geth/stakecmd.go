@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
@@ -35,7 +36,7 @@ import (
 )
 
 var (
-	deployCmd = cli.Command{
+	stakingCmd = cli.Command{
 		Name:     "staking",
 		Usage:    "Stake TON",
 		Category: "TON STAKING COMMANDS",
@@ -57,6 +58,7 @@ Manage staking-related actions in the root chain.
 					utils.OperatorKeyFlag,
 					utils.RootChainTONFlag,
 					utils.RootChainWTONFlag,
+					utils.DeveloperKeyFlag,
 				},
 				Description: `
     geth staking deployManagers <withdrawalDelay> <seigPerBlock>
@@ -65,6 +67,20 @@ Deploy new manager contracts.
 
 NOTE:
 use --rootchain.ton, --rootchain.wton flags to use already deployed token contracts
+`,
+			},
+			{
+				Name:     "getManagers",
+				Usage:    "Get staking managers addresses in database",
+				Action:   utils.MigrateFlags(getManagers),
+				Category: "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+				},
+				Description: `
+    geth staking getManagers
+
+Get staking contract addresses
 `,
 			},
 			{
@@ -288,11 +304,49 @@ func deployManagers(ctx *cli.Context) error {
 		return err
 	}
 
+	log.Info("Staking manager contract deployed", "TON", tonAddr, "WTON", wtonAddr, "RootChainRegistry", registryAddr, "DepositManager", depositManagerAddr, "SeigManager", seigManagerAddr)
+
 	rawdb.WriteTON(chaindb, tonAddr)
 	rawdb.WriteWTON(chaindb, wtonAddr)
 	rawdb.WriteRegistry(chaindb, registryAddr)
 	rawdb.WriteDepositManager(chaindb, depositManagerAddr)
 	rawdb.WriteSeigManager(chaindb, seigManagerAddr)
+
+	return nil
+}
+
+func getManagers(ctx *cli.Context) error {
+	stack, _ := makeConfigNode(ctx)
+
+	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	type W struct {
+		TON               common.Address `json:TON`
+		WTON              common.Address `json:WTON`
+		DepositManager    common.Address `json:DepositManager`
+		RootChainRegistry common.Address `json:RootChainRegistry`
+		SeigManager       common.Address `json:SeigManager`
+	}
+
+	o := W{
+		TON:               rawdb.ReadTON(chaindb),
+		WTON:              rawdb.ReadWTON(chaindb),
+		DepositManager:    rawdb.ReadDepositManager(chaindb),
+		RootChainRegistry: rawdb.ReadRegistry(chaindb),
+		SeigManager:       rawdb.ReadSeigManager(chaindb),
+	}
+
+	b, err := json.MarshalIndent(o, "", "  ")
+
+	if err != nil {
+		return nil
+	}
+
+	fmt.Println(string(b))
 
 	return nil
 }
