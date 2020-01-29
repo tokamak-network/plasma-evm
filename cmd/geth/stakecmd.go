@@ -20,7 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"path/filepath"
 
 	"strings"
 
@@ -517,8 +519,13 @@ func setManagers(ctx *cli.Context) error {
 	return nil
 }
 
-func getRootChainAddr(reader ethdb.Reader) (rootchainAddr common.Address, err error) {
-	data := rawdb.ReadGenesis(reader)
+func getRootChainAddr(datadir string) (rootchainAddr common.Address, err error) {
+	path := filepath.Join(datadir, "geth", "genesis.json")
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return
+	}
+
 	genesis := new(core.Genesis)
 	if err = json.Unmarshal(data, genesis); err != nil {
 		return
@@ -537,7 +544,6 @@ func registerRootChain(ctx *cli.Context) error {
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
 	managers := getManagerConfig(chaindb)
@@ -546,7 +552,7 @@ func registerRootChain(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
 	}
 
-	rootchainAddr, err := getRootChainAddr(chaindb)
+	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
@@ -659,10 +665,11 @@ func getBalances(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
+	log.Info("cfg.Node.DataDir", "v", filepath.Join(cfg.Node.DataDir, "geth", "genesis.json"))
+
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
-		utils.Fatalf("Failed depositor open database: %v", err)
-		return err
+		utils.Fatalf("Failed to open database: %v", err)
 	}
 
 	managers := getManagerConfig(chaindb)
@@ -685,7 +692,7 @@ func getBalances(ctx *cli.Context) error {
 
 	opt := &bind.CallOpts{Pending: false}
 
-	rootchainAddr, err := getRootChainAddr(chaindb)
+	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
@@ -814,7 +821,6 @@ func mintTON(ctx *cli.Context) error {
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
 	managers := getManagerConfig(chaindb)
@@ -995,7 +1001,6 @@ func swapToTON(ctx *cli.Context) error {
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
 	managers := getManagerConfig(chaindb)
@@ -1072,10 +1077,9 @@ func stakeWTON(ctx *cli.Context) error {
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
-	rootchainAddr, err := getRootChainAddr(chaindb)
+	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
