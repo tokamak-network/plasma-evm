@@ -24,7 +24,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/stakingmanager"
+	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
+	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
@@ -109,14 +112,13 @@ use --rootchain.ton, --rootchain.wton flags to use already deployed token contra
 			{
 				Name:     "register",
 				Usage:    "Register RootChain contract",
-				Action:   utils.MigrateFlags(deployManagers),
+				Action:   utils.MigrateFlags(registerRootChain),
 				Category: "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
 					utils.OperatorAddressFlag,
 					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
 				},
 				Description: `
 Register RootChain contract to RootChainRegistry`,
@@ -237,9 +239,28 @@ Stake WTON`,
 	}
 )
 
+type ManagerConfig struct {
+	TON               common.Address `json:TON`
+	WTON              common.Address `json:WTON`
+	DepositManager    common.Address `json:DepositManager`
+	RootChainRegistry common.Address `json:RootChainRegistry`
+	SeigManager       common.Address `json:SeigManager`
+}
+
+func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
+	return &ManagerConfig{
+		TON:               rawdb.ReadTON(reader),
+		WTON:              rawdb.ReadWTON(reader),
+		DepositManager:    rawdb.ReadDepositManager(reader),
+		RootChainRegistry: rawdb.ReadRegistry(reader),
+		SeigManager:       rawdb.ReadSeigManager(reader),
+	}
+}
+
 func deployManagers(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
+	// TODO: other database name for light client?
 	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
@@ -318,29 +339,16 @@ func deployManagers(ctx *cli.Context) error {
 func getManagers(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 
+	// TODO: other database name for light client?
 	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
 	}
 
-	type W struct {
-		TON               common.Address `json:TON`
-		WTON              common.Address `json:WTON`
-		DepositManager    common.Address `json:DepositManager`
-		RootChainRegistry common.Address `json:RootChainRegistry`
-		SeigManager       common.Address `json:SeigManager`
-	}
+	config := getManagerConfig(chaindb)
 
-	o := W{
-		TON:               rawdb.ReadTON(chaindb),
-		WTON:              rawdb.ReadWTON(chaindb),
-		DepositManager:    rawdb.ReadDepositManager(chaindb),
-		RootChainRegistry: rawdb.ReadRegistry(chaindb),
-		SeigManager:       rawdb.ReadSeigManager(chaindb),
-	}
-
-	b, err := json.MarshalIndent(o, "", "  ")
+	b, err := json.MarshalIndent(config, "", "  ")
 
 	if err != nil {
 		return nil
@@ -354,6 +362,7 @@ func getManagers(ctx *cli.Context) error {
 func setManagers(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 
+	// TODO: other database name for light client?
 	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
@@ -419,6 +428,69 @@ func setManagers(ctx *cli.Context) error {
 			log.Error("%s address is already set as %s, not same with %s", target.name, addr.String(), target.addr)
 		}
 	}
+
+	return nil
+}
+
+func registerRootChain(ctx *cli.Context) error {
+	stack, cfg := makeConfigNode(ctx)
+	log.Info("cfg.Pls", "cfg.Pls", cfg.Pls)
+
+	// TODO: other database name for light client?
+	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	config := getManagerConfig(chaindb)
+
+	if (config.TON == common.Address{}) ||
+		(config.WTON == common.Address{}) ||
+		(config.DepositManager == common.Address{}) ||
+		(config.RootChainRegistry == common.Address{}) ||
+		(config.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+	}
+
+	data := rawdb.ReadGenesis(chaindb)
+	genesis := new(core.Genesis)
+	if err = json.Unmarshal(data, genesis); err != nil {
+		return err
+	}
+
+	rootchainAddr := common.BytesToAddress(genesis.ExtraData)
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasLimit = 7000000
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("Using manager contracts", "TON", config.TON, "WTON", config.WTON, "DepositManager", config.DepositManager, "RootChainRegistry", config.RootChainRegistry, "SeigManager", config.SeigManager)
+
+	registry, err := stakingmanager.NewRootChainRegistry(config.RootChainRegistry, backend)
+	if err != nil {
+		return err
+	}
+
+	var tx *types.Transaction
+	if tx, err = registry.Register(opt, rootchainAddr); err != nil {
+		return err
+	}
+	log.Info("Register RootChain", "registry", config.RootChainRegistry, "rootchain", rootchainAddr, "tx", tx.Hash())
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	log.Info("RootChain registered", "registry", config.RootChainRegistry, "rootchain", rootchainAddr, "tx", tx.Hash())
 
 	return nil
 }
