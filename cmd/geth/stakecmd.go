@@ -20,25 +20,30 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+
+	"strings"
+
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/stakingmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ton"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/wton"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
-	"strings"
+	"github.com/Onther-Tech/plasma-evm/params"
 
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
 	"gopkg.in/urfave/cli.v1"
-	"math/big"
 )
 
+// TODO: unlock password..!
 var (
 	stakingCmd = cli.Command{
 		Name:     "staking",
@@ -147,8 +152,8 @@ Mint TON to account`,
 			{
 				Name:      "swapFromTON",
 				Usage:     "Swap TON with WTON",
-				ArgsUsage: "<amount>",
-				Action:    utils.MigrateFlags(deployManagers),
+				ArgsUsage: "<tonAmount>",
+				Action:    utils.MigrateFlags(swapFromTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
@@ -159,13 +164,16 @@ Mint TON to account`,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Change TON to WTON`,
+Change TON to WTON
+
+NOTE: <tonAmount> is in WAD, (decialms 18)
+`,
 			},
 			{
 				Name:      "swapToTON",
 				Usage:     "Swap WTON with TON",
-				ArgsUsage: "<amount>",
-				Action:    utils.MigrateFlags(deployManagers),
+				ArgsUsage: "<wtonAmount>",
+				Action:    utils.MigrateFlags(swapToTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
@@ -173,9 +181,13 @@ Change TON to WTON`,
 					utils.OperatorAddressFlag,
 					utils.OperatorKeyFlag,
 					utils.RootChainTONFlag,
+					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Change WTON to TON`,
+Change WTON to TON
+
+NOTE: <wtonAmount> is in RAY, (decialms 27)
+`,
 			},
 			{
 				Name:      "stake",
@@ -299,6 +311,18 @@ func parseIntString(str string, decimals int) string {
 	r := strings.Repeat("0", n)
 
 	return a + b + r
+}
+
+func bigIntToString(v *big.Int, decimals int) string {
+	if decimals != 18 && decimals != 27 {
+		utils.Fatalf("decimals should be 18 or 27, not %d", decimals)
+	}
+
+	p := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil)
+
+	q, d := new(big.Int).DivMod(v, p, new(big.Int))
+
+	return q.String() + "." + d.String()
 }
 
 func deployManagers(ctx *cli.Context) error {
@@ -526,6 +550,8 @@ func mintTON(ctx *cli.Context) error {
 		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
 	}
 
+	decimals := params.TONDecimals
+
 	var (
 		to     common.Address
 		amount *big.Int
@@ -534,7 +560,7 @@ func mintTON(ctx *cli.Context) error {
 	)
 
 	to = common.HexToAddress(ctx.Args()[0])
-	amountStr := parseIntString(ctx.Args()[1], 18)
+	amountStr := parseIntString(ctx.Args()[1], decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
@@ -565,7 +591,7 @@ func mintTON(ctx *cli.Context) error {
 		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
-	log.Info("Using TON contract", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
 	TON, err := ton.NewTON(managers.TON, backend)
 	if err != nil {
@@ -576,7 +602,139 @@ func mintTON(ctx *cli.Context) error {
 	if tx, err = TON.Mint(opt, to, amount); err != nil {
 		return err
 	}
-	log.Info("Minting TON", "to", to, "amount", amountStr, "tx", tx.Hash())
+	log.Info("Minting TON", "to", to, "amount", bigIntToString(amount, decimals)+" TON", "tx", tx.Hash())
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func swapFromTON(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	decimals := params.TONDecimals
+
+	var (
+		to     common.Address
+		amount *big.Int
+
+		ok bool
+	)
+
+	to = common.HexToAddress(ctx.Args()[0])
+	amountStr := parseIntString(ctx.Args()[1], decimals)
+	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
+		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+
+	// TODO: other database name for light client?
+	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+	}
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+
+	WTON, err := wton.NewWTON(managers.WTON, backend)
+	if err != nil {
+		return err
+	}
+
+	var tx *types.Transaction
+	if tx, err = WTON.SwapFromTON(opt, amount); err != nil {
+		return err
+	}
+	log.Info("Swap from TON to WTON", "to", to, "amount", bigIntToString(amount, decimals)+" TON", "tx", tx.Hash())
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func swapToTON(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	decimals := params.WTONDecimals
+
+	var (
+		to     common.Address
+		amount *big.Int
+
+		ok bool
+	)
+
+	to = common.HexToAddress(ctx.Args()[0])
+	amountStr := parseIntString(ctx.Args()[1], decimals)
+	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
+		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+
+	// TODO: other database name for light client?
+	chaindb, err := stack.OpenDatabase("chaindata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+	}
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+
+	WTON, err := wton.NewWTON(managers.WTON, backend)
+	if err != nil {
+		return err
+	}
+
+	var tx *types.Transaction
+	if tx, err = WTON.SwapToTON(opt, amount); err != nil {
+		return err
+	}
+	log.Info("Swap from WTON to TON", "to", to, "amount", bigIntToString(amount, decimals)+" WTON", "tx", tx.Hash())
 
 	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
 		return err

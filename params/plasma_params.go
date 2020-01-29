@@ -16,4 +16,7 @@ var (
 
 	RequestTxGasPrice        = big.NewInt(1e9)
 	RequestTxGasLimit uint64 = 100000
+
+	TONDecimals  = 18
+	WTONDecimals = 27
 )
