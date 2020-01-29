@@ -47,6 +47,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+// TODO: use other logger
 // TODO: --rootchain.from flag unlock password..!
 // TODO: return error -> utils.Fatalf
 // TODO: refactor (init, ...)
@@ -685,6 +686,9 @@ func getBalances(ctx *cli.Context) error {
 		accUnstaked *big.Int
 		deposit     *big.Int
 
+		numPendingRequests *big.Int
+		pendingUnstaked    *big.Int
+
 		totalStake          *big.Int
 		totalStakeRootChain *big.Int
 
@@ -735,6 +739,13 @@ func getBalances(ctx *cli.Context) error {
 	if accUnstaked, err = depositManager.AccUnstaked(opt, rootchainAddr, depositor); err != nil {
 		utils.Fatalf("Failed depositor read accumulated unstake: %v", err)
 	}
+	if numPendingRequests, err = depositManager.NumPendingRequests(opt, rootchainAddr, depositor); err != nil {
+		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+	}
+	if pendingUnstaked, err = depositManager.PendingUnstaked(opt, rootchainAddr, depositor); err != nil {
+		utils.Fatalf("Failed depositor read pending withdrawal amount: %v", err)
+	}
+
 	if totalStake, err = tot.TotalSupply(opt); err != nil {
 		log.Warn("Failed depositor read total stake", "err", err)
 		totalStake = big.NewInt(0)
@@ -758,6 +769,9 @@ func getBalances(ctx *cli.Context) error {
 	log.Info("TON Balance", "amount", bigIntToString(tonBalance, params.TONDecimals)+" TON", "depositor", depositor)
 	log.Info("WON Balance", "amount", bigIntToString(wtonBalance, params.WTONDecimals)+" WTON", "depositor", depositor)
 	log.Info("Deposit", "amount", bigIntToString(deposit, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+
+	log.Info("Pending withdrawal requests", "num", numPendingRequests)
+	log.Info("Pending withdrawal WTON", "amount", bigIntToString(pendingUnstaked, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 
 	log.Info("Total Stake", "amount", bigIntToString(totalStake, params.WTONDecimals)+" WTON")
 	log.Info("Total Stake of Root Chain", "amount", bigIntToString(totalStakeRootChain, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr)
@@ -1274,6 +1288,8 @@ func processWithdrawal(ctx *cli.Context) error {
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
 	var (
+		numPendingRequests *big.Int
+
 		depositManager *stakingmanager.DepositManager
 	)
 
@@ -1282,7 +1298,19 @@ func processWithdrawal(ctx *cli.Context) error {
 		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
 
-	// TODO: check num pending requests
+	if numPendingRequests, err = depositManager.NumPendingRequests(&bind.CallOpts{Pending: false}, rootchainAddr, opt.From); err != nil {
+		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+	}
+
+	// check num pending requests
+	if n == 0 || int(numPendingRequests.Int64()) > n {
+		log.Warn("Set num requests", "n", numPendingRequests)
+		n = int(numPendingRequests.Int64())
+	}
+
+	if n == 0 {
+		utils.Fatalf("No request to process")
+	}
 
 	if tx, err = depositManager.ProcessRequests(opt, rootchainAddr, big.NewInt(int64((n)))); err != nil {
 		return err
