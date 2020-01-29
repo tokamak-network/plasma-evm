@@ -14,7 +14,6 @@ package plasma
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/EtherToken.sol --pkg ethertoken --out ethertoken/ethertoken.go
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -155,19 +154,19 @@ func DeployManagers(
 	opt.GasLimit = 7000000
 
 	var (
-		TON            *ton.TON
-		WTON           *wton.WTON
-		registry       *stakingmanager.RootChainRegistry
+		//TON            *ton.TON
+		WTON *wton.WTON
+		//registry       *stakingmanager.RootChainRegistry
 		depositManager *stakingmanager.DepositManager
-		seigManager    *stakingmanager.SeigManager
+		//seigManager    *stakingmanager.SeigManager
 
 		tx *types.Transaction
 	)
 
 	// 1. deploy TON
+	log.Info("1. deploy TON contract")
 	if (_tonAddr == common.Address{}) {
-		log.Info("1. deploy TON contract")
-		if tonAddr, tx, TON, err = ton.DeployTON(opt, backend); err != nil {
+		if tonAddr, tx, _, err = ton.DeployTON(opt, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy TON: %v", err))
 			return
 		}
@@ -176,18 +175,20 @@ func DeployManagers(
 			err = errors.New(fmt.Sprintf("Failed to deploy TON: %v", err))
 			return
 		}
+
+		log.Info("TON deployed", "addr", tonAddr.String(), "tx", tx.Hash())
 	} else {
 		tonAddr = _tonAddr
-		log.Info("use TON contract at %s", tonAddr.String())
-		if TON, err = ton.NewTON(tonAddr, backend); err != nil {
+		log.Warn("use TON contract at %s", tonAddr.String())
+		if _, err = ton.NewTON(tonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate TON: %v", err))
 			return
 		}
 	}
 
 	// 2. deploy WTON
+	log.Info("2. deploy WTON contract")
 	if (_wtonAddr == common.Address{}) {
-		log.Info("2. deploy WTON contract")
 		if wtonAddr, tx, WTON, err = wton.DeployWTON(opt, backend, tonAddr); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy WTON: %v", err))
 			return
@@ -197,9 +198,10 @@ func DeployManagers(
 			err = errors.New(fmt.Sprintf("Failed to deploy WTON: %v", err))
 			return
 		}
+		log.Info("WTON deployed", "addr", wtonAddr.String(), "tx", tx.Hash())
 	} else {
 		wtonAddr = _wtonAddr
-		log.Info("use WTON contract at %s", wtonAddr.String())
+		log.Warn("use WTON contract at %s", wtonAddr.String())
 		if WTON, err = wton.NewWTON(wtonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate WTON: %v", err))
 			return
@@ -212,7 +214,8 @@ func DeployManagers(
 	}
 
 	// 3. deploy RootChainRegistry
-	if registryAddr, tx, registry, err = stakingmanager.DeployRootChainRegistry(opt, backend); err != nil {
+	log.Info("3. deploy RootChainRegistry")
+	if registryAddr, tx, _, err = stakingmanager.DeployRootChainRegistry(opt, backend); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy RootChainRegistry: %v", err))
 		return
 	}
@@ -221,8 +224,10 @@ func DeployManagers(
 		err = errors.New(fmt.Sprintf("Failed to deploy RootChainRegistry: %v", err))
 		return
 	}
+	log.Info("RootChainRegistry deployed", "addr", registryAddr.String(), "tx", tx.Hash())
 
 	// 4. deploy DepositManager
+	log.Info("4. deploy DepositManager")
 	if depositManagerAddr, tx, depositManager, err = stakingmanager.DeployDepositManager(opt, backend, wtonAddr, registryAddr, withdrawalDelay); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy DepositManager: %v", err))
 		return
@@ -232,9 +237,11 @@ func DeployManagers(
 		err = errors.New(fmt.Sprintf("Failed to deploy DepositManager: %v", err))
 		return
 	}
+	log.Info("DepositManager deployed", "addr", depositManagerAddr.String(), "tx", tx.Hash())
 
 	// 5. deploy SeigManager
-	if seigManagerAddr, tx, seigManager, err = stakingmanager.DeploySeigManager(opt, backend, tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigPerBlock); err != nil {
+	log.Info("5. deploy SeigManager")
+	if seigManagerAddr, tx, _, err = stakingmanager.DeploySeigManager(opt, backend, tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigPerBlock); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy SeigManager: %v", err))
 		return
 	}
@@ -243,8 +250,10 @@ func DeployManagers(
 		err = errors.New(fmt.Sprintf("Failed to deploy SeigManager: %v", err))
 		return
 	}
+	log.Info("SeigManager deployed", "addr", seigManagerAddr.String(), "tx", tx.Hash())
 
 	// 6. add WTON minter role to SeigManager
+	log.Info("6. add WTON minter role to SeigManager")
 	if tx, err = WTON.AddMinter(opt, seigManagerAddr); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
 		return
@@ -253,18 +262,26 @@ func DeployManagers(
 		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
 		return
 	}
+	log.Info("Add WTON minter role to SeigManager", "tx", tx.Hash())
 
 	// 7. set seig manager to contracts
 	var contracts = []seigManagerSetter{depositManager, WTON}
-	for _, c := range contracts {
+	targets := []string{"DepositManager", "WTON"}
+
+	log.Info("Setting SeigManager address to target contracts", "targets", targets)
+	for i, c := range contracts {
+		target := targets[i]
+
 		if tx, err = c.SetSeigManager(opt, seigManagerAddr); err != nil {
-			err = errors.New(fmt.Sprintf("Failed to set SeigManager: %v", err))
+			err = errors.New(fmt.Sprintf("Failed to set SeigManager to %s: %v", target, err))
 			return
 		}
 		if err = wait(backend, tx.Hash()); err != nil {
-			err = errors.New(fmt.Sprintf("Failed to set SeigManager: %v", err))
+			err = errors.New(fmt.Sprintf("Failed to set SeigManager to %s: %v", target, err))
 			return
 		}
+
+		log.Info("Set SeigManager to target cotnract", "target", target, "tx", tx.Hash())
 	}
 
 	return
