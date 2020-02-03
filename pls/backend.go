@@ -73,8 +73,6 @@ type Plasma struct {
 	// Channel for shutting down the service
 	shutdownChan chan bool
 
-	server *p2p.Server
-
 	// Handlers
 	txPool           *core.TxPool
 	blockchain       *core.BlockChain
@@ -142,7 +140,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul, config.OverrideMuirGlacier)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}

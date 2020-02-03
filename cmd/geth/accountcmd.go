@@ -210,9 +210,9 @@ The privateKey is assumed to be private key in hexadecimal format.
 
 The account is saved in encrypted format, you are prompted for a passphrase.
 
-You must remember this passphrase to unlock your account in the future.
+You must remember this password to unlock your account in the future.
 
-For non-interactive use the passphrase can be specified with the -password flag:
+For non-interactive use the password can be specified with the -password flag:
 
     geth account import [options] <privateKey>
 

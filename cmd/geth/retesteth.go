@@ -32,6 +32,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/common/math"
 	"github.com/Onther-Tech/plasma-evm/consensus"
+
 	// "github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/consensus/misc"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -111,7 +112,6 @@ type RetestethAPI struct {
 	genesisHash   common.Hash
 	engine        *NoRewardEngine
 	blockchain    *core.BlockChain
-	blockNumber   uint64
 	txMap         map[common.Address]map[uint64]*types.Transaction // Sender -> Nonce -> Transaction
 	txSenders     map[common.Address]struct{}                      // Set of transaction senders
 	blockInterval uint64
@@ -427,7 +427,7 @@ func (api *RetestethAPI) SendRawTransaction(ctx context.Context, rawTx hexutil.B
 		// Return nil is not by mistake - some tests include sending transaction where gasLimit overflows uint64
 		return common.Hash{}, nil
 	}
-	signer := types.MakeSigner(api.chainConfig, big.NewInt(int64(api.blockNumber)))
+	signer := types.MakeSigner(api.chainConfig, big.NewInt(int64(api.currentNumber())))
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -453,9 +453,17 @@ func (api *RetestethAPI) MineBlocks(ctx context.Context, number uint64) (bool, e
 	return true, nil
 }
 
+func (api *RetestethAPI) currentNumber() uint64 {
+	if current := api.blockchain.CurrentBlock(); current != nil {
+		return current.NumberU64()
+	}
+	return 0
+}
+
 func (api *RetestethAPI) mineBlock() error {
-	parentHash := rawdb.ReadCanonicalHash(api.ethDb, api.blockNumber)
-	parent := rawdb.ReadBlock(api.ethDb, parentHash, api.blockNumber)
+	number := api.currentNumber()
+	parentHash := rawdb.ReadCanonicalHash(api.ethDb, number)
+	parent := rawdb.ReadBlock(api.ethDb, parentHash, number)
 	var timestamp uint64
 	if api.blockInterval == 0 {
 		timestamp = uint64(time.Now().Unix())
@@ -465,7 +473,7 @@ func (api *RetestethAPI) mineBlock() error {
 	gasLimit := core.CalcGasLimit(parent, 9223372036854775807, 9223372036854775807)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
-		Number:     big.NewInt(int64(api.blockNumber + 1)),
+		Number:     big.NewInt(int64(number + 1)),
 		GasLimit:   gasLimit,
 		Extra:      api.extraData,
 		Time:       timestamp,
@@ -498,7 +506,6 @@ func (api *RetestethAPI) mineBlock() error {
 	txCount := 0
 	var txs []*types.Transaction
 	var receipts []*types.Receipt
-	var coalescedLogs []*types.Log
 	var blockFull = gasPool.Gas() < params.TxGas
 	for address := range api.txSenders {
 		if blockFull {
@@ -511,7 +518,7 @@ func (api *RetestethAPI) mineBlock() error {
 				statedb.Prepare(tx.Hash(), common.Hash{}, txCount)
 				snap := statedb.Snapshot()
 
-				receipt, _, err := core.ApplyTransaction(
+				receipt, err := core.ApplyTransaction(
 					api.chainConfig,
 					api.blockchain,
 					&api.author,
@@ -525,7 +532,6 @@ func (api *RetestethAPI) mineBlock() error {
 				}
 				txs = append(txs, tx)
 				receipts = append(receipts, receipt)
-				coalescedLogs = append(coalescedLogs, receipt.Logs...)
 				delete(m, nonce)
 				if len(m) == 0 {
 					// Last tx for the sender
@@ -553,8 +559,7 @@ func (api *RetestethAPI) importBlock(block *types.Block) error {
 	if _, err := api.blockchain.InsertChain([]*types.Block{block}); err != nil {
 		return err
 	}
-	api.blockNumber = block.NumberU64()
-	fmt.Printf("Imported block %d\n", block.NumberU64())
+	fmt.Printf("Imported block %d,  head is %d\n", block.NumberU64(), api.currentNumber())
 	return nil
 }
 
@@ -579,7 +584,9 @@ func (api *RetestethAPI) RewindToBlock(ctx context.Context, newHead uint64) (boo
 	if err := api.blockchain.SetHead(newHead); err != nil {
 		return false, err
 	}
-	api.blockNumber = newHead
+	// When we rewind, the transaction pool should be cleaned out.
+	api.txMap = make(map[common.Address]map[uint64]*types.Transaction)
+	api.txSenders = make(map[common.Address]struct{})
 	return true, nil
 }
 
@@ -599,8 +606,7 @@ func (api *RetestethAPI) GetLogHash(ctx context.Context, txHash common.Hash) (co
 }
 
 func (api *RetestethAPI) BlockNumber(ctx context.Context) (uint64, error) {
-	//fmt.Printf("BlockNumber, response: %d\n", api.blockNumber)
-	return api.blockNumber, nil
+	return api.currentNumber(), nil
 }
 
 func (api *RetestethAPI) GetBlockByNumber(ctx context.Context, blockNr math.HexOrDecimal64, fullTx bool) (map[string]interface{}, error) {
@@ -685,9 +691,6 @@ func (api *RetestethAPI) AccountRange(ctx context.Context,
 	for i := 0; i < int(maxResults) && it.Next(); i++ {
 		if preimage := accountTrie.GetKey(it.Key); preimage != nil {
 			result.AddressMap[common.BytesToHash(it.Key)] = common.BytesToAddress(preimage)
-			//fmt.Printf("%x: %x\n", it.Key, preimage)
-		} else {
-			//fmt.Printf("could not find preimage for %x\n", it.Key)
 		}
 	}
 	//fmt.Printf("Number of entries returned: %d\n", len(result.AddressMap))
@@ -811,9 +814,6 @@ func (api *RetestethAPI) StorageRangeAt(ctx context.Context,
 				Key:   string(ks),
 				Value: string(vs),
 			}
-			//fmt.Printf("Key: %s, Value: %s\n", ks, vs)
-		} else {
-			//fmt.Printf("Did not find preimage for %x\n", it.Key)
 		}
 	}
 	if it.Next() {
@@ -892,7 +892,7 @@ func retesteth(ctx *cli.Context) error {
 		log.Info("HTTP endpoint closed", "url", httpEndpoint)
 	}()
 
-	abortChan := make(chan os.Signal)
+	abortChan := make(chan os.Signal, 11)
 	signal.Notify(abortChan, os.Interrupt)
 
 	sig := <-abortChan

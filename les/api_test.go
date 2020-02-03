@@ -43,11 +43,25 @@ import (
 	"github.com/mattn/go-colorable"
 )
 
-/*
-This test is not meant to be a part of the automatic testing process because it
-runs for a long time and also requires a large database in order to do a meaningful
-request performance test. When testServerDataDir is empty, the test is skipped.
-*/
+// Additional command line flags for the test binary.
+var (
+	loglevel   = flag.Int("loglevel", 0, "verbosity of logs")
+	simAdapter = flag.String("adapter", "exec", "type of simulation: sim|socket|exec|docker")
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	log.PrintOrigins(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+	// register the Delivery service which will run as a devp2p
+	// protocol when using the exec adapter
+	adapters.RegisterServices(services)
+	os.Exit(m.Run())
+}
+
+// This test is not meant to be a part of the automatic testing process because it
+// runs for a long time and also requires a large database in order to do a meaningful
+// request performance test. When testServerDataDir is empty, the test is skipped.
 
 const (
 	testServerDataDir  = "" // should always be empty on the master branch
@@ -312,7 +326,8 @@ func testRequest(ctx context.Context, t *testing.T, client *rpc.Client) bool {
 	var res string
 	var addr common.Address
 	rand.Read(addr[:])
-	c, _ := context.WithTimeout(ctx, time.Second*12)
+	c, cancel := context.WithTimeout(ctx, time.Second*12)
+	defer cancel()
 	err := client.CallContext(c, &res, "eth_getBalance", addr, "latest")
 	if err != nil {
 		t.Log("request error:", err)
@@ -377,29 +392,13 @@ func getCapacityInfo(ctx context.Context, t *testing.T, server *rpc.Client) (min
 	return
 }
 
-func init() {
-	flag.Parse()
-	// register the Delivery service which will run as a devp2p
-	// protocol when using the exec adapter
-	adapters.RegisterServices(services)
-
-	log.PrintOrigins(true)
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
-}
-
-var (
-	adapter  = flag.String("adapter", "exec", "type of simulation: sim|socket|exec|docker")
-	loglevel = flag.Int("loglevel", 0, "verbosity of logs")
-	nodes    = flag.Int("nodes", 0, "number of nodes")
-)
-
 var services = adapters.Services{
 	"lesclient": newLesClientService,
 	"lesserver": newLesServerService,
 }
 
 func NewNetwork() (*simulations.Network, func(), error) {
-	adapter, adapterTeardown, err := NewAdapter(*adapter, services)
+	adapter, adapterTeardown, err := NewAdapter(*simAdapter, services)
 	if err != nil {
 		return nil, adapterTeardown, err
 	}

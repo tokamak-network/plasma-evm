@@ -33,6 +33,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/internal/ethapi"
+	"github.com/Onther-Tech/plasma-evm/les/checkpointoracle"
 	"github.com/Onther-Tech/plasma-evm/light"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/node"
@@ -73,7 +74,8 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis,
+		config.RootChainContract, config.Operator.Address, config.StaminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul, config.OverrideMuirGlacier)
 	genesisBlock := rawdb.ReadBlock(chainDb, genesisHash, 0)
 	config.RootChainContract = common.BytesToAddress(genesisBlock.Extra())
 
@@ -130,7 +132,7 @@ func New(ctx *node.ServiceContext, config *pls.Config) (*LightEthereum, error) {
 	if oracle == nil {
 		oracle = params.CheckpointOracles[genesisHash]
 	}
-	leth.oracle = newCheckpointOracle(oracle, leth.localCheckpoint)
+	leth.oracle = checkpointoracle.New(oracle, leth.localCheckpoint)
 
 	// Note: AddChildIndexer starts the update process for the child
 	leth.bloomIndexer.AddChildIndexer(leth.bloomTrieIndexer)
@@ -184,7 +186,9 @@ func (s *LightDummyAPI) Mining() bool {
 // APIs returns the collection of RPC services the ethereum package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *LightEthereum) APIs() []rpc.API {
-	return append(ethapi.GetAPIs(s.ApiBackend), []rpc.API{
+	apis := ethapi.GetAPIs(s.ApiBackend)
+	apis = append(apis, s.engine.APIs(s.BlockChain().HeaderChain())...)
+	return append(apis, []rpc.API{
 		{
 			Namespace: "eth",
 			Version:   "1.0",
@@ -280,5 +284,5 @@ func (s *LightEthereum) SetContractBackend(backend bind.ContractBackend) {
 	if s.oracle == nil {
 		return
 	}
-	s.oracle.start(backend)
+	s.oracle.Start(backend)
 }

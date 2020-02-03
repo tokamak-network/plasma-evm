@@ -188,4 +188,10 @@ type Config struct {
 
 	// Istanbul block override (TODO: remove after the fork)
 	OverrideIstanbul *big.Int
+<<<<<<< HEAD:pls/config.go
+=======
+
+	// MuirGlacier block override (TODO: remove after the fork)
+	OverrideMuirGlacier *big.Int
+>>>>>>> go-ethereum/master:eth/config.go
 }
