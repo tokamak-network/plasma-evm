@@ -566,12 +566,12 @@ func setManagers(ctx *cli.Context) error {
 
 		switch addr {
 		case common.Address{}:
-			log.Info("Set $s address", target.name)
+			log.Info("Set address", "name", target.name, "addr", target.addr)
 			target.write(chaindb, target.addr)
 		case target.addr:
-			log.Info("%s address is already write as %s", target.name, addr.String())
+			log.Info("Address is already set", "name", target.name, "addr", target.addr)
 		default:
-			log.Error("%s address is already write as %s, not same with %s", target.name, addr.String(), target.addr)
+			log.Error("Known address is different", "name", target.name, "known", addr, "target", target.addr)
 		}
 	}
 
