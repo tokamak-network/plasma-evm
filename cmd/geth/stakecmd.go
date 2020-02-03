@@ -20,8 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
+	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -87,10 +90,11 @@ use --rootchain.ton, --rootchain.wton flags to use already deployed token contra
 `,
 			},
 			{
-				Name:     "getManagers",
-				Usage:    "Get staking managers addresses in database",
-				Action:   utils.MigrateFlags(getManagers),
-				Category: "TON STAKING COMMANDS",
+				Name:      "getManagers",
+				Usage:     "Get staking managers addresses in database",
+				Action:    utils.MigrateFlags(getManagers),
+				ArgsUsage: " <configURL?>",
+				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
@@ -101,10 +105,11 @@ Get staking contract addresses
 `,
 			},
 			{
-				Name:     "setManagers",
-				Usage:    "Set staking managers addresses in database",
-				Action:   utils.MigrateFlags(setManagers),
-				Category: "TON STAKING COMMANDS",
+				Name:      "setManagers",
+				Usage:     "Set staking managers addresses in database",
+				ArgsUsage: " <configURL?>",
+				Action:    utils.MigrateFlags(setManagers),
+				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -398,6 +403,8 @@ func deployManagers(ctx *cli.Context) error {
 }
 
 func getManagers(ctx *cli.Context) error {
+	configPath := ctx.Args().First()
+
 	stack, _ := makeConfigNode(ctx)
 
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
@@ -409,17 +416,98 @@ func getManagers(ctx *cli.Context) error {
 	managers := getManagerConfig(chaindb)
 
 	b, err := json.MarshalIndent(managers, "", "  ")
+	data := string(b)
 
 	if err != nil {
 		return nil
 	}
 
-	fmt.Println(string(b))
+	if len(configPath) != 0 {
+		log.Info("Exporting manager contracts", "path", configPath)
+
+		fh, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+
+		var writer io.Writer = fh
+
+		if _, err := io.WriteString(writer, string(data)); err != nil {
+			return err
+		}
+
+		log.Info("Exported manager contracts", "path", configPath)
+	}
+
+	fmt.Println(data)
 
 	return nil
 }
 
 func setManagers(ctx *cli.Context) error {
+	configPath := ctx.Args().First()
+	managers := new(ManagerConfig)
+
+	if len(configPath) != 0 {
+		var r io.Reader
+
+		if strings.HasPrefix(configPath, "http") {
+			res, err := http.Get(configPath)
+			if err != nil {
+				utils.Fatalf("Failed to read response: %v", err)
+			}
+			r = res.Body
+		} else {
+			f, err := os.Open(configPath)
+			if err != nil {
+				utils.Fatalf("Failed to read managers file: %v", err)
+			}
+			defer f.Close()
+			r = f
+		}
+
+		if err := json.NewDecoder(r).Decode(managers); err != nil {
+			utils.Fatalf("invalid managers file: %v", err)
+		}
+	}
+
+	if ctx.GlobalIsSet(utils.RootChainTONFlag.Name) {
+		tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
+		if (managers.TON != common.Address{}) && managers.TON != tonAddr {
+			log.Warn("Override TON address", "previous", managers.TON, "current", tonAddr)
+		}
+		managers.TON = tonAddr
+	}
+	if ctx.GlobalIsSet(utils.RootChainWTONFlag.Name) {
+		wtonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
+		if (managers.WTON != common.Address{}) && managers.WTON != wtonAddr {
+			log.Warn("Override WTON address", "previous", managers.WTON, "current", wtonAddr)
+		}
+		managers.WTON = wtonAddr
+	}
+	if ctx.GlobalIsSet(utils.RootChainDepositManagerFlag.Name) {
+		depositManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainDepositManagerFlag.Name))
+		if (managers.DepositManager != common.Address{}) && managers.DepositManager != depositManagerAddr {
+			log.Warn("Override DepositManager address", "previous", managers.DepositManager, "current", depositManagerAddr)
+		}
+		managers.DepositManager = depositManagerAddr
+	}
+	if ctx.GlobalIsSet(utils.RootChainRegistryFlag.Name) {
+		registryAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainRegistryFlag.Name))
+		if (managers.RootChainRegistry != common.Address{}) && managers.RootChainRegistry != registryAddr {
+			log.Warn("Override RootChainRegistry address", "previous", managers.RootChainRegistry, "current", registryAddr)
+		}
+		managers.RootChainRegistry = registryAddr
+	}
+	if ctx.GlobalIsSet(utils.RootChainSeigManagerFlag.Name) {
+		seigManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
+		if (managers.SeigManager != common.Address{}) && managers.SeigManager != seigManagerAddr {
+			log.Warn("Override SeigManager address", "previous", managers.SeigManager, "current", seigManagerAddr)
+		}
+		managers.SeigManager = seigManagerAddr
+	}
+
 	stack, _ := makeConfigNode(ctx)
 
 	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
@@ -428,63 +516,62 @@ func setManagers(ctx *cli.Context) error {
 		return err
 	}
 
-	tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
-	wtonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
-	depositManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainDepositManagerFlag.Name))
-	registryAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainRegistryFlag.Name))
-	seigManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
-
 	type w struct {
-		name string
-		addr common.Address
-		get  func(ethdb.Reader) common.Address
-		set  func(ethdb.KeyValueWriter, common.Address)
+		name  string
+		addr  common.Address
+		read  func(ethdb.Reader) common.Address
+		write func(ethdb.KeyValueWriter, common.Address)
 	}
 
 	targets := []w{
 		{
-			name: "TON",
-			addr: tonAddr,
-			get:  rawdb.ReadTON,
-			set:  rawdb.WriteTON,
+			name:  "TON",
+			addr:  managers.TON,
+			read:  rawdb.ReadTON,
+			write: rawdb.WriteTON,
 		},
 		{
-			name: "WTON",
-			addr: wtonAddr,
-			get:  rawdb.ReadWTON,
-			set:  rawdb.WriteWTON,
+			name:  "WTON",
+			addr:  managers.WTON,
+			read:  rawdb.ReadWTON,
+			write: rawdb.WriteWTON,
 		},
 		{
-			name: "DepositManager",
-			addr: depositManagerAddr,
-			get:  rawdb.ReadDepositManager,
-			set:  rawdb.WriteDepositManager,
+			name:  "DepositManager",
+			addr:  managers.DepositManager,
+			read:  rawdb.ReadDepositManager,
+			write: rawdb.WriteDepositManager,
 		},
 		{
-			name: "RootChainRegistry",
-			addr: registryAddr,
-			get:  rawdb.ReadRegistry,
-			set:  rawdb.WriteRegistry,
+			name:  "RootChainRegistry",
+			addr:  managers.RootChainRegistry,
+			read:  rawdb.ReadRegistry,
+			write: rawdb.WriteRegistry,
 		},
 		{
-			name: "SeigManager",
-			addr: seigManagerAddr,
-			get:  rawdb.ReadSeigManager,
-			set:  rawdb.WriteSeigManager,
+			name:  "SeigManager",
+			addr:  managers.SeigManager,
+			read:  rawdb.ReadSeigManager,
+			write: rawdb.WriteSeigManager,
 		},
 	}
 
 	for _, target := range targets {
-		addr := target.get(chaindb)
+		// short circuit if no target address is provided
+		if (target.addr == common.Address{}) {
+			continue
+		}
+
+		addr := target.read(chaindb)
 
 		switch addr {
 		case common.Address{}:
 			log.Info("Set $s address", target.name)
-			target.set(chaindb, target.addr)
+			target.write(chaindb, target.addr)
 		case target.addr:
-			log.Info("%s address is already set as %s", target.name, addr.String())
+			log.Info("%s address is already write as %s", target.name, addr.String())
 		default:
-			log.Error("%s address is already set as %s, not same with %s", target.name, addr.String(), target.addr)
+			log.Error("%s address is already write as %s, not same with %s", target.name, addr.String(), target.addr)
 		}
 	}
 
@@ -521,7 +608,7 @@ func registerRootChain(ctx *cli.Context) error {
 	managers := getManagerConfig(chaindb)
 
 	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
@@ -572,7 +659,7 @@ func registerRootChain(ctx *cli.Context) error {
 		}
 
 		if (seigManagerAddr != common.Address{}) && (seigManagerAddr != managers.SeigManager) {
-			return errors.New("RootChain already set SeigManager to another contract: " + seigManagerAddr.String())
+			return errors.New("RootChain already write SeigManager to another contract: " + seigManagerAddr.String())
 		}
 
 		if tx, err = rootchainCtr.SetSeigManager(opt, managers.SeigManager); err != nil {
@@ -652,7 +739,7 @@ func getBalances(ctx *cli.Context) error {
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
@@ -812,7 +899,7 @@ func mintTON(ctx *cli.Context) error {
 	managers := getManagerConfig(chaindb)
 
 	if (managers.TON == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -912,7 +999,7 @@ func swapFromTON(ctx *cli.Context) error {
 	managers := getManagerConfig(chaindb)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -992,7 +1079,7 @@ func swapToTON(ctx *cli.Context) error {
 	managers := getManagerConfig(chaindb)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1077,7 +1164,7 @@ func stakeWTON(ctx *cli.Context) error {
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1173,7 +1260,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1210,7 +1297,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		utils.Fatalf("Failed to read stake amount: %v", err)
 	}
 
-	// set all staked amount if no parameter given
+	// write all staked amount if no parameter given
 	if amount == nil {
 		amount = new(big.Int).Set(staked)
 	}
@@ -1271,7 +1358,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
-		return errors.New("manager contract addresses is empty. please set contracts before register using `geth staking setManagers`")
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
