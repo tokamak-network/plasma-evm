@@ -88,7 +88,7 @@ func init() {
 
 	backend, err = ethclient.Dial(rootchainUrl)
 	if err != nil {
-		log.Error("Failed to connect rootchian provider", "err", err)
+		log.Error("Failed to connect rootchain provider", "err", err)
 	}
 
 	networkId, err := backend.NetworkID(context.Background())

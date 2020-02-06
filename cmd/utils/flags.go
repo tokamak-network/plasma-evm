@@ -45,7 +45,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
-	"github.com/Onther-Tech/plasma-evm/dashboard"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
@@ -1797,13 +1796,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	// default operator min ether = 1ether
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
-}
-
-// SetDashboardConfig applies dashboard related command line flags to the config.
-func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
-	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
-	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
-	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
 }
 
 // RegisterPlsService adds an Plasma client to the stack.

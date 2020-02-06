@@ -31,14 +31,14 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/common/hexutil"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/les/flowcontrol"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations"
 	"github.com/Onther-Tech/plasma-evm/p2p/simulations/adapters"
+	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/mattn/go-colorable"
 )
@@ -493,18 +493,18 @@ func testSim(t *testing.T, serverCount, clientCount int, serverDir, clientDir []
 }
 
 func newLesClientService(ctx *adapters.ServiceContext) (node.Service, error) {
-	config := eth.DefaultConfig
+	config := pls.DefaultConfig
 	config.SyncMode = downloader.LightSync
 	config.Ethash.PowMode = ethash.ModeFake
 	return New(ctx.NodeContext, &config)
 }
 
 func newLesServerService(ctx *adapters.ServiceContext) (node.Service, error) {
-	config := eth.DefaultConfig
+	config := pls.DefaultConfig
 	config.SyncMode = downloader.FullSync
 	config.LightServ = testServerCapacity
 	config.LightPeers = testMaxClients
-	ethereum, err := eth.New(ctx.NodeContext, &config)
+	ethereum, err := pls.New(ctx.NodeContext, &config)
 	if err != nil {
 		return nil, err
 	}

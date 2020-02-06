@@ -70,10 +70,6 @@ var (
 		utils.NoUSBFlag,
 		utils.SmartCardDaemonPathFlag,
 		utils.OverrideIstanbulFlag,
-		utils.DashboardEnabledFlag,
-		utils.DashboardAddrFlag,
-		utils.DashboardPortFlag,
-		utils.DashboardRefreshFlag,
 		utils.OverrideMuirGlacierFlag,
 		utils.EthashCacheDirFlag,
 		utils.EthashCachesInMemoryFlag,
@@ -260,7 +256,7 @@ func init() {
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
-		return debug.Setup(ctx, "")
+		return debug.Setup(ctx)
 	}
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()

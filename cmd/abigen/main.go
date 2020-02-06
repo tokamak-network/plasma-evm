@@ -30,7 +30,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/compiler"
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/Onther-Tech/plasma-evm/accounts/abi"
 	"gopkg.in/urfave/cli.v1"
 )
 

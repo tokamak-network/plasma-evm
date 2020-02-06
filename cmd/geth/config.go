@@ -28,7 +28,6 @@ import (
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
-	"github.com/Onther-Tech/plasma-evm/dashboard"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls"
@@ -75,11 +74,10 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Pls       pls.Config
-	Shh       whisper.Config
-	Node      node.Config
-	Ethstats  ethstatsConfig
-	Dashboard dashboard.Config
+	Pls      pls.Config
+	Shh      whisper.Config
+	Node     node.Config
+	Ethstats ethstatsConfig
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -110,10 +108,9 @@ func defaultNodeConfig() node.Config {
 func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	// Load defaults.
 	cfg := gethConfig{
-		Pls:       pls.DefaultConfig,
-		Shh:       whisper.DefaultConfig,
-		Node:      defaultNodeConfig(),
-		Dashboard: dashboard.DefaultConfig,
+		Pls:  pls.DefaultConfig,
+		Shh:  whisper.DefaultConfig,
+		Node: defaultNodeConfig(),
 	}
 
 	// Load config file.

@@ -24,8 +24,10 @@ require (
 	github.com/fatih/color v1.3.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
+	github.com/go-ini/ini v1.52.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-stack/stack v1.8.0
+	github.com/gochain-io/gochain v2.2.26+incompatible
 	github.com/golang/protobuf v1.3.2-0.20190517061210-b285ee9cfc6c
 	github.com/golang/snappy v0.0.1
 	github.com/gorilla/websocket v1.4.1-0.20190629185528-ae1634f6a989
@@ -36,12 +38,16 @@ require (
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
 	github.com/julienschmidt/httprouter v1.1.1-0.20170430222011-975b5c4c7c21
+	github.com/karalabe/hid v1.0.0 // indirect
 	github.com/karalabe/usb v0.0.0-20190919080040-51dc0efba356
 	github.com/mattn/go-colorable v0.1.0
 	github.com/mattn/go-isatty v0.0.5-0.20180830101745-3fb116b82035
+	github.com/minio/minio-go v6.0.14+incompatible // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.2-0.20190409134802-7e037d187b0c
+	github.com/onther-tech/gochain v2.2.26+incompatible // indirect
 	github.com/oschwald/maxminddb-golang v1.6.0 // indirect
 	github.com/pborman/uuid v0.0.0-20170112150404-1b00554d8222
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
@@ -56,9 +62,10 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
+	go.opencensus.io v0.22.3 // indirect
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
+	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 	golang.org/x/sys v0.0.0-20191224085550-c709ea063b76
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4

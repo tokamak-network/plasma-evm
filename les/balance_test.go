@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
+	"github.com/Onther-Tech/plasma-evm/common/mclock"
 )
 
 func TestSetBalance(t *testing.T) {
