@@ -173,7 +173,7 @@ func (api *PrivateAdminAPI) ExportChain(file string, first *uint64, last *uint64
 		return false, errors.New("last cannot be specified without first")
 	}
 	if first != nil && last == nil {
-		head := api.eth.BlockChain().CurrentHeader().Number.Uint64()
+		head := api.pls.BlockChain().CurrentHeader().Number.Uint64()
 		last = &head
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -196,10 +196,10 @@ func (api *PrivateAdminAPI) ExportChain(file string, first *uint64, last *uint64
 
 	// Export the blockchain
 	if first != nil {
-		if err := api.eth.BlockChain().ExportN(writer, *first, *last); err != nil {
+		if err := api.pls.BlockChain().ExportN(writer, *first, *last); err != nil {
 			return false, err
 		}
-	} else if err := api.eth.BlockChain().Export(writer); err != nil {
+	} else if err := api.pls.BlockChain().Export(writer); err != nil {
 		return false, err
 	}
 	return true, nil

@@ -160,31 +160,3 @@ func (s *Simulated) init() {
 		s.cond = sync.NewCond(&s.mu)
 	}
 }
-
-// Cancel implements Event.
-func (e *SimulatedEvent) Cancel() bool {
-	s := e.s
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	l, h := 0, len(s.scheduled)
-	ll := h
-	for l != h {
-		m := (l + h) / 2
-		if e.id == s.scheduled[m].id {
-			l = m
-			break
-		}
-		if (e.at < s.scheduled[m].at) || ((e.at == s.scheduled[m].at) && (e.id < s.scheduled[m].id)) {
-			h = m
-		} else {
-			l = m + 1
-		}
-	}
-	if l >= ll || s.scheduled[l].id != e.id {
-		return false
-	}
-	copy(s.scheduled[l:ll-1], s.scheduled[l+1:])
-	s.scheduled = s.scheduled[:ll-1]
-	return true
-}

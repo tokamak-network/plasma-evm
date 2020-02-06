@@ -398,15 +398,6 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	}
 }
 
-// SetStorage replaces the entire storage for the specified account with given
-// storage. This function should only be used for debugging.
-func (self *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
-	stateObject := self.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetStorage(storage)
-	}
-}
-
 // Suicide marks the given account as suicided.
 // This clears the account balance.
 //
@@ -591,7 +582,7 @@ func (s *StateDB) Copy() *StateDB {
 		journal:             newJournal(),
 	}
 	// Copy the dirty states, logs, and preimages
-	for addr := range self.journal.dirties {
+	for addr := range s.journal.dirties {
 		// As documented [here](https://github.com/Onther-Tech/plasma-evm/pull/16485#issuecomment-380438527),
 		// and in the Finalise-method, there is a case where an object is in the journal but not
 		// in the stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we need to check for

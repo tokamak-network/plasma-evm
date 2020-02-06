@@ -58,14 +58,9 @@ import (
 	"strings"
 	"time"
 
-<<<<<<< HEAD
 	"github.com/Onther-Tech/plasma-evm/internal/build"
 	"github.com/Onther-Tech/plasma-evm/params"
-=======
 	"github.com/cespare/cp"
-	"github.com/ethereum/go-ethereum/internal/build"
-	"github.com/ethereum/go-ethereum/params"
->>>>>>> go-ethereum/master
 )
 
 var (
@@ -144,9 +139,6 @@ var (
 	// Note: zesty is unsupported because it was officially deprecated on Launchpad.
 	// Note: artful is unsupported because it was officially deprecated on Launchpad.
 	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
-<<<<<<< HEAD
-	debDistros = []string{"trusty", "xenial", "bionic", "disco", "eoan"}
-=======
 	debDistroGoBoots = map[string]string{
 		"trusty": "golang-1.11",
 		"xenial": "golang-go",
@@ -160,7 +152,6 @@ var (
 		"golang-1.11": "/usr/lib/go-1.11",
 		"golang-go":   "/usr/lib/go",
 	}
->>>>>>> go-ethereum/master
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
@@ -963,11 +954,7 @@ func doXCodeFramework(cmdline []string) {
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init"))
-<<<<<<< HEAD
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/Onther-Tech/plasma-evm/mobile")
-=======
-	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/ethereum/go-ethereum/mobile")
->>>>>>> go-ethereum/master
 
 	if *local {
 		// If we're building locally, use the build folder and stop afterwards
