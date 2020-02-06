@@ -84,7 +84,7 @@ func New(pls Backend, config *Config, chainConfig *params.ChainConfig, mux *even
 		env:      env,
 		db:       db,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, chainConfig, engine, pls, mux, isLocalBlock, true),
+		worker:   newWorker(config, chainConfig, engine, pls, env, mux, db, isLocalBlock, true),
 		canStart: 1,
 	}
 	go miner.update()
@@ -141,45 +141,45 @@ func (miner *Miner) Start(coinbase common.Address, e *rootchain.RootChainEpochPr
 	}
 
 	if empty {
-		previousEnv := rawdb.ReadEpochEnv(self.db)
-		epoch.Copy(self.env, previousEnv)
+		previousEnv := rawdb.ReadEpochEnv(miner.db)
+		epoch.Copy(miner.env, previousEnv)
 
-		if self.env.EpochLength.Cmp(big.NewInt(0)) == 0 {
+		if miner.env.EpochLength.Cmp(big.NewInt(0)) == 0 {
 			log.Info("NRB#1 is not initialized. stop mining")
-			self.Stop()
+			miner.Stop()
 			return
 		}
 
-		if !self.env.Completed {
-			self.worker.start()
+		if !miner.env.Completed {
+			miner.worker.start()
 			log.Info("current epoch is resumed")
 			return
 		}
 
 		log.Info("current epoch is already completed. stop miner")
-		self.Stop()
+		miner.Stop()
 		return
 	}
 
-	self.env.SetIsRequest(e.IsRequest)
-	self.env.SetUserActivated(e.UserActivated)
-	self.env.SetRebase(e.Rebase)
-	self.env.SetCompleted(false)
-	self.env.SetNumBlockMined(big.NewInt(0))
-	self.env.SetEpochLength(new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1)))
-	self.env.SetCurrentFork(e.ForkNumber)
-	self.env.SetEpochNumber(e.EpochNumber)
-	self.env.SetStartBlockNumber(e.StartBlockNumber)
-	self.env.SetEndBlockNumber(e.EndBlockNumber)
+	miner.env.SetIsRequest(e.IsRequest)
+	miner.env.SetUserActivated(e.UserActivated)
+	miner.env.SetRebase(e.Rebase)
+	miner.env.SetCompleted(false)
+	miner.env.SetNumBlockMined(big.NewInt(0))
+	miner.env.SetEpochLength(new(big.Int).Add(new(big.Int).Sub(e.EndBlockNumber, e.StartBlockNumber), big.NewInt(1)))
+	miner.env.SetCurrentFork(e.ForkNumber)
+	miner.env.SetEpochNumber(e.EpochNumber)
+	miner.env.SetStartBlockNumber(e.StartBlockNumber)
+	miner.env.SetEndBlockNumber(e.EndBlockNumber)
 
-	rawdb.WriteEpochEnv(self.db, self.env)
+	rawdb.WriteEpochEnv(miner.db, miner.env)
 
 	if e.IsRequest {
-		log.Info("ORB epoch is prepared, ORB epoch is started", "epochLength", self.env.EpochLength)
+		log.Info("ORB epoch is prepared, ORB epoch is started", "epochLength", miner.env.EpochLength)
 	} else {
-		log.Info("NRB epoch is prepared, NRB epoch is started", "epochLength", self.env.EpochLength)
+		log.Info("NRB epoch is prepared, NRB epoch is started", "epochLength", miner.env.EpochLength)
 	}
-	self.worker.start()
+	miner.worker.start()
 }
 
 func (miner *Miner) Stop() {
@@ -237,13 +237,13 @@ func (miner *Miner) SetEtherbase(addr common.Address) {
 
 // SubscribePendingLogs starts delivering logs from pending transactions
 // to the given channel.
-func (self *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
-	return self.worker.pendingLogsFeed.Subscribe(ch)
+func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
+	return miner.worker.pendingLogsFeed.Subscribe(ch)
 }
 
-func (self *Miner) SetNRBepochLength(length *big.Int) {
-	self.env.Lock()
-	defer self.env.Unlock()
+func (miner *Miner) SetNRBepochLength(length *big.Int) {
+	miner.env.Lock()
+	defer miner.env.Unlock()
 
-	self.env.EpochLength = length
+	miner.env.EpochLength = length
 }

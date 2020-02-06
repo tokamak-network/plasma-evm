@@ -30,8 +30,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/internal/jsre"
 	"github.com/Onther-Tech/plasma-evm/rpc"
 	"github.com/dop251/goja"
-
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime

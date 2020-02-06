@@ -23,6 +23,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.5 h1:zl/OfRA6nftbBK9qTohYBJ5xvw6C/oNKizR7cZGl3cI=
 github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
+github.com/Onther-Tech/go-ethereum v1.8.23 h1:o1npO23feAaP1oSjwZ1FBtxX+X4i28YK5GAuF4xk0Co=
+github.com/Onther-Tech/go-ethereum v1.8.23/go.mod h1:CNkoPgMuLKO3iAGt1DCSI0aA7OQSbJyyTE4vxqeOdow=
 github.com/Onther-Tech/plasma-evm v0.0.0-20190930095311-917ac4a04a59 h1:hSekpGf5SlB5Gj9+m4HrZ0AzG9J4lyOMuJPoo4g2HHY=
 github.com/Onther-Tech/plasma-evm v0.0.0-20190930095311-917ac4a04a59/go.mod h1:QCoETZiNgD2Qny1Hb6iymmF3JdkebcnsujBMUrodmOs=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 h1:fLjPD/aNc3UIOA6tDi6QXUemppXK3P9BI7mr2hd6gx8=

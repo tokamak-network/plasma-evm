@@ -19,7 +19,7 @@ package keystore
 import (
 	"math/big"
 
-	"github.com/Onther-Tech/plasma-evm"
+	ethereum "github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/crypto"

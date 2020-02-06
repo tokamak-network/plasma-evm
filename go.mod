@@ -4,8 +4,9 @@ go 1.13
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.7.0
+	github.com/Onther-Tech/go-ethereum v1.8.23 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.3
-	github.com/apilayer/freegeoip v3.5.0+incompatible // indirect
+	github.com/apilayer/freegeoip v3.5.0+incompatible
 	github.com/aristanetworks/goarista v0.0.0-20170210015632-ea17b1a17847
 	github.com/aws/aws-sdk-go v1.25.48
 	github.com/btcsuite/btcd v0.20.1-beta

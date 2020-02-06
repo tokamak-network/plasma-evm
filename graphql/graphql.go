@@ -36,7 +36,8 @@ import (
 )
 
 var (
-	errBlockInvariant = errors.New("block objects must be instantiated with at least one of num or hash")
+	errOnlyOnMainChain = errors.New("this operation is only available for blocks on the canonical chain")
+	errBlockInvariant  = errors.New("block objects must be instantiated with at least one of num or hash")
 )
 
 // Account represents an Ethereum account at a particular block.
@@ -316,6 +317,12 @@ func (t *Transaction) Logs(ctx context.Context) (*[]*Log, error) {
 
 type BlockType int
 
+const (
+	unknown BlockType = iota
+	isCanonical
+	notCanonical
+)
+
 // Block represents an Ethereum block.
 // backend, and numberOrHash are mandatory. All other fields are lazily fetched
 // when required.
@@ -456,15 +463,6 @@ func (b *Block) Parent(ctx context.Context) (*Block, error) {
 	}
 	if b.header != nil && b.header.Number.Uint64() > 0 {
 		num := rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(b.header.Number.Uint64() - 1))
-		return &Block{
-			backend:   b.backend,
-			num:       &num,
-			hash:      b.header.ParentHash,
-			canonical: unknown,
-		}, nil
-	}
-	if b.num != nil && *b.num != 0 {
-		num := *b.num - 1
 		return &Block{
 			backend:      b.backend,
 			numberOrHash: &num,
