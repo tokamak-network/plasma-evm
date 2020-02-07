@@ -36,13 +36,13 @@ var (
 
 // consoleOutput is an override for the console.log and console.error methods to
 // stream the output into the configured output stream instead of stdout.
-func consoleOutput(call goja.FunctionCall) goja.Value {
+func consoleOutput(call otto.FunctionCall) otto.Value {
 	output := []string{"JS:> "}
-	for _, argument := range call.Arguments {
+	for _, argument := range call.ArgumentList {
 		output = append(output, fmt.Sprintf("%v", argument))
 	}
 	fmt.Fprintln(os.Stderr, strings.Join(output, " "))
-	return goja.Undefined()
+	return otto.Value{}
 }
 
 // rulesetUI provides an implementation of UIClientAPI that evaluates a javascript
@@ -70,47 +70,45 @@ func (r *rulesetUI) Init(javascriptRules string) error {
 	r.jsRules = javascriptRules
 	return nil
 }
-func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error) {
+func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (otto.Value, error) {
 
 	// Instantiate a fresh vm engine every time
-	vm := goja.New()
+	vm := otto.New()
 
 	// Set the native callbacks
-	consoleObj := vm.NewObject()
-	consoleObj.Set("log", consoleOutput)
-	consoleObj.Set("error", consoleOutput)
-	vm.Set("console", consoleObj)
+	consoleObj, _ := vm.Get("console")
+	consoleObj.Object().Set("log", consoleOutput)
+	consoleObj.Object().Set("error", consoleOutput)
 
-	storageObj := vm.NewObject()
-	storageObj.Set("put", func(call goja.FunctionCall) goja.Value {
+	vm.Set("storage", struct{}{})
+	storageObj, _ := vm.Get("storage")
+	storageObj.Object().Set("put", func(call otto.FunctionCall) otto.Value {
 		key, val := call.Argument(0).String(), call.Argument(1).String()
 		if val == "" {
 			r.storage.Del(key)
 		} else {
 			r.storage.Put(key, val)
 		}
-		return goja.Null()
+		return otto.NullValue()
 	})
-	storageObj.Set("get", func(call goja.FunctionCall) goja.Value {
+	storageObj.Object().Set("get", func(call otto.FunctionCall) otto.Value {
 		goval, _ := r.storage.Get(call.Argument(0).String())
-		jsval := vm.ToValue(goval)
+		jsval, _ := otto.ToValue(goval)
 		return jsval
 	})
-	vm.Set("storage", storageObj)
-
 	// Load bootstrap libraries
-	script, err := goja.Compile("bignumber.js", string(BigNumber_JS), true)
+	script, err := vm.Compile("bignumber.js", BigNumber_JS)
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
-		return goja.Undefined(), err
+		return otto.UndefinedValue(), err
 	}
-	vm.RunProgram(script)
+	vm.Run(script)
 
 	// Run the actual rule implementation
-	_, err = vm.RunString(r.jsRules)
+	_, err = vm.Run(r.jsRules)
 	if err != nil {
 		log.Warn("Execution failed", "err", err)
-		return goja.Undefined(), err
+		return otto.UndefinedValue(), err
 	}
 
 	// And the actual call
@@ -121,7 +119,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	jsonbytes, err := json.Marshal(jsarg)
 	if err != nil {
 		log.Warn("failed marshalling data", "data", jsarg)
-		return goja.Undefined(), err
+		return otto.UndefinedValue(), err
 	}
 	// Now, we call foobar(JSON.parse(<jsondata>)).
 	var call string
@@ -130,7 +128,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	} else {
 		call = fmt.Sprintf("%v()", jsfunc)
 	}
-	return vm.RunString(call)
+	return vm.Run(call)
 }
 
 func (r *rulesetUI) checkApproval(jsfunc string, jsarg []byte, err error) (bool, error) {
@@ -142,7 +140,11 @@ func (r *rulesetUI) checkApproval(jsfunc string, jsarg []byte, err error) (bool,
 		log.Info("error occurred during execution", "error", err)
 		return false, err
 	}
-	result := v.ToString().String()
+	result, err := v.ToString()
+	if err != nil {
+		log.Info("error occurred during response unmarshalling", "error", err)
+		return false, err
+	}
 	if result == "Approve" {
 		log.Info("Op approved")
 		return true, nil

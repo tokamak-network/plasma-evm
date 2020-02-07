@@ -19,13 +19,12 @@ package jsre
 import (
 	"fmt"
 	"io"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/dop251/goja"
 	"github.com/fatih/color"
+	"github.com/robertkrimen/otto"
 )
 
 const (
@@ -53,29 +52,29 @@ var boringKeys = map[string]bool{
 }
 
 // prettyPrint writes value to standard output.
-func prettyPrint(vm *goja.Runtime, value goja.Value, w io.Writer) {
+func prettyPrint(vm *otto.Otto, value otto.Value, w io.Writer) {
 	ppctx{vm: vm, w: w}.printValue(value, 0, false)
 }
 
 // prettyError writes err to standard output.
-func prettyError(vm *goja.Runtime, err error, w io.Writer) {
+func prettyError(vm *otto.Otto, err error, w io.Writer) {
 	failure := err.Error()
-	if gojaErr, ok := err.(*goja.Exception); ok {
-		failure = gojaErr.String()
+	if ottoErr, ok := err.(*otto.Error); ok {
+		failure = ottoErr.String()
 	}
 	fmt.Fprint(w, ErrorColor("%s", failure))
 }
 
-func (re *JSRE) prettyPrintJS(call goja.FunctionCall) goja.Value {
-	for _, v := range call.Arguments {
-		prettyPrint(re.vm, v, re.output)
+func (re *JSRE) prettyPrintJS(call otto.FunctionCall) otto.Value {
+	for _, v := range call.ArgumentList {
+		prettyPrint(call.Otto, v, re.output)
 		fmt.Fprintln(re.output)
 	}
-	return goja.Undefined()
+	return otto.UndefinedValue()
 }
 
 type ppctx struct {
-	vm *goja.Runtime
+	vm *otto.Otto
 	w  io.Writer
 }
 
@@ -83,47 +82,35 @@ func (ctx ppctx) indent(level int) string {
 	return strings.Repeat(indentString, level)
 }
 
-func (ctx ppctx) printValue(v goja.Value, level int, inArray bool) {
-	if goja.IsNull(v) || goja.IsUndefined(v) {
-		fmt.Fprint(ctx.w, SpecialColor(v.String()))
-		return
-	}
-	kind := v.ExportType().Kind()
+func (ctx ppctx) printValue(v otto.Value, level int, inArray bool) {
 	switch {
-	case kind == reflect.Bool:
-		fmt.Fprint(ctx.w, SpecialColor("%t", v.ToBoolean()))
-	case kind == reflect.String:
-		fmt.Fprint(ctx.w, StringColor("%q", v.String()))
-	case kind >= reflect.Int && kind <= reflect.Complex128:
-		fmt.Fprint(ctx.w, NumberColor("%s", v.String()))
+	case v.IsObject():
+		ctx.printObject(v.Object(), level, inArray)
+	case v.IsNull():
+		fmt.Fprint(ctx.w, SpecialColor("null"))
+	case v.IsUndefined():
+		fmt.Fprint(ctx.w, SpecialColor("undefined"))
+	case v.IsString():
+		s, _ := v.ToString()
+		fmt.Fprint(ctx.w, StringColor("%q", s))
+	case v.IsBoolean():
+		b, _ := v.ToBoolean()
+		fmt.Fprint(ctx.w, SpecialColor("%t", b))
+	case v.IsNaN():
+		fmt.Fprint(ctx.w, NumberColor("NaN"))
+	case v.IsNumber():
+		s, _ := v.ToString()
+		fmt.Fprint(ctx.w, NumberColor("%s", s))
 	default:
-		if obj, ok := v.(*goja.Object); ok {
-			ctx.printObject(obj, level, inArray)
-		} else {
-			fmt.Fprintf(ctx.w, "<unprintable %T>", v)
-		}
+		fmt.Fprint(ctx.w, "<unprintable>")
 	}
 }
 
-// SafeGet attempt to get the value associated to `key`, and
-// catches the panic that goja creates if an error occurs in
-// key.
-func SafeGet(obj *goja.Object, key string) (ret goja.Value) {
-	defer func() {
-		if r := recover(); r != nil {
-			ret = goja.Undefined()
-		}
-	}()
-	ret = obj.Get(key)
-
-	return ret
-}
-
-func (ctx ppctx) printObject(obj *goja.Object, level int, inArray bool) {
-	switch obj.ClassName() {
+func (ctx ppctx) printObject(obj *otto.Object, level int, inArray bool) {
+	switch obj.Class() {
 	case "Array", "GoArray":
-		lv := obj.Get("length")
-		len := lv.ToInteger()
+		lv, _ := obj.Get("length")
+		len, _ := lv.ToInteger()
 		if len == 0 {
 			fmt.Fprintf(ctx.w, "[]")
 			return
@@ -134,8 +121,8 @@ func (ctx ppctx) printObject(obj *goja.Object, level int, inArray bool) {
 		}
 		fmt.Fprint(ctx.w, "[")
 		for i := int64(0); i < len; i++ {
-			el := obj.Get(strconv.FormatInt(i, 10))
-			if el != nil {
+			el, err := obj.Get(strconv.FormatInt(i, 10))
+			if err == nil {
 				ctx.printValue(el, level+1, true)
 			}
 			if i < len-1 {
@@ -162,7 +149,7 @@ func (ctx ppctx) printObject(obj *goja.Object, level int, inArray bool) {
 		}
 		fmt.Fprintln(ctx.w, "{")
 		for i, k := range keys {
-			v := SafeGet(obj, k)
+			v, _ := obj.Get(k)
 			fmt.Fprintf(ctx.w, "%s%s: ", ctx.indent(level+1), k)
 			ctx.printValue(v, level+1, false)
 			if i < len(keys)-1 {
@@ -176,25 +163,29 @@ func (ctx ppctx) printObject(obj *goja.Object, level int, inArray bool) {
 		fmt.Fprintf(ctx.w, "%s}", ctx.indent(level))
 
 	case "Function":
-		robj := obj.ToString()
-		desc := strings.Trim(strings.Split(robj.String(), "{")[0], " \t\n")
-		desc = strings.Replace(desc, " (", "(", 1)
-		fmt.Fprint(ctx.w, FunctionColor("%s", desc))
+		// Use toString() to display the argument list if possible.
+		if robj, err := obj.Call("toString"); err != nil {
+			fmt.Fprint(ctx.w, FunctionColor("function()"))
+		} else {
+			desc := strings.Trim(strings.Split(robj.String(), "{")[0], " \t\n")
+			desc = strings.Replace(desc, " (", "(", 1)
+			fmt.Fprint(ctx.w, FunctionColor("%s", desc))
+		}
 
 	case "RegExp":
 		fmt.Fprint(ctx.w, StringColor("%s", toString(obj)))
 
 	default:
-		if level <= maxPrettyPrintLevel {
-			s := obj.ToString().String()
-			fmt.Fprintf(ctx.w, "<%s %s>", obj.ClassName(), s)
+		if v, _ := obj.Get("toString"); v.IsFunction() && level <= maxPrettyPrintLevel {
+			s, _ := obj.Call("toString")
+			fmt.Fprintf(ctx.w, "<%s %s>", obj.Class(), s.String())
 		} else {
-			fmt.Fprintf(ctx.w, "<%s>", obj.ClassName())
+			fmt.Fprintf(ctx.w, "<%s>", obj.Class())
 		}
 	}
 }
 
-func (ctx ppctx) fields(obj *goja.Object) []string {
+func (ctx ppctx) fields(obj *otto.Object) []string {
 	var (
 		vals, methods []string
 		seen          = make(map[string]bool)
@@ -204,22 +195,11 @@ func (ctx ppctx) fields(obj *goja.Object) []string {
 			return
 		}
 		seen[k] = true
-
-		key := SafeGet(obj, k)
-		if key == nil {
-			// The value corresponding to that key could not be found
-			// (typically because it is backed by an RPC call that is
-			// not supported by this instance.  Add it to the list of
-			// values so that it appears as `undefined` to the user.
-			vals = append(vals, k)
+		if v, _ := obj.Get(k); v.IsFunction() {
+			methods = append(methods, k)
 		} else {
-			if _, callable := goja.AssertFunction(key); callable {
-				methods = append(methods, k)
-			} else {
-				vals = append(vals, k)
-			}
+			vals = append(vals, k)
 		}
-
 	}
 	iterOwnAndConstructorKeys(ctx.vm, obj, add)
 	sort.Strings(vals)
@@ -227,13 +207,13 @@ func (ctx ppctx) fields(obj *goja.Object) []string {
 	return append(vals, methods...)
 }
 
-func iterOwnAndConstructorKeys(vm *goja.Runtime, obj *goja.Object, f func(string)) {
+func iterOwnAndConstructorKeys(vm *otto.Otto, obj *otto.Object, f func(string)) {
 	seen := make(map[string]bool)
 	iterOwnKeys(vm, obj, func(prop string) {
 		seen[prop] = true
 		f(prop)
 	})
-	if cp := constructorPrototype(vm, obj); cp != nil {
+	if cp := constructorPrototype(obj); cp != nil {
 		iterOwnKeys(vm, cp, func(prop string) {
 			if !seen[prop] {
 				f(prop)
@@ -242,17 +222,10 @@ func iterOwnAndConstructorKeys(vm *goja.Runtime, obj *goja.Object, f func(string
 	}
 }
 
-func iterOwnKeys(vm *goja.Runtime, obj *goja.Object, f func(string)) {
-	Object := vm.Get("Object").ToObject(vm)
-	getOwnPropertyNames, isFunc := goja.AssertFunction(Object.Get("getOwnPropertyNames"))
-	if !isFunc {
-		panic(vm.ToValue("Object.getOwnPropertyNames isn't a function"))
-	}
-	rv, err := getOwnPropertyNames(goja.Null(), obj)
-	if err != nil {
-		panic(vm.ToValue(fmt.Sprintf("Error getting object properties: %v", err)))
-	}
-	gv := rv.Export()
+func iterOwnKeys(vm *otto.Otto, obj *otto.Object, f func(string)) {
+	Object, _ := vm.Object("Object")
+	rv, _ := Object.Call("getOwnPropertyNames", obj.Value())
+	gv, _ := rv.Export()
 	switch gv := gv.(type) {
 	case []interface{}:
 		for _, v := range gv {
@@ -267,35 +240,32 @@ func iterOwnKeys(vm *goja.Runtime, obj *goja.Object, f func(string)) {
 	}
 }
 
-func (ctx ppctx) isBigNumber(v *goja.Object) bool {
+func (ctx ppctx) isBigNumber(v *otto.Object) bool {
 	// Handle numbers with custom constructor.
-	if obj := v.Get("constructor").ToObject(ctx.vm); obj != nil {
-		if strings.HasPrefix(toString(obj), "function BigNumber") {
+	if v, _ := v.Get("constructor"); v.Object() != nil {
+		if strings.HasPrefix(toString(v.Object()), "function BigNumber") {
 			return true
 		}
 	}
 	// Handle default constructor.
-	BigNumber := ctx.vm.Get("BigNumber").ToObject(ctx.vm)
+	BigNumber, _ := ctx.vm.Object("BigNumber.prototype")
 	if BigNumber == nil {
 		return false
 	}
-	prototype := BigNumber.Get("prototype").ToObject(ctx.vm)
-	isPrototypeOf, callable := goja.AssertFunction(prototype.Get("isPrototypeOf"))
-	if !callable {
-		return false
-	}
-	bv, _ := isPrototypeOf(prototype, v)
-	return bv.ToBoolean()
+	bv, _ := BigNumber.Call("isPrototypeOf", v)
+	b, _ := bv.ToBoolean()
+	return b
 }
 
-func toString(obj *goja.Object) string {
-	return obj.ToString().String()
+func toString(obj *otto.Object) string {
+	s, _ := obj.Call("toString")
+	return s.String()
 }
 
-func constructorPrototype(vm *goja.Runtime, obj *goja.Object) *goja.Object {
-	if v := obj.Get("constructor"); v != nil {
-		if v := v.ToObject(vm).Get("prototype"); v != nil {
-			return v.ToObject(vm)
+func constructorPrototype(obj *otto.Object) *otto.Object {
+	if v, _ := obj.Get("constructor"); v.Object() != nil {
+		if v, _ = v.Object().Get("prototype"); v.Object() != nil {
+			return v.Object()
 		}
 	}
 	return nil

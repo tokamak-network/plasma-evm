@@ -8,6 +8,11 @@ import (
 	"reflect"
 	"sync"
 
+	"io/ioutil"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/go-stack/stack"
 )
 

@@ -137,7 +137,7 @@ func parseCallData(calldata []byte, abidata string) (*decodedCallData, error) {
 	}
 	values, err := method.Inputs.UnpackValues(argdata)
 	if err != nil {
-		return nil, fmt.Errorf("signature %q matches, but arguments mismatch: %v", method.String(), err)
+		return nil, err
 	}
 	// Everything valid, assemble the call infos for the signer
 	decoded := decodedCallData{signature: method.Sig(), name: method.RawName}
