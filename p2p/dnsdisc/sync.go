@@ -21,8 +21,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/Onther-Tech/plasma-evm/common/mclock"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 )
 
 // clientTree is a full tree being synced.

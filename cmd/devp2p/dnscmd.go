@@ -25,11 +25,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console"
-	"github.com/ethereum/go-ethereum/p2p/dnsdisc"
-	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
+	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/console"
+	"github.com/Onther-Tech/plasma-evm/p2p/dnsdisc"
+	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

@@ -28,10 +28,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common/mclock"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/metrics"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/p2p/enr"
 	"github.com/Onther-Tech/plasma-evm/rlp"
-	"github.com/ethereum/go-ethereum/metrics"
 )
 
 var (

@@ -21,6 +21,7 @@ build/bin/geth \
   --rootchain.url ws://127.0.0.1:8546 \
   --dev \
   --rpc \
+  --rpcapi="db,eth,net,web3,personal,web3" \
   --rpcport 8547 \
   --dev.key $OPERATOR_KEY,$KEY1,$KEY2,$KEY3,$KEY4,$KEY5,$CHALLENGER_KEY \
   --operator $OPERATOR \
