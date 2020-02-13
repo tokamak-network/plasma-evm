@@ -4,9 +4,11 @@ package plasma
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/handlers/EpochHandler.sol --pkg epochhandler --out epochhandler/epochhandler.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/handlers/SubmitHandler.sol --pkg submithandler --out submithandler/submithandler.go
 
-//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/TON.sol --pkg ton --out ton/ton.go
-//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/WTON.sol --pkg wton --out wton/wton.go
-//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/SeigManager.sol --pkg stakingmanager --out stakingmanager/stakingmanager.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/tokens//TON.sol --pkg ton --out ton/ton.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/tokens/WTON.sol --pkg wton --out wton/wton.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/managers/DepositManager.sol --pkg depositmanager --out depositmanager/depositmanager.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/managers/SeigManager.sol --pkg seigmanager --out seigmanager/seigmanager.go
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/RootChainRegistry.sol --pkg rootchainregistry --out rootchainregistry/rootchainregistry.go
 
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/RequestableSimpleToken.sol --pkg token --out token/token.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/node_modules/openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol --pkg mintabletoken --out mintabletoken/mintabletoken.go
@@ -22,11 +24,13 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/common"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/depositmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/stakingmanager"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchainregistry"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/seigmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/submithandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/wton"
@@ -157,7 +161,7 @@ func DeployManagers(
 		//TON            *ton.TON
 		WTON *wton.WTON
 		//registry       *stakingmanager.RootChainRegistry
-		depositManager *stakingmanager.DepositManager
+		depositManager *depositmanager.DepositManager
 		//seigManager    *stakingmanager.SeigManager
 
 		tx *types.Transaction
@@ -215,7 +219,7 @@ func DeployManagers(
 
 	// 3. deploy RootChainRegistry
 	log.Info("3. deploy RootChainRegistry")
-	if registryAddr, tx, _, err = stakingmanager.DeployRootChainRegistry(opt, backend); err != nil {
+	if registryAddr, tx, _, err = rootchainregistry.DeployRootChainRegistry(opt, backend); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy RootChainRegistry: %v", err))
 		return
 	}
@@ -228,7 +232,7 @@ func DeployManagers(
 
 	// 4. deploy DepositManager
 	log.Info("4. deploy DepositManager")
-	if depositManagerAddr, tx, depositManager, err = stakingmanager.DeployDepositManager(opt, backend, wtonAddr, registryAddr, withdrawalDelay); err != nil {
+	if depositManagerAddr, tx, depositManager, err = depositmanager.DeployDepositManager(opt, backend, wtonAddr, registryAddr, withdrawalDelay); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy DepositManager: %v", err))
 		return
 	}
@@ -241,7 +245,7 @@ func DeployManagers(
 
 	// 5. deploy SeigManager
 	log.Info("5. deploy SeigManager")
-	if seigManagerAddr, tx, _, err = stakingmanager.DeploySeigManager(opt, backend, tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigPerBlock); err != nil {
+	if seigManagerAddr, tx, _, err = seigmanager.DeploySeigManager(opt, backend, tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigPerBlock); err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy SeigManager: %v", err))
 		return
 	}

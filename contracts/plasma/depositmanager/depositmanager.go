@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package wton
+package depositmanager
 
 import (
 	"math/big"
@@ -9630,6 +9630,1416 @@ func (_DelegateProxy *DelegateProxyCallerSession) ProxyType() (*big.Int, error) 
 	return _DelegateProxy.Contract.ProxyType(&_DelegateProxy.CallOpts)
 }
 
+// DepositManagerABI is the input ABI used to generate the binding from.
+const DepositManagerABI = "[{\"inputs\":[{\"internalType\":\"contractWTON\",\"name\":\"wton\",\"type\":\"address\"},{\"internalType\":\"contractRootChainRegistryI\",\"name\":\"registry\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"WITHDRAWAL_DELAY\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"WithdrawalProcessed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"WithdrawalRequested\",\"type\":\"event\"},{\"constant\":true,\"inputs\":[],\"name\":\"INTERFACE_ID_ON_APPROVE\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"\",\"type\":\"bytes4\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"WITHDRAWAL_DELAY\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"accStaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"accStakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"accUnstaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"accUnstakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isOwner\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"numPendingRequests\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"numRequests\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"onApprove\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"pendingUnstaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"pendingUnstakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"receiveTON\",\"type\":\"bool\"}],\"name\":\"processRequest\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"n\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"receiveTON\",\"type\":\"bool\"}],\"name\":\"processRequests\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"registry\",\"outputs\":[{\"internalType\":\"contractRootChainRegistryI\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"requestWithdrawal\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"requestWithdrawalAll\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"seigManager\",\"outputs\":[{\"internalType\":\"contractSeigManagerI\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"contractSeigManagerI\",\"name\":\"seigManager\",\"type\":\"address\"}],\"name\":\"setSeigManager\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"withdrawalRequestIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"wton\",\"outputs\":[{\"internalType\":\"contractWTON\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
+
+// DepositManagerFuncSigs maps the 4-byte function signature to its string representation.
+var DepositManagerFuncSigs = map[string]string{
+	"6cd28f9a": "INTERFACE_ID_ON_APPROVE()",
+	"0ebb172a": "WITHDRAWAL_DELAY()",
+	"2d2fab94": "accStaked(address,address)",
+	"e8035ec9": "accStakedRootChain(address)",
+	"9d91b87b": "accUnstaked(address,address)",
+	"03dc6510": "accUnstakedRootChain(address)",
+	"47e7ef24": "deposit(address,uint256)",
+	"8f32d59b": "isOwner()",
+	"5c0df46b": "numPendingRequests(address,address)",
+	"f762eb57": "numRequests(address,address)",
+	"4273ca16": "onApprove(address,address,uint256,bytes)",
+	"8da5cb5b": "owner()",
+	"2638fdf5": "pendingUnstaked(address,address)",
+	"a8f3fb98": "pendingUnstakedRootChain(address)",
+	"c20a44c6": "processRequest(address,bool)",
+	"fb0713b1": "processRequests(address,uint256,bool)",
+	"7b103999": "registry()",
+	"715018a6": "renounceOwnership()",
+	"da95ebf7": "requestWithdrawal(address,uint256)",
+	"6b2160b7": "requestWithdrawalAll(address)",
+	"6fb7f558": "seigManager()",
+	"7657f20a": "setSeigManager(address)",
+	"01ffc9a7": "supportsInterface(bytes4)",
+	"f2fde38b": "transferOwnership(address)",
+	"c647f26e": "withdrawalRequestIndex(address,address)",
+	"8d62d949": "wton()",
+}
+
+// DepositManagerBin is the compiled bytecode used for deploying new contracts.
+var DepositManagerBin = "0x60806040523480156200001157600080fd5b5060405162001bdd38038062001bdd833981810160405260608110156200003757600080fd5b508051602082015160409092015190919060006200005d6001600160e01b036200014216565b600080546001600160a01b0319166001600160a01b0383169081178255604051929350917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a350620000db7f01ffc9a7000000000000000000000000000000000000000000000000000000006001600160e01b036200014616565b62000109604051808062001bb56028913960405190819003602801902090506001600160e01b036200014616565b600280546001600160a01b039485166001600160a01b0319918216179091556003805493909416921691909117909155600d5562000218565b3390565b7fffffffff000000000000000000000000000000000000000000000000000000008082161415620001d857604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601c60248201527f4552433136353a20696e76616c696420696e7465726661636520696400000000604482015290519081900360640190fd5b7fffffffff00000000000000000000000000000000000000000000000000000000166000908152600160208190526040909120805460ff19169091179055565b61198d80620002286000396000f3fe608060405234801561001057600080fd5b506004361061018e5760003560e01c80637b103999116100de578063c20a44c611610097578063e8035ec911610071578063e8035ec9146104ef578063f2fde38b14610515578063f762eb571461053b578063fb0713b1146105695761018e565b8063c20a44c614610467578063c647f26e14610495578063da95ebf7146104c35761018e565b80637b103999146103f35780638d62d949146103fb5780638da5cb5b146104035780638f32d59b1461040b5780639d91b87b14610413578063a8f3fb98146104415761018e565b806347e7ef241161014b5780636cd28f9a116101255780636cd28f9a1461037a5780636fb7f5581461039f578063715018a6146103c35780637657f20a146103cd5761018e565b806347e7ef24146102fa5780635c0df46b146103265780636b2160b7146103545761018e565b806301ffc9a71461019357806303dc6510146101ce5780630ebb172a146102065780632638fdf51461020e5780632d2fab941461023c5780634273ca161461026a575b600080fd5b6101ba600480360360208110156101a957600080fd5b50356001600160e01b03191661059d565b604080519115158252519081900360200190f35b6101f4600480360360208110156101e457600080fd5b50356001600160a01b03166105bc565b60408051918252519081900360200190f35b6101f46105d7565b6101f46004803603604081101561022457600080fd5b506001600160a01b03813581169160200135166105dd565b6101f46004803603604081101561025257600080fd5b506001600160a01b038135811691602001351661060a565b6101ba6004803603608081101561028057600080fd5b6001600160a01b038235811692602081013590911691604082013591908101906080810160608201356401000000008111156102bb57600080fd5b8201836020820111156102cd57600080fd5b803590602001918460018302840111640100000000831117156102ef57600080fd5b509092509050610635565b6101ba6004803603604081101561031057600080fd5b506001600160a01b0381351690602001356106e2565b6101f46004803603604081101561033c57600080fd5b506001600160a01b03813581169160200135166106f8565b6101ba6004803603602081101561036a57600080fd5b50356001600160a01b031661074e565b61038261086b565b604080516001600160e01b03199092168252519081900360200190f35b6103a7610886565b604080516001600160a01b039092168252519081900360200190f35b6103cb610895565b005b6103cb600480360360208110156103e357600080fd5b50356001600160a01b0316610938565b6103a76109fb565b6103a7610a0a565b6103a7610a19565b6101ba610a28565b6101f46004803603604081101561042957600080fd5b506001600160a01b0381358116916020013516610a4c565b6101f46004803603602081101561045757600080fd5b50356001600160a01b0316610a77565b6101ba6004803603604081101561047d57600080fd5b506001600160a01b0381351690602001351515610a92565b6101f4600480360360408110156104ab57600080fd5b506001600160a01b0381358116916020013516610aa5565b6101ba600480360360408110156104d957600080fd5b506001600160a01b038135169060200135610ad0565b6101f46004803603602081101561050557600080fd5b50356001600160a01b0316610adc565b6103cb6004803603602081101561052b57600080fd5b50356001600160a01b0316610af7565b6101f46004803603604081101561055157600080fd5b506001600160a01b0381358116916020013516610b5c565b6101ba6004803603606081101561057f57600080fd5b506001600160a01b0381351690602081013590604001351515610b87565b6001600160e01b03191660009081526001602052604090205460ff1690565b6001600160a01b03166000908152600a602052604090205490565b600d5490565b6001600160a01b038083166000908152600760209081526040808320938516835292905220545b92915050565b6001600160a01b03918216600090815260056020908152604080832093909416825291909152205490565b6002546000906001600160a01b031633146106815760405162461bcd60e51b81526004018080602001828103825260318152602001806118fe6031913960400191505060405180910390fd5b60006106c284848080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610bb992505050565b90506106cf818887610bd1565b6106d857600080fd5b5095945050505050565b60006106ef833384610bd1565b61060457600080fd5b6001600160a01b038083166000818152600b6020908152604080832094861680845294825280832054938352600c8252808320948352939052918220548161074557600092505050610604565b90039392505050565b600354604080516302a1529960e01b81526001600160a01b0380851660048301529151600093859316916302a15299916024808301926020929190829003018186803b15801561079d57600080fd5b505afa1580156107b1573d6000803e3d6000fd5b505050506040513d60208110156107c757600080fd5b50516107d257600080fd5b60048054604080516367265c3b60e11b81526001600160a01b038781169482019490945233602482015290516000939092169163ce4cb87691604480820192602092909190829003018186803b15801561082b57600080fd5b505afa15801561083f573d6000803e3d6000fd5b505050506040513d602081101561085557600080fd5b505190506108638482610de1565b949350505050565b60405180602861185e82396028019050604051809103902081565b6004546001600160a01b031690565b61089d610a28565b6108ee576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b610940610a28565b610991576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b6004546001600160a01b0316156109d95760405162461bcd60e51b815260040180806020018281038252602a815260200180611886602a913960400191505060405180910390fd5b600480546001600160a01b0319166001600160a01b0392909216919091179055565b6003546001600160a01b031690565b6002546001600160a01b031690565b6000546001600160a01b031690565b600080546001600160a01b0316610a3d61106e565b6001600160a01b031614905090565b6001600160a01b03918216600090815260096020908152604080832093909416825291909152205490565b6001600160a01b031660009081526008602052604090205490565b6000610a9e8383611072565b9392505050565b6001600160a01b039182166000908152600c6020908152604080832093909416825291909152205490565b6000610a9e8383610de1565b6001600160a01b031660009081526006602052604090205490565b610aff610a28565b610b50576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b610b59816113bf565b50565b6001600160a01b039182166000908152600b6020908152604080832093909416825291909152205490565b6000805b83811015610bae57610b9d8584611072565b610ba657600080fd5b600101610b8b565b506001949350505050565b60008151602014610bc957600080fd5b506020015190565b600354604080516302a1529960e01b81526001600160a01b0380871660048301529151600093879316916302a15299916024808301926020929190829003018186803b158015610c2057600080fd5b505afa158015610c34573d6000803e3d6000fd5b505050506040513d6020811015610c4a57600080fd5b5051610c5557600080fd5b6001600160a01b03808616600090815260056020908152604080832093881683529290522054610c8b908463ffffffff61145f16565b6001600160a01b038087166000818152600560209081526040808320948a168352938152838220949094559081526006909252902054610cd1908463ffffffff61145f16565b6001600160a01b03808716600090815260066020526040902091909155600254610d04911685308663ffffffff6114b916565b604080516001600160a01b038681168252602082018690528251908816927f8752a472e571a816aea92eec8dae9baf628e840f4929fbcc2d155e6233ff68a7928290030190a260048054604080516346f023a760e11b81526001600160a01b038981169482019490945287841660248201526044810187905290519290911691638de0474e916064808201926020929091908290030181600087803b158015610dac57600080fd5b505af1158015610dc0573d6000803e3d6000fd5b505050506040513d6020811015610dd657600080fd5b5051610bae57600080fd5b600354604080516302a1529960e01b81526001600160a01b0380861660048301529151600093869316916302a15299916024808301926020929190829003018186803b158015610e3057600080fd5b505afa158015610e44573d6000803e3d6000fd5b505050506040513d6020811015610e5a57600080fd5b5051610e6557600080fd5b6001600160a01b0384166000818152600b60209081526040808320338085529083528184208251606081018452600d546001600160801b0343909101811682528a8116828701908152828601888152845460018181018755958a52888a2094516002909102909401805492518416600160801b029484166fffffffffffffffffffffffffffffffff1990931692909217909216929092178255519101805491151560ff19909216919091179055938352600782528083209383529290522054610f34908463ffffffff61145f16565b6001600160a01b038516600081815260076020908152604080832033845282528083209490945591815260089091522054610f75908463ffffffff61145f16565b6001600160a01b038516600081815260086020908152604091829020939093558051338152928301869052805191927f04c56a409d50971e45c5a2d96e5d557d2b0f1d66d40f14b141e4c958b0f39b32929081900390910190a2600480546040805163010a7ae560e11b81526001600160a01b03888116948201949094523360248201526044810187905290519290911691630214f5ca916064808201926020929091908290030181600087803b15801561102f57600080fd5b505af1158015611043573d6000803e3d6000fd5b505050506040513d602081101561105957600080fd5b505161106457600080fd5b5060019392505050565b3390565b6001600160a01b0382166000818152600c602090815260408083203380855290835281842054948452600b835281842090845290915281205490919081106110eb5760405162461bcd60e51b81526004018080602001828103825260258152602001806118b06025913960400191505060405180910390fd5b6001600160a01b0384166000908152600b60209081526040808320338452909152812080548390811061111a57fe5b600091825260209091206002909102018054909150436001600160801b0390911611156111785760405162461bcd60e51b81526004018080602001828103825260298152602001806118d56029913960400191505060405180910390fd5b6001818101805460ff1916821790556001600160a01b0386166000818152600c602090815260408083203380855290835281842080549096019095558554938352600782528083209483529390529190912054600160801b9091046001600160801b0316906111e79082611519565b6001600160a01b038716600081815260076020908152604080832033845282528083209490945591815260089091522054611228908263ffffffff61151916565b6001600160a01b0387166000908152600860209081526040808320939093556009815282822033835290522054611265908263ffffffff61145f16565b6001600160a01b0387166000818152600960209081526040808320338452825280832094909455918152600a90915220546112a6908263ffffffff61145f16565b6001600160a01b0387166000908152600a60205260409020558415611353576002546040805163e3b99e8560e01b81523360048201526024810184905290516001600160a01b039092169163e3b99e85916044808201926020929091908290030181600087803b15801561131957600080fd5b505af115801561132d573d6000803e3d6000fd5b505050506040513d602081101561134357600080fd5b505161134e57600080fd5b611370565b600254611370906001600160a01b0316338363ffffffff61155b16565b604080513381526020810183905281516001600160a01b038916927fcd1fce47d5ad89dd70b04c75bd6bdb8114d4d4ff7b4393f9fb5937e733ba9582928290030190a250600195945050505050565b6001600160a01b0381166114045760405162461bcd60e51b81526004018080602001828103825260268152602001806118386026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b600082820183811015610a9e576040805162461bcd60e51b815260206004820152601b60248201527f536166654d6174683a206164646974696f6e206f766572666c6f770000000000604482015290519081900360640190fd5b604080516001600160a01b0385811660248301528416604482015260648082018490528251808303909101815260849091019091526020810180516001600160e01b03166323b872dd60e01b1790526115139085906115b2565b50505050565b6000610a9e83836040518060400160405280601e81526020017f536166654d6174683a207375627472616374696f6e206f766572666c6f7700008152506117a4565b604080516001600160a01b038416602482015260448082018490528251808303909101815260649091019091526020810180516001600160e01b031663a9059cbb60e01b1790526115ad9084906115b2565b505050565b6115c4826001600160a01b03166117fe565b611615576040805162461bcd60e51b815260206004820152601f60248201527f5361666545524332303a2063616c6c20746f206e6f6e2d636f6e747261637400604482015290519081900360640190fd5b60006060836001600160a01b0316836040518082805190602001908083835b602083106116535780518252601f199092019160209182019101611634565b6001836020036101000a0380198251168184511680821785525050505050509050019150506000604051808303816000865af19150503d80600081146116b5576040519150601f19603f3d011682016040523d82523d6000602084013e6116ba565b606091505b509150915081819061174a5760405162461bcd60e51b81526004018080602001828103825283818151815260200191508051906020019080838360005b8381101561170f5781810151838201526020016116f7565b50505050905090810190601f16801561173c5780820380516001836020036101000a031916815260200191505b509250505060405180910390fd5b508051156115135780806020019051602081101561176757600080fd5b50516115135760405162461bcd60e51b815260040180806020018281038252602a81526020018061192f602a913960400191505060405180910390fd5b600081848411156117f65760405162461bcd60e51b815260206004820181815283516024840152835190928392604490910191908501908083836000831561170f5781810151838201526020016116f7565b505050900390565b6000813f7fc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a47081811480159061086357505015159291505056fe4f776e61626c653a206e6577206f776e657220697320746865207a65726f20616464726573736f6e417070726f766528616464726573732c616464726573732c75696e743235362c6279746573294465706f7369744d616e616765723a20536569674d616e6167657220697320616c7265616479207365744465706f7369744d616e616765723a206e6f207265717565737420746f2070726f636573734465706f7369744d616e616765723a207761697420666f72207769746864726177616c2064656c61794465706f7369744d616e616765723a206f6e6c79206163636570742057544f4e20617070726f76652063616c6c6261636b5361666545524332303a204552433230206f7065726174696f6e20646964206e6f742073756363656564a265627a7a723158203424e9452b9b6923cd3de9c9ee7accb98a66899a8c5aba78623dbeb8bc3a898d64736f6c634300050c00326f6e417070726f766528616464726573732c616464726573732c75696e743235362c627974657329"
+
+// DeployDepositManager deploys a new Ethereum contract, binding an instance of DepositManager to it.
+func DeployDepositManager(auth *bind.TransactOpts, backend bind.ContractBackend, wton common.Address, registry common.Address, WITHDRAWAL_DELAY *big.Int) (common.Address, *types.Transaction, *DepositManager, error) {
+	parsed, err := abi.JSON(strings.NewReader(DepositManagerABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(DepositManagerBin), backend, wton, registry, WITHDRAWAL_DELAY)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &DepositManager{DepositManagerCaller: DepositManagerCaller{contract: contract}, DepositManagerTransactor: DepositManagerTransactor{contract: contract}, DepositManagerFilterer: DepositManagerFilterer{contract: contract}}, nil
+}
+
+// DepositManager is an auto generated Go binding around an Ethereum contract.
+type DepositManager struct {
+	DepositManagerCaller     // Read-only binding to the contract
+	DepositManagerTransactor // Write-only binding to the contract
+	DepositManagerFilterer   // Log filterer for contract events
+}
+
+// DepositManagerCaller is an auto generated read-only Go binding around an Ethereum contract.
+type DepositManagerCaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// DepositManagerTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type DepositManagerTransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// DepositManagerFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type DepositManagerFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// DepositManagerSession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type DepositManagerSession struct {
+	Contract     *DepositManager   // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// DepositManagerCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type DepositManagerCallerSession struct {
+	Contract *DepositManagerCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts         // Call options to use throughout this session
+}
+
+// DepositManagerTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type DepositManagerTransactorSession struct {
+	Contract     *DepositManagerTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts         // Transaction auth options to use throughout this session
+}
+
+// DepositManagerRaw is an auto generated low-level Go binding around an Ethereum contract.
+type DepositManagerRaw struct {
+	Contract *DepositManager // Generic contract binding to access the raw methods on
+}
+
+// DepositManagerCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type DepositManagerCallerRaw struct {
+	Contract *DepositManagerCaller // Generic read-only contract binding to access the raw methods on
+}
+
+// DepositManagerTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type DepositManagerTransactorRaw struct {
+	Contract *DepositManagerTransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewDepositManager creates a new instance of DepositManager, bound to a specific deployed contract.
+func NewDepositManager(address common.Address, backend bind.ContractBackend) (*DepositManager, error) {
+	contract, err := bindDepositManager(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManager{DepositManagerCaller: DepositManagerCaller{contract: contract}, DepositManagerTransactor: DepositManagerTransactor{contract: contract}, DepositManagerFilterer: DepositManagerFilterer{contract: contract}}, nil
+}
+
+// NewDepositManagerCaller creates a new read-only instance of DepositManager, bound to a specific deployed contract.
+func NewDepositManagerCaller(address common.Address, caller bind.ContractCaller) (*DepositManagerCaller, error) {
+	contract, err := bindDepositManager(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerCaller{contract: contract}, nil
+}
+
+// NewDepositManagerTransactor creates a new write-only instance of DepositManager, bound to a specific deployed contract.
+func NewDepositManagerTransactor(address common.Address, transactor bind.ContractTransactor) (*DepositManagerTransactor, error) {
+	contract, err := bindDepositManager(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerTransactor{contract: contract}, nil
+}
+
+// NewDepositManagerFilterer creates a new log filterer instance of DepositManager, bound to a specific deployed contract.
+func NewDepositManagerFilterer(address common.Address, filterer bind.ContractFilterer) (*DepositManagerFilterer, error) {
+	contract, err := bindDepositManager(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerFilterer{contract: contract}, nil
+}
+
+// bindDepositManager binds a generic wrapper to an already deployed contract.
+func bindDepositManager(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(DepositManagerABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_DepositManager *DepositManagerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _DepositManager.Contract.DepositManagerCaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_DepositManager *DepositManagerRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _DepositManager.Contract.DepositManagerTransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_DepositManager *DepositManagerRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _DepositManager.Contract.DepositManagerTransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_DepositManager *DepositManagerCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _DepositManager.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_DepositManager *DepositManagerTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _DepositManager.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_DepositManager *DepositManagerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _DepositManager.Contract.contract.Transact(opts, method, params...)
+}
+
+// INTERFACEIDONAPPROVE is a free data retrieval call binding the contract method 0x6cd28f9a.
+//
+// Solidity: function INTERFACE_ID_ON_APPROVE() constant returns(bytes4)
+func (_DepositManager *DepositManagerCaller) INTERFACEIDONAPPROVE(opts *bind.CallOpts) ([4]byte, error) {
+	var (
+		ret0 = new([4]byte)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "INTERFACE_ID_ON_APPROVE")
+	return *ret0, err
+}
+
+// INTERFACEIDONAPPROVE is a free data retrieval call binding the contract method 0x6cd28f9a.
+//
+// Solidity: function INTERFACE_ID_ON_APPROVE() constant returns(bytes4)
+func (_DepositManager *DepositManagerSession) INTERFACEIDONAPPROVE() ([4]byte, error) {
+	return _DepositManager.Contract.INTERFACEIDONAPPROVE(&_DepositManager.CallOpts)
+}
+
+// INTERFACEIDONAPPROVE is a free data retrieval call binding the contract method 0x6cd28f9a.
+//
+// Solidity: function INTERFACE_ID_ON_APPROVE() constant returns(bytes4)
+func (_DepositManager *DepositManagerCallerSession) INTERFACEIDONAPPROVE() ([4]byte, error) {
+	return _DepositManager.Contract.INTERFACEIDONAPPROVE(&_DepositManager.CallOpts)
+}
+
+// WITHDRAWALDELAY is a free data retrieval call binding the contract method 0x0ebb172a.
+//
+// Solidity: function WITHDRAWAL_DELAY() constant returns(uint256)
+func (_DepositManager *DepositManagerCaller) WITHDRAWALDELAY(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "WITHDRAWAL_DELAY")
+	return *ret0, err
+}
+
+// WITHDRAWALDELAY is a free data retrieval call binding the contract method 0x0ebb172a.
+//
+// Solidity: function WITHDRAWAL_DELAY() constant returns(uint256)
+func (_DepositManager *DepositManagerSession) WITHDRAWALDELAY() (*big.Int, error) {
+	return _DepositManager.Contract.WITHDRAWALDELAY(&_DepositManager.CallOpts)
+}
+
+// WITHDRAWALDELAY is a free data retrieval call binding the contract method 0x0ebb172a.
+//
+// Solidity: function WITHDRAWAL_DELAY() constant returns(uint256)
+func (_DepositManager *DepositManagerCallerSession) WITHDRAWALDELAY() (*big.Int, error) {
+	return _DepositManager.Contract.WITHDRAWALDELAY(&_DepositManager.CallOpts)
+}
+
+// AccStaked is a free data retrieval call binding the contract method 0x2d2fab94.
+//
+// Solidity: function accStaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) AccStaked(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "accStaked", rootchain, account)
+	return *ret0, err
+}
+
+// AccStaked is a free data retrieval call binding the contract method 0x2d2fab94.
+//
+// Solidity: function accStaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) AccStaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccStaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// AccStaked is a free data retrieval call binding the contract method 0x2d2fab94.
+//
+// Solidity: function accStaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) AccStaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccStaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// AccStakedRootChain is a free data retrieval call binding the contract method 0xe8035ec9.
+//
+// Solidity: function accStakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) AccStakedRootChain(opts *bind.CallOpts, rootchain common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "accStakedRootChain", rootchain)
+	return *ret0, err
+}
+
+// AccStakedRootChain is a free data retrieval call binding the contract method 0xe8035ec9.
+//
+// Solidity: function accStakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) AccStakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccStakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// AccStakedRootChain is a free data retrieval call binding the contract method 0xe8035ec9.
+//
+// Solidity: function accStakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) AccStakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccStakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// AccUnstaked is a free data retrieval call binding the contract method 0x9d91b87b.
+//
+// Solidity: function accUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) AccUnstaked(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "accUnstaked", rootchain, account)
+	return *ret0, err
+}
+
+// AccUnstaked is a free data retrieval call binding the contract method 0x9d91b87b.
+//
+// Solidity: function accUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) AccUnstaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccUnstaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// AccUnstaked is a free data retrieval call binding the contract method 0x9d91b87b.
+//
+// Solidity: function accUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) AccUnstaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccUnstaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// AccUnstakedRootChain is a free data retrieval call binding the contract method 0x03dc6510.
+//
+// Solidity: function accUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) AccUnstakedRootChain(opts *bind.CallOpts, rootchain common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "accUnstakedRootChain", rootchain)
+	return *ret0, err
+}
+
+// AccUnstakedRootChain is a free data retrieval call binding the contract method 0x03dc6510.
+//
+// Solidity: function accUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) AccUnstakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccUnstakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// AccUnstakedRootChain is a free data retrieval call binding the contract method 0x03dc6510.
+//
+// Solidity: function accUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) AccUnstakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.AccUnstakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_DepositManager *DepositManagerCaller) IsOwner(opts *bind.CallOpts) (bool, error) {
+	var (
+		ret0 = new(bool)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "isOwner")
+	return *ret0, err
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_DepositManager *DepositManagerSession) IsOwner() (bool, error) {
+	return _DepositManager.Contract.IsOwner(&_DepositManager.CallOpts)
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_DepositManager *DepositManagerCallerSession) IsOwner() (bool, error) {
+	return _DepositManager.Contract.IsOwner(&_DepositManager.CallOpts)
+}
+
+// NumPendingRequests is a free data retrieval call binding the contract method 0x5c0df46b.
+//
+// Solidity: function numPendingRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerCaller) NumPendingRequests(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "numPendingRequests", rootchain, account)
+	return *ret0, err
+}
+
+// NumPendingRequests is a free data retrieval call binding the contract method 0x5c0df46b.
+//
+// Solidity: function numPendingRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerSession) NumPendingRequests(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.NumPendingRequests(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// NumPendingRequests is a free data retrieval call binding the contract method 0x5c0df46b.
+//
+// Solidity: function numPendingRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerCallerSession) NumPendingRequests(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.NumPendingRequests(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// NumRequests is a free data retrieval call binding the contract method 0xf762eb57.
+//
+// Solidity: function numRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerCaller) NumRequests(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "numRequests", rootchain, account)
+	return *ret0, err
+}
+
+// NumRequests is a free data retrieval call binding the contract method 0xf762eb57.
+//
+// Solidity: function numRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerSession) NumRequests(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.NumRequests(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// NumRequests is a free data retrieval call binding the contract method 0xf762eb57.
+//
+// Solidity: function numRequests(address rootchain, address account) constant returns(uint256)
+func (_DepositManager *DepositManagerCallerSession) NumRequests(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.NumRequests(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_DepositManager *DepositManagerCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "owner")
+	return *ret0, err
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_DepositManager *DepositManagerSession) Owner() (common.Address, error) {
+	return _DepositManager.Contract.Owner(&_DepositManager.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_DepositManager *DepositManagerCallerSession) Owner() (common.Address, error) {
+	return _DepositManager.Contract.Owner(&_DepositManager.CallOpts)
+}
+
+// PendingUnstaked is a free data retrieval call binding the contract method 0x2638fdf5.
+//
+// Solidity: function pendingUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) PendingUnstaked(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "pendingUnstaked", rootchain, account)
+	return *ret0, err
+}
+
+// PendingUnstaked is a free data retrieval call binding the contract method 0x2638fdf5.
+//
+// Solidity: function pendingUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) PendingUnstaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.PendingUnstaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// PendingUnstaked is a free data retrieval call binding the contract method 0x2638fdf5.
+//
+// Solidity: function pendingUnstaked(address rootchain, address account) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) PendingUnstaked(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.PendingUnstaked(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// PendingUnstakedRootChain is a free data retrieval call binding the contract method 0xa8f3fb98.
+//
+// Solidity: function pendingUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCaller) PendingUnstakedRootChain(opts *bind.CallOpts, rootchain common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "pendingUnstakedRootChain", rootchain)
+	return *ret0, err
+}
+
+// PendingUnstakedRootChain is a free data retrieval call binding the contract method 0xa8f3fb98.
+//
+// Solidity: function pendingUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerSession) PendingUnstakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.PendingUnstakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// PendingUnstakedRootChain is a free data retrieval call binding the contract method 0xa8f3fb98.
+//
+// Solidity: function pendingUnstakedRootChain(address rootchain) constant returns(uint256 wtonAmount)
+func (_DepositManager *DepositManagerCallerSession) PendingUnstakedRootChain(rootchain common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.PendingUnstakedRootChain(&_DepositManager.CallOpts, rootchain)
+}
+
+// Registry is a free data retrieval call binding the contract method 0x7b103999.
+//
+// Solidity: function registry() constant returns(address)
+func (_DepositManager *DepositManagerCaller) Registry(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "registry")
+	return *ret0, err
+}
+
+// Registry is a free data retrieval call binding the contract method 0x7b103999.
+//
+// Solidity: function registry() constant returns(address)
+func (_DepositManager *DepositManagerSession) Registry() (common.Address, error) {
+	return _DepositManager.Contract.Registry(&_DepositManager.CallOpts)
+}
+
+// Registry is a free data retrieval call binding the contract method 0x7b103999.
+//
+// Solidity: function registry() constant returns(address)
+func (_DepositManager *DepositManagerCallerSession) Registry() (common.Address, error) {
+	return _DepositManager.Contract.Registry(&_DepositManager.CallOpts)
+}
+
+// SeigManager is a free data retrieval call binding the contract method 0x6fb7f558.
+//
+// Solidity: function seigManager() constant returns(address)
+func (_DepositManager *DepositManagerCaller) SeigManager(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "seigManager")
+	return *ret0, err
+}
+
+// SeigManager is a free data retrieval call binding the contract method 0x6fb7f558.
+//
+// Solidity: function seigManager() constant returns(address)
+func (_DepositManager *DepositManagerSession) SeigManager() (common.Address, error) {
+	return _DepositManager.Contract.SeigManager(&_DepositManager.CallOpts)
+}
+
+// SeigManager is a free data retrieval call binding the contract method 0x6fb7f558.
+//
+// Solidity: function seigManager() constant returns(address)
+func (_DepositManager *DepositManagerCallerSession) SeigManager() (common.Address, error) {
+	return _DepositManager.Contract.SeigManager(&_DepositManager.CallOpts)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) constant returns(bool)
+func (_DepositManager *DepositManagerCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
+	var (
+		ret0 = new(bool)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "supportsInterface", interfaceId)
+	return *ret0, err
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) constant returns(bool)
+func (_DepositManager *DepositManagerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _DepositManager.Contract.SupportsInterface(&_DepositManager.CallOpts, interfaceId)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 interfaceId) constant returns(bool)
+func (_DepositManager *DepositManagerCallerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _DepositManager.Contract.SupportsInterface(&_DepositManager.CallOpts, interfaceId)
+}
+
+// WithdrawalRequestIndex is a free data retrieval call binding the contract method 0xc647f26e.
+//
+// Solidity: function withdrawalRequestIndex(address rootchain, address account) constant returns(uint256 index)
+func (_DepositManager *DepositManagerCaller) WithdrawalRequestIndex(opts *bind.CallOpts, rootchain common.Address, account common.Address) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "withdrawalRequestIndex", rootchain, account)
+	return *ret0, err
+}
+
+// WithdrawalRequestIndex is a free data retrieval call binding the contract method 0xc647f26e.
+//
+// Solidity: function withdrawalRequestIndex(address rootchain, address account) constant returns(uint256 index)
+func (_DepositManager *DepositManagerSession) WithdrawalRequestIndex(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.WithdrawalRequestIndex(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// WithdrawalRequestIndex is a free data retrieval call binding the contract method 0xc647f26e.
+//
+// Solidity: function withdrawalRequestIndex(address rootchain, address account) constant returns(uint256 index)
+func (_DepositManager *DepositManagerCallerSession) WithdrawalRequestIndex(rootchain common.Address, account common.Address) (*big.Int, error) {
+	return _DepositManager.Contract.WithdrawalRequestIndex(&_DepositManager.CallOpts, rootchain, account)
+}
+
+// Wton is a free data retrieval call binding the contract method 0x8d62d949.
+//
+// Solidity: function wton() constant returns(address)
+func (_DepositManager *DepositManagerCaller) Wton(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _DepositManager.contract.Call(opts, out, "wton")
+	return *ret0, err
+}
+
+// Wton is a free data retrieval call binding the contract method 0x8d62d949.
+//
+// Solidity: function wton() constant returns(address)
+func (_DepositManager *DepositManagerSession) Wton() (common.Address, error) {
+	return _DepositManager.Contract.Wton(&_DepositManager.CallOpts)
+}
+
+// Wton is a free data retrieval call binding the contract method 0x8d62d949.
+//
+// Solidity: function wton() constant returns(address)
+func (_DepositManager *DepositManagerCallerSession) Wton() (common.Address, error) {
+	return _DepositManager.Contract.Wton(&_DepositManager.CallOpts)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+//
+// Solidity: function deposit(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerTransactor) Deposit(opts *bind.TransactOpts, rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "deposit", rootchain, amount)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+//
+// Solidity: function deposit(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerSession) Deposit(rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.Contract.Deposit(&_DepositManager.TransactOpts, rootchain, amount)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+//
+// Solidity: function deposit(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) Deposit(rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.Contract.Deposit(&_DepositManager.TransactOpts, rootchain, amount)
+}
+
+// OnApprove is a paid mutator transaction binding the contract method 0x4273ca16.
+//
+// Solidity: function onApprove(address owner, address spender, uint256 amount, bytes data) returns(bool)
+func (_DepositManager *DepositManagerTransactor) OnApprove(opts *bind.TransactOpts, owner common.Address, spender common.Address, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "onApprove", owner, spender, amount, data)
+}
+
+// OnApprove is a paid mutator transaction binding the contract method 0x4273ca16.
+//
+// Solidity: function onApprove(address owner, address spender, uint256 amount, bytes data) returns(bool)
+func (_DepositManager *DepositManagerSession) OnApprove(owner common.Address, spender common.Address, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _DepositManager.Contract.OnApprove(&_DepositManager.TransactOpts, owner, spender, amount, data)
+}
+
+// OnApprove is a paid mutator transaction binding the contract method 0x4273ca16.
+//
+// Solidity: function onApprove(address owner, address spender, uint256 amount, bytes data) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) OnApprove(owner common.Address, spender common.Address, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _DepositManager.Contract.OnApprove(&_DepositManager.TransactOpts, owner, spender, amount, data)
+}
+
+// ProcessRequest is a paid mutator transaction binding the contract method 0xc20a44c6.
+//
+// Solidity: function processRequest(address rootchain, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerTransactor) ProcessRequest(opts *bind.TransactOpts, rootchain common.Address, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "processRequest", rootchain, receiveTON)
+}
+
+// ProcessRequest is a paid mutator transaction binding the contract method 0xc20a44c6.
+//
+// Solidity: function processRequest(address rootchain, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerSession) ProcessRequest(rootchain common.Address, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.Contract.ProcessRequest(&_DepositManager.TransactOpts, rootchain, receiveTON)
+}
+
+// ProcessRequest is a paid mutator transaction binding the contract method 0xc20a44c6.
+//
+// Solidity: function processRequest(address rootchain, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) ProcessRequest(rootchain common.Address, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.Contract.ProcessRequest(&_DepositManager.TransactOpts, rootchain, receiveTON)
+}
+
+// ProcessRequests is a paid mutator transaction binding the contract method 0xfb0713b1.
+//
+// Solidity: function processRequests(address rootchain, uint256 n, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerTransactor) ProcessRequests(opts *bind.TransactOpts, rootchain common.Address, n *big.Int, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "processRequests", rootchain, n, receiveTON)
+}
+
+// ProcessRequests is a paid mutator transaction binding the contract method 0xfb0713b1.
+//
+// Solidity: function processRequests(address rootchain, uint256 n, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerSession) ProcessRequests(rootchain common.Address, n *big.Int, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.Contract.ProcessRequests(&_DepositManager.TransactOpts, rootchain, n, receiveTON)
+}
+
+// ProcessRequests is a paid mutator transaction binding the contract method 0xfb0713b1.
+//
+// Solidity: function processRequests(address rootchain, uint256 n, bool receiveTON) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) ProcessRequests(rootchain common.Address, n *big.Int, receiveTON bool) (*types.Transaction, error) {
+	return _DepositManager.Contract.ProcessRequests(&_DepositManager.TransactOpts, rootchain, n, receiveTON)
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_DepositManager *DepositManagerTransactor) RenounceOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "renounceOwnership")
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_DepositManager *DepositManagerSession) RenounceOwnership() (*types.Transaction, error) {
+	return _DepositManager.Contract.RenounceOwnership(&_DepositManager.TransactOpts)
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_DepositManager *DepositManagerTransactorSession) RenounceOwnership() (*types.Transaction, error) {
+	return _DepositManager.Contract.RenounceOwnership(&_DepositManager.TransactOpts)
+}
+
+// RequestWithdrawal is a paid mutator transaction binding the contract method 0xda95ebf7.
+//
+// Solidity: function requestWithdrawal(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerTransactor) RequestWithdrawal(opts *bind.TransactOpts, rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "requestWithdrawal", rootchain, amount)
+}
+
+// RequestWithdrawal is a paid mutator transaction binding the contract method 0xda95ebf7.
+//
+// Solidity: function requestWithdrawal(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerSession) RequestWithdrawal(rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.Contract.RequestWithdrawal(&_DepositManager.TransactOpts, rootchain, amount)
+}
+
+// RequestWithdrawal is a paid mutator transaction binding the contract method 0xda95ebf7.
+//
+// Solidity: function requestWithdrawal(address rootchain, uint256 amount) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) RequestWithdrawal(rootchain common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _DepositManager.Contract.RequestWithdrawal(&_DepositManager.TransactOpts, rootchain, amount)
+}
+
+// RequestWithdrawalAll is a paid mutator transaction binding the contract method 0x6b2160b7.
+//
+// Solidity: function requestWithdrawalAll(address rootchain) returns(bool)
+func (_DepositManager *DepositManagerTransactor) RequestWithdrawalAll(opts *bind.TransactOpts, rootchain common.Address) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "requestWithdrawalAll", rootchain)
+}
+
+// RequestWithdrawalAll is a paid mutator transaction binding the contract method 0x6b2160b7.
+//
+// Solidity: function requestWithdrawalAll(address rootchain) returns(bool)
+func (_DepositManager *DepositManagerSession) RequestWithdrawalAll(rootchain common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.RequestWithdrawalAll(&_DepositManager.TransactOpts, rootchain)
+}
+
+// RequestWithdrawalAll is a paid mutator transaction binding the contract method 0x6b2160b7.
+//
+// Solidity: function requestWithdrawalAll(address rootchain) returns(bool)
+func (_DepositManager *DepositManagerTransactorSession) RequestWithdrawalAll(rootchain common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.RequestWithdrawalAll(&_DepositManager.TransactOpts, rootchain)
+}
+
+// SetSeigManager is a paid mutator transaction binding the contract method 0x7657f20a.
+//
+// Solidity: function setSeigManager(address seigManager) returns()
+func (_DepositManager *DepositManagerTransactor) SetSeigManager(opts *bind.TransactOpts, seigManager common.Address) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "setSeigManager", seigManager)
+}
+
+// SetSeigManager is a paid mutator transaction binding the contract method 0x7657f20a.
+//
+// Solidity: function setSeigManager(address seigManager) returns()
+func (_DepositManager *DepositManagerSession) SetSeigManager(seigManager common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.SetSeigManager(&_DepositManager.TransactOpts, seigManager)
+}
+
+// SetSeigManager is a paid mutator transaction binding the contract method 0x7657f20a.
+//
+// Solidity: function setSeigManager(address seigManager) returns()
+func (_DepositManager *DepositManagerTransactorSession) SetSeigManager(seigManager common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.SetSeigManager(&_DepositManager.TransactOpts, seigManager)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_DepositManager *DepositManagerTransactor) TransferOwnership(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
+	return _DepositManager.contract.Transact(opts, "transferOwnership", newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_DepositManager *DepositManagerSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.TransferOwnership(&_DepositManager.TransactOpts, newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_DepositManager *DepositManagerTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _DepositManager.Contract.TransferOwnership(&_DepositManager.TransactOpts, newOwner)
+}
+
+// DepositManagerDepositedIterator is returned from FilterDeposited and is used to iterate over the raw logs and unpacked data for Deposited events raised by the DepositManager contract.
+type DepositManagerDepositedIterator struct {
+	Event *DepositManagerDeposited // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DepositManagerDepositedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DepositManagerDeposited)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DepositManagerDeposited)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DepositManagerDepositedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DepositManagerDepositedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DepositManagerDeposited represents a Deposited event raised by the DepositManager contract.
+type DepositManagerDeposited struct {
+	Rootchain common.Address
+	Depositor common.Address
+	Amount    *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterDeposited is a free log retrieval operation binding the contract event 0x8752a472e571a816aea92eec8dae9baf628e840f4929fbcc2d155e6233ff68a7.
+//
+// Solidity: event Deposited(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) FilterDeposited(opts *bind.FilterOpts, rootchain []common.Address) (*DepositManagerDepositedIterator, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.FilterLogs(opts, "Deposited", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerDepositedIterator{contract: _DepositManager.contract, event: "Deposited", logs: logs, sub: sub}, nil
+}
+
+// WatchDeposited is a free log subscription operation binding the contract event 0x8752a472e571a816aea92eec8dae9baf628e840f4929fbcc2d155e6233ff68a7.
+//
+// Solidity: event Deposited(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) WatchDeposited(opts *bind.WatchOpts, sink chan<- *DepositManagerDeposited, rootchain []common.Address) (event.Subscription, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.WatchLogs(opts, "Deposited", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DepositManagerDeposited)
+				if err := _DepositManager.contract.UnpackLog(event, "Deposited", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDeposited is a log parse operation binding the contract event 0x8752a472e571a816aea92eec8dae9baf628e840f4929fbcc2d155e6233ff68a7.
+//
+// Solidity: event Deposited(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) ParseDeposited(log types.Log) (*DepositManagerDeposited, error) {
+	event := new(DepositManagerDeposited)
+	if err := _DepositManager.contract.UnpackLog(event, "Deposited", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// DepositManagerOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the DepositManager contract.
+type DepositManagerOwnershipTransferredIterator struct {
+	Event *DepositManagerOwnershipTransferred // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DepositManagerOwnershipTransferredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DepositManagerOwnershipTransferred)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DepositManagerOwnershipTransferred)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DepositManagerOwnershipTransferredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DepositManagerOwnershipTransferredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DepositManagerOwnershipTransferred represents a OwnershipTransferred event raised by the DepositManager contract.
+type DepositManagerOwnershipTransferred struct {
+	PreviousOwner common.Address
+	NewOwner      common.Address
+	Raw           types.Log // Blockchain specific contextual infos
+}
+
+// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_DepositManager *DepositManagerFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*DepositManagerOwnershipTransferredIterator, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerOwnershipTransferredIterator{contract: _DepositManager.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
+}
+
+// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_DepositManager *DepositManagerFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *DepositManagerOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DepositManagerOwnershipTransferred)
+				if err := _DepositManager.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_DepositManager *DepositManagerFilterer) ParseOwnershipTransferred(log types.Log) (*DepositManagerOwnershipTransferred, error) {
+	event := new(DepositManagerOwnershipTransferred)
+	if err := _DepositManager.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// DepositManagerWithdrawalProcessedIterator is returned from FilterWithdrawalProcessed and is used to iterate over the raw logs and unpacked data for WithdrawalProcessed events raised by the DepositManager contract.
+type DepositManagerWithdrawalProcessedIterator struct {
+	Event *DepositManagerWithdrawalProcessed // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DepositManagerWithdrawalProcessedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DepositManagerWithdrawalProcessed)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DepositManagerWithdrawalProcessed)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DepositManagerWithdrawalProcessedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DepositManagerWithdrawalProcessedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DepositManagerWithdrawalProcessed represents a WithdrawalProcessed event raised by the DepositManager contract.
+type DepositManagerWithdrawalProcessed struct {
+	Rootchain common.Address
+	Depositor common.Address
+	Amount    *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawalProcessed is a free log retrieval operation binding the contract event 0xcd1fce47d5ad89dd70b04c75bd6bdb8114d4d4ff7b4393f9fb5937e733ba9582.
+//
+// Solidity: event WithdrawalProcessed(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) FilterWithdrawalProcessed(opts *bind.FilterOpts, rootchain []common.Address) (*DepositManagerWithdrawalProcessedIterator, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.FilterLogs(opts, "WithdrawalProcessed", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerWithdrawalProcessedIterator{contract: _DepositManager.contract, event: "WithdrawalProcessed", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawalProcessed is a free log subscription operation binding the contract event 0xcd1fce47d5ad89dd70b04c75bd6bdb8114d4d4ff7b4393f9fb5937e733ba9582.
+//
+// Solidity: event WithdrawalProcessed(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) WatchWithdrawalProcessed(opts *bind.WatchOpts, sink chan<- *DepositManagerWithdrawalProcessed, rootchain []common.Address) (event.Subscription, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.WatchLogs(opts, "WithdrawalProcessed", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DepositManagerWithdrawalProcessed)
+				if err := _DepositManager.contract.UnpackLog(event, "WithdrawalProcessed", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawalProcessed is a log parse operation binding the contract event 0xcd1fce47d5ad89dd70b04c75bd6bdb8114d4d4ff7b4393f9fb5937e733ba9582.
+//
+// Solidity: event WithdrawalProcessed(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) ParseWithdrawalProcessed(log types.Log) (*DepositManagerWithdrawalProcessed, error) {
+	event := new(DepositManagerWithdrawalProcessed)
+	if err := _DepositManager.contract.UnpackLog(event, "WithdrawalProcessed", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// DepositManagerWithdrawalRequestedIterator is returned from FilterWithdrawalRequested and is used to iterate over the raw logs and unpacked data for WithdrawalRequested events raised by the DepositManager contract.
+type DepositManagerWithdrawalRequestedIterator struct {
+	Event *DepositManagerWithdrawalRequested // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DepositManagerWithdrawalRequestedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DepositManagerWithdrawalRequested)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DepositManagerWithdrawalRequested)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DepositManagerWithdrawalRequestedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DepositManagerWithdrawalRequestedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DepositManagerWithdrawalRequested represents a WithdrawalRequested event raised by the DepositManager contract.
+type DepositManagerWithdrawalRequested struct {
+	Rootchain common.Address
+	Depositor common.Address
+	Amount    *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawalRequested is a free log retrieval operation binding the contract event 0x04c56a409d50971e45c5a2d96e5d557d2b0f1d66d40f14b141e4c958b0f39b32.
+//
+// Solidity: event WithdrawalRequested(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) FilterWithdrawalRequested(opts *bind.FilterOpts, rootchain []common.Address) (*DepositManagerWithdrawalRequestedIterator, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.FilterLogs(opts, "WithdrawalRequested", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositManagerWithdrawalRequestedIterator{contract: _DepositManager.contract, event: "WithdrawalRequested", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawalRequested is a free log subscription operation binding the contract event 0x04c56a409d50971e45c5a2d96e5d557d2b0f1d66d40f14b141e4c958b0f39b32.
+//
+// Solidity: event WithdrawalRequested(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) WatchWithdrawalRequested(opts *bind.WatchOpts, sink chan<- *DepositManagerWithdrawalRequested, rootchain []common.Address) (event.Subscription, error) {
+
+	var rootchainRule []interface{}
+	for _, rootchainItem := range rootchain {
+		rootchainRule = append(rootchainRule, rootchainItem)
+	}
+
+	logs, sub, err := _DepositManager.contract.WatchLogs(opts, "WithdrawalRequested", rootchainRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DepositManagerWithdrawalRequested)
+				if err := _DepositManager.contract.UnpackLog(event, "WithdrawalRequested", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawalRequested is a log parse operation binding the contract event 0x04c56a409d50971e45c5a2d96e5d557d2b0f1d66d40f14b141e4c958b0f39b32.
+//
+// Solidity: event WithdrawalRequested(address indexed rootchain, address depositor, uint256 amount)
+func (_DepositManager *DepositManagerFilterer) ParseWithdrawalRequested(log types.Log) (*DepositManagerWithdrawalRequested, error) {
+	event := new(DepositManagerWithdrawalRequested)
+	if err := _DepositManager.contract.UnpackLog(event, "WithdrawalRequested", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // DepositManagerIABI is the input ABI used to generate the binding from.
 const DepositManagerIABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"WITHDRAWAL_DELAY\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"accStaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"accStakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"accUnstaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"accUnstakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"numPendingRequests\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"numRequests\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"pendingUnstaked\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"pendingUnstakedRootChain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"wtonAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"processRequest\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"n\",\"type\":\"uint256\"}],\"name\":\"processRequests\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"registry\",\"outputs\":[{\"internalType\":\"contractRootChainRegistryI\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"requestWithdrawal\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"requestWithdrawalAll\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"seigManager\",\"outputs\":[{\"internalType\":\"contractSeigManagerI\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"contractSeigManagerI\",\"name\":\"seigManager\",\"type\":\"address\"}],\"name\":\"setSeigManager\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"withdrawalRequestIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"wton\",\"outputs\":[{\"internalType\":\"contractWTON\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
@@ -11308,7 +12718,7 @@ var ERC20BurnableFuncSigs = map[string]string{
 }
 
 // ERC20BurnableBin is the compiled bytecode used for deploying new contracts.
-var ERC20BurnableBin = "0x6080604052610ab7806100136000396000f3fe608060405234801561001057600080fd5b506004361061009e5760003560e01c806370a082311161006657806370a082311461017e57806379cc6790146101a4578063a457c2d7146101d0578063a9059cbb146101fc578063dd62ed3e146102285761009e565b8063095ea7b3146100a357806318160ddd146100e357806323b872dd146100fd578063395093511461013357806342966c681461015f575b600080fd5b6100cf600480360360408110156100b957600080fd5b506001600160a01b038135169060200135610256565b604080519115158252519081900360200190f35b6100eb610273565b60408051918252519081900360200190f35b6100cf6004803603606081101561011357600080fd5b506001600160a01b03813581169160208101359091169060400135610279565b6100cf6004803603604081101561014957600080fd5b506001600160a01b038135169060200135610306565b61017c6004803603602081101561017557600080fd5b503561035a565b005b6100eb6004803603602081101561019457600080fd5b50356001600160a01b031661036e565b61017c600480360360408110156101ba57600080fd5b506001600160a01b038135169060200135610389565b6100cf600480360360408110156101e657600080fd5b506001600160a01b038135169060200135610397565b6100cf6004803603604081101561021257600080fd5b506001600160a01b038135169060200135610405565b6100eb6004803603604081101561023e57600080fd5b506001600160a01b0381358116916020013516610419565b600061026a610263610444565b8484610448565b50600192915050565b60025490565b6000610286848484610534565b6102fc84610292610444565b6102f7856040518060600160405280602881526020016109a8602891396001600160a01b038a166000908152600160205260408120906102d0610444565b6001600160a01b03168152602081019190915260400160002054919063ffffffff61069016565b610448565b5060019392505050565b600061026a610313610444565b846102f78560016000610324610444565b6001600160a01b03908116825260208083019390935260409182016000908120918c16815292529020549063ffffffff61072716565b61036b610365610444565b82610788565b50565b6001600160a01b031660009081526020819052604090205490565b6103938282610884565b5050565b600061026a6103a4610444565b846102f785604051806060016040528060258152602001610a5e60259139600160006103ce610444565b6001600160a01b03908116825260208083019390935260409182016000908120918d1681529252902054919063ffffffff61069016565b600061026a610412610444565b8484610534565b6001600160a01b03918216600090815260016020908152604080832093909416825291909152205490565b3390565b6001600160a01b03831661048d5760405162461bcd60e51b8152600401808060200182810382526024815260200180610a3a6024913960400191505060405180910390fd5b6001600160a01b0382166104d25760405162461bcd60e51b81526004018080602001828103825260228152602001806109606022913960400191505060405180910390fd5b6001600160a01b03808416600081815260016020908152604080832094871680845294825291829020859055815185815291517f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259281900390910190a3505050565b6001600160a01b0383166105795760405162461bcd60e51b8152600401808060200182810382526025815260200180610a156025913960400191505060405180910390fd5b6001600160a01b0382166105be5760405162461bcd60e51b815260040180806020018281038252602381526020018061091b6023913960400191505060405180910390fd5b61060181604051806060016040528060268152602001610982602691396001600160a01b038616600090815260208190526040902054919063ffffffff61069016565b6001600160a01b038085166000908152602081905260408082209390935590841681522054610636908263ffffffff61072716565b6001600160a01b038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b6000818484111561071f5760405162461bcd60e51b81526004018080602001828103825283818151815260200191508051906020019080838360005b838110156106e45781810151838201526020016106cc565b50505050905090810190601f1680156107115780820380516001836020036101000a031916815260200191505b509250505060405180910390fd5b505050900390565b600082820183811015610781576040805162461bcd60e51b815260206004820152601b60248201527f536166654d6174683a206164646974696f6e206f766572666c6f770000000000604482015290519081900360640190fd5b9392505050565b6001600160a01b0382166107cd5760405162461bcd60e51b81526004018080602001828103825260218152602001806109f46021913960400191505060405180910390fd5b6108108160405180606001604052806022815260200161093e602291396001600160a01b038516600090815260208190526040902054919063ffffffff61069016565b6001600160a01b03831660009081526020819052604090205560025461083c908263ffffffff6108d816565b6002556040805182815290516000916001600160a01b038516917fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360200190a35050565b61088e8282610788565b6103938261089a610444565b6102f7846040518060600160405280602481526020016109d0602491396001600160a01b0388166000908152600160205260408120906102d0610444565b600061078183836040518060400160405280601e81526020017f536166654d6174683a207375627472616374696f6e206f766572666c6f77000081525061069056fe45524332303a207472616e7366657220746f20746865207a65726f206164647265737345524332303a206275726e20616d6f756e7420657863656564732062616c616e636545524332303a20617070726f766520746f20746865207a65726f206164647265737345524332303a207472616e7366657220616d6f756e7420657863656564732062616c616e636545524332303a207472616e7366657220616d6f756e74206578636565647320616c6c6f77616e636545524332303a206275726e20616d6f756e74206578636565647320616c6c6f77616e636545524332303a206275726e2066726f6d20746865207a65726f206164647265737345524332303a207472616e736665722066726f6d20746865207a65726f206164647265737345524332303a20617070726f76652066726f6d20746865207a65726f206164647265737345524332303a2064656372656173656420616c6c6f77616e63652062656c6f77207a65726fa265627a7a723158205efdc9c8b644b0e746870616d6d4cd5506a4d1726d9f649c45de2f004e6525b064736f6c634300050c0032"
+var ERC20BurnableBin = "0x6080604052610ab7806100136000396000f3fe608060405234801561001057600080fd5b506004361061009e5760003560e01c806370a082311161006657806370a082311461017e57806379cc6790146101a4578063a457c2d7146101d0578063a9059cbb146101fc578063dd62ed3e146102285761009e565b8063095ea7b3146100a357806318160ddd146100e357806323b872dd146100fd578063395093511461013357806342966c681461015f575b600080fd5b6100cf600480360360408110156100b957600080fd5b506001600160a01b038135169060200135610256565b604080519115158252519081900360200190f35b6100eb610273565b60408051918252519081900360200190f35b6100cf6004803603606081101561011357600080fd5b506001600160a01b03813581169160208101359091169060400135610279565b6100cf6004803603604081101561014957600080fd5b506001600160a01b038135169060200135610306565b61017c6004803603602081101561017557600080fd5b503561035a565b005b6100eb6004803603602081101561019457600080fd5b50356001600160a01b031661036e565b61017c600480360360408110156101ba57600080fd5b506001600160a01b038135169060200135610389565b6100cf600480360360408110156101e657600080fd5b506001600160a01b038135169060200135610397565b6100cf6004803603604081101561021257600080fd5b506001600160a01b038135169060200135610405565b6100eb6004803603604081101561023e57600080fd5b506001600160a01b0381358116916020013516610419565b600061026a610263610444565b8484610448565b50600192915050565b60025490565b6000610286848484610534565b6102fc84610292610444565b6102f7856040518060600160405280602881526020016109a8602891396001600160a01b038a166000908152600160205260408120906102d0610444565b6001600160a01b03168152602081019190915260400160002054919063ffffffff61069016565b610448565b5060019392505050565b600061026a610313610444565b846102f78560016000610324610444565b6001600160a01b03908116825260208083019390935260409182016000908120918c16815292529020549063ffffffff61072716565b61036b610365610444565b82610788565b50565b6001600160a01b031660009081526020819052604090205490565b6103938282610884565b5050565b600061026a6103a4610444565b846102f785604051806060016040528060258152602001610a5e60259139600160006103ce610444565b6001600160a01b03908116825260208083019390935260409182016000908120918d1681529252902054919063ffffffff61069016565b600061026a610412610444565b8484610534565b6001600160a01b03918216600090815260016020908152604080832093909416825291909152205490565b3390565b6001600160a01b03831661048d5760405162461bcd60e51b8152600401808060200182810382526024815260200180610a3a6024913960400191505060405180910390fd5b6001600160a01b0382166104d25760405162461bcd60e51b81526004018080602001828103825260228152602001806109606022913960400191505060405180910390fd5b6001600160a01b03808416600081815260016020908152604080832094871680845294825291829020859055815185815291517f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259281900390910190a3505050565b6001600160a01b0383166105795760405162461bcd60e51b8152600401808060200182810382526025815260200180610a156025913960400191505060405180910390fd5b6001600160a01b0382166105be5760405162461bcd60e51b815260040180806020018281038252602381526020018061091b6023913960400191505060405180910390fd5b61060181604051806060016040528060268152602001610982602691396001600160a01b038616600090815260208190526040902054919063ffffffff61069016565b6001600160a01b038085166000908152602081905260408082209390935590841681522054610636908263ffffffff61072716565b6001600160a01b038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b6000818484111561071f5760405162461bcd60e51b81526004018080602001828103825283818151815260200191508051906020019080838360005b838110156106e45781810151838201526020016106cc565b50505050905090810190601f1680156107115780820380516001836020036101000a031916815260200191505b509250505060405180910390fd5b505050900390565b600082820183811015610781576040805162461bcd60e51b815260206004820152601b60248201527f536166654d6174683a206164646974696f6e206f766572666c6f770000000000604482015290519081900360640190fd5b9392505050565b6001600160a01b0382166107cd5760405162461bcd60e51b81526004018080602001828103825260218152602001806109f46021913960400191505060405180910390fd5b6108108160405180606001604052806022815260200161093e602291396001600160a01b038516600090815260208190526040902054919063ffffffff61069016565b6001600160a01b03831660009081526020819052604090205560025461083c908263ffffffff6108d816565b6002556040805182815290516000916001600160a01b038516917fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360200190a35050565b61088e8282610788565b6103938261089a610444565b6102f7846040518060600160405280602481526020016109d0602491396001600160a01b0388166000908152600160205260408120906102d0610444565b600061078183836040518060400160405280601e81526020017f536166654d6174683a207375627472616374696f6e206f766572666c6f77000081525061069056fe45524332303a207472616e7366657220746f20746865207a65726f206164647265737345524332303a206275726e20616d6f756e7420657863656564732062616c616e636545524332303a20617070726f766520746f20746865207a65726f206164647265737345524332303a207472616e7366657220616d6f756e7420657863656564732062616c616e636545524332303a207472616e7366657220616d6f756e74206578636565647320616c6c6f77616e636545524332303a206275726e20616d6f756e74206578636565647320616c6c6f77616e636545524332303a206275726e2066726f6d20746865207a65726f206164647265737345524332303a207472616e736665722066726f6d20746865207a65726f206164647265737345524332303a20617070726f76652066726f6d20746865207a65726f206164647265737345524332303a2064656372656173656420616c6c6f77616e63652062656c6f77207a65726fa265627a7a72315820f1d69ab24aa4e03a9c57d269487eac94ddd30d01e9f8e7fb8561cbef87d6535a64736f6c634300050c0032"
 
 // DeployERC20Burnable deploys a new Ethereum contract, binding an instance of ERC20Burnable to it.
 func DeployERC20Burnable(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *ERC20Burnable, error) {
@@ -12700,7 +14110,7 @@ var ERC20MintableFuncSigs = map[string]string{
 }
 
 // ERC20MintableBin is the compiled bytecode used for deploying new contracts.
-var ERC20MintableBin = "0x60806040526100266100186001600160e01b0361002b16565b6001600160e01b0361002f16565b6101a3565b3390565b61004781600361007e60201b610a6e1790919060201c565b6040516001600160a01b038216907f6ae172837ea30b801fbfcdd4108aa1d5bf8ff775444fd70256b44e6bf3dfc3f690600090a250565b61009182826001600160e01b0361012216565b156100fd57604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601f60248201527f526f6c65733a206163636f756e7420616c72656164792068617320726f6c6500604482015290519081900360640190fd5b6001600160a01b0316600090815260209190915260409020805460ff19166001179055565b60006001600160a01b038216610183576040517f08c379a0000000000000000000000000000000000000000000000000000000008152600401808060200182810382526022815260200180610eb16022913960400191505060405180910390fd5b506001600160a01b03166000908152602091909152604090205460ff1690565b610cff806101b26000396000f3fe608060405234801561001057600080fd5b50600436106100b45760003560e01c8063983b2d5611610071578063983b2d56146101c757806398650275146101ef578063a457c2d7146101f7578063a9059cbb14610223578063aa271e1a1461024f578063dd62ed3e14610275576100b4565b8063095ea7b3146100b957806318160ddd146100f957806323b872dd14610113578063395093511461014957806340c10f191461017557806370a08231146101a1575b600080fd5b6100e5600480360360408110156100cf57600080fd5b506001600160a01b0381351690602001356102a3565b604080519115158252519081900360200190f35b6101016102c0565b60408051918252519081900360200190f35b6100e56004803603606081101561012957600080fd5b506001600160a01b038135811691602081013590911690604001356102c6565b6100e56004803603604081101561015f57600080fd5b506001600160a01b038135169060200135610353565b6100e56004803603604081101561018b57600080fd5b506001600160a01b0381351690602001356103a7565b610101600480360360208110156101b757600080fd5b50356001600160a01b03166103fe565b6101ed600480360360208110156101dd57600080fd5b50356001600160a01b0316610419565b005b6101ed61046b565b6100e56004803603604081101561020d57600080fd5b506001600160a01b03813516906020013561047d565b6100e56004803603604081101561023957600080fd5b506001600160a01b0381351690602001356104eb565b6100e56004803603602081101561026557600080fd5b50356001600160a01b03166104ff565b6101016004803603604081101561028b57600080fd5b506001600160a01b0381358116916020013516610518565b60006102b76102b0610543565b8484610547565b50600192915050565b60025490565b60006102d3848484610633565b610349846102df610543565b61034485604051806060016040528060288152602001610c13602891396001600160a01b038a1660009081526001602052604081209061031d610543565b6001600160a01b03168152602081019190915260400160002054919063ffffffff61078f16565b610547565b5060019392505050565b60006102b7610360610543565b846103448560016000610371610543565b6001600160a01b03908116825260208083019390935260409182016000908120918c16815292529020549063ffffffff61082616565b60006103b96103b4610543565b6104ff565b6103f45760405162461bcd60e51b8152600401808060200182810382526030815260200180610bc26030913960400191505060405180910390fd5b6102b78383610887565b6001600160a01b031660009081526020819052604090205490565b6104246103b4610543565b61045f5760405162461bcd60e51b8152600401808060200182810382526030815260200180610bc26030913960400191505060405180910390fd5b61046881610977565b50565b61047b610476610543565b6109bf565b565b60006102b761048a610543565b8461034485604051806060016040528060258152602001610ca660259139600160006104b4610543565b6001600160a01b03908116825260208083019390935260409182016000908120918d1681529252902054919063ffffffff61078f16565b60006102b76104f8610543565b8484610633565b600061051260038363ffffffff610a0716565b92915050565b6001600160a01b03918216600090815260016020908152604080832093909416825291909152205490565b3390565b6001600160a01b03831661058c5760405162461bcd60e51b8152600401808060200182810382526024815260200180610c826024913960400191505060405180910390fd5b6001600160a01b0382166105d15760405162461bcd60e51b8152600401808060200182810382526022815260200180610b7a6022913960400191505060405180910390fd5b6001600160a01b03808416600081815260016020908152604080832094871680845294825291829020859055815185815291517f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259281900390910190a3505050565b6001600160a01b0383166106785760405162461bcd60e51b8152600401808060200182810382526025815260200180610c5d6025913960400191505060405180910390fd5b6001600160a01b0382166106bd5760405162461bcd60e51b8152600401808060200182810382526023815260200180610b576023913960400191505060405180910390fd5b61070081604051806060016040528060268152602001610b9c602691396001600160a01b038616600090815260208190526040902054919063ffffffff61078f16565b6001600160a01b038085166000908152602081905260408082209390935590841681522054610735908263ffffffff61082616565b6001600160a01b038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b6000818484111561081e5760405162461bcd60e51b81526004018080602001828103825283818151815260200191508051906020019080838360005b838110156107e35781810151838201526020016107cb565b50505050905090810190601f1680156108105780820380516001836020036101000a031916815260200191505b509250505060405180910390fd5b505050900390565b600082820183811015610880576040805162461bcd60e51b815260206004820152601b60248201527f536166654d6174683a206164646974696f6e206f766572666c6f770000000000604482015290519081900360640190fd5b9392505050565b6001600160a01b0382166108e2576040805162461bcd60e51b815260206004820152601f60248201527f45524332303a206d696e7420746f20746865207a65726f206164647265737300604482015290519081900360640190fd5b6002546108f5908263ffffffff61082616565b6002556001600160a01b038216600090815260208190526040902054610921908263ffffffff61082616565b6001600160a01b0383166000818152602081815260408083209490945583518581529351929391927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9281900390910190a35050565b61098860038263ffffffff610a6e16565b6040516001600160a01b038216907f6ae172837ea30b801fbfcdd4108aa1d5bf8ff775444fd70256b44e6bf3dfc3f690600090a250565b6109d060038263ffffffff610aef16565b6040516001600160a01b038216907fe94479a9f7e1952cc78f2d6baab678adc1b772d936c6583def489e524cb6669290600090a250565b60006001600160a01b038216610a4e5760405162461bcd60e51b8152600401808060200182810382526022815260200180610c3b6022913960400191505060405180910390fd5b506001600160a01b03166000908152602091909152604090205460ff1690565b610a788282610a07565b15610aca576040805162461bcd60e51b815260206004820152601f60248201527f526f6c65733a206163636f756e7420616c72656164792068617320726f6c6500604482015290519081900360640190fd5b6001600160a01b0316600090815260209190915260409020805460ff19166001179055565b610af98282610a07565b610b345760405162461bcd60e51b8152600401808060200182810382526021815260200180610bf26021913960400191505060405180910390fd5b6001600160a01b0316600090815260209190915260409020805460ff1916905556fe45524332303a207472616e7366657220746f20746865207a65726f206164647265737345524332303a20617070726f766520746f20746865207a65726f206164647265737345524332303a207472616e7366657220616d6f756e7420657863656564732062616c616e63654d696e746572526f6c653a2063616c6c657220646f6573206e6f74206861766520746865204d696e74657220726f6c65526f6c65733a206163636f756e7420646f6573206e6f74206861766520726f6c6545524332303a207472616e7366657220616d6f756e74206578636565647320616c6c6f77616e6365526f6c65733a206163636f756e7420697320746865207a65726f206164647265737345524332303a207472616e736665722066726f6d20746865207a65726f206164647265737345524332303a20617070726f76652066726f6d20746865207a65726f206164647265737345524332303a2064656372656173656420616c6c6f77616e63652062656c6f77207a65726fa265627a7a7231582066ffadfcc37ded89686e3e2a1cc8a6f2b34fca15eda23d8b32eb601795c212b764736f6c634300050c0032526f6c65733a206163636f756e7420697320746865207a65726f2061646472657373"
+var ERC20MintableBin = "0x60806040526100266100186001600160e01b0361002b16565b6001600160e01b0361002f16565b6101a3565b3390565b61004781600361007e60201b610a6e1790919060201c565b6040516001600160a01b038216907f6ae172837ea30b801fbfcdd4108aa1d5bf8ff775444fd70256b44e6bf3dfc3f690600090a250565b61009182826001600160e01b0361012216565b156100fd57604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601f60248201527f526f6c65733a206163636f756e7420616c72656164792068617320726f6c6500604482015290519081900360640190fd5b6001600160a01b0316600090815260209190915260409020805460ff19166001179055565b60006001600160a01b038216610183576040517f08c379a0000000000000000000000000000000000000000000000000000000008152600401808060200182810382526022815260200180610eb16022913960400191505060405180910390fd5b506001600160a01b03166000908152602091909152604090205460ff1690565b610cff806101b26000396000f3fe608060405234801561001057600080fd5b50600436106100b45760003560e01c8063983b2d5611610071578063983b2d56146101c757806398650275146101ef578063a457c2d7146101f7578063a9059cbb14610223578063aa271e1a1461024f578063dd62ed3e14610275576100b4565b8063095ea7b3146100b957806318160ddd146100f957806323b872dd14610113578063395093511461014957806340c10f191461017557806370a08231146101a1575b600080fd5b6100e5600480360360408110156100cf57600080fd5b506001600160a01b0381351690602001356102a3565b604080519115158252519081900360200190f35b6101016102c0565b60408051918252519081900360200190f35b6100e56004803603606081101561012957600080fd5b506001600160a01b038135811691602081013590911690604001356102c6565b6100e56004803603604081101561015f57600080fd5b506001600160a01b038135169060200135610353565b6100e56004803603604081101561018b57600080fd5b506001600160a01b0381351690602001356103a7565b610101600480360360208110156101b757600080fd5b50356001600160a01b03166103fe565b6101ed600480360360208110156101dd57600080fd5b50356001600160a01b0316610419565b005b6101ed61046b565b6100e56004803603604081101561020d57600080fd5b506001600160a01b03813516906020013561047d565b6100e56004803603604081101561023957600080fd5b506001600160a01b0381351690602001356104eb565b6100e56004803603602081101561026557600080fd5b50356001600160a01b03166104ff565b6101016004803603604081101561028b57600080fd5b506001600160a01b0381358116916020013516610518565b60006102b76102b0610543565b8484610547565b50600192915050565b60025490565b60006102d3848484610633565b610349846102df610543565b61034485604051806060016040528060288152602001610c13602891396001600160a01b038a1660009081526001602052604081209061031d610543565b6001600160a01b03168152602081019190915260400160002054919063ffffffff61078f16565b610547565b5060019392505050565b60006102b7610360610543565b846103448560016000610371610543565b6001600160a01b03908116825260208083019390935260409182016000908120918c16815292529020549063ffffffff61082616565b60006103b96103b4610543565b6104ff565b6103f45760405162461bcd60e51b8152600401808060200182810382526030815260200180610bc26030913960400191505060405180910390fd5b6102b78383610887565b6001600160a01b031660009081526020819052604090205490565b6104246103b4610543565b61045f5760405162461bcd60e51b8152600401808060200182810382526030815260200180610bc26030913960400191505060405180910390fd5b61046881610977565b50565b61047b610476610543565b6109bf565b565b60006102b761048a610543565b8461034485604051806060016040528060258152602001610ca660259139600160006104b4610543565b6001600160a01b03908116825260208083019390935260409182016000908120918d1681529252902054919063ffffffff61078f16565b60006102b76104f8610543565b8484610633565b600061051260038363ffffffff610a0716565b92915050565b6001600160a01b03918216600090815260016020908152604080832093909416825291909152205490565b3390565b6001600160a01b03831661058c5760405162461bcd60e51b8152600401808060200182810382526024815260200180610c826024913960400191505060405180910390fd5b6001600160a01b0382166105d15760405162461bcd60e51b8152600401808060200182810382526022815260200180610b7a6022913960400191505060405180910390fd5b6001600160a01b03808416600081815260016020908152604080832094871680845294825291829020859055815185815291517f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259281900390910190a3505050565b6001600160a01b0383166106785760405162461bcd60e51b8152600401808060200182810382526025815260200180610c5d6025913960400191505060405180910390fd5b6001600160a01b0382166106bd5760405162461bcd60e51b8152600401808060200182810382526023815260200180610b576023913960400191505060405180910390fd5b61070081604051806060016040528060268152602001610b9c602691396001600160a01b038616600090815260208190526040902054919063ffffffff61078f16565b6001600160a01b038085166000908152602081905260408082209390935590841681522054610735908263ffffffff61082616565b6001600160a01b038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b6000818484111561081e5760405162461bcd60e51b81526004018080602001828103825283818151815260200191508051906020019080838360005b838110156107e35781810151838201526020016107cb565b50505050905090810190601f1680156108105780820380516001836020036101000a031916815260200191505b509250505060405180910390fd5b505050900390565b600082820183811015610880576040805162461bcd60e51b815260206004820152601b60248201527f536166654d6174683a206164646974696f6e206f766572666c6f770000000000604482015290519081900360640190fd5b9392505050565b6001600160a01b0382166108e2576040805162461bcd60e51b815260206004820152601f60248201527f45524332303a206d696e7420746f20746865207a65726f206164647265737300604482015290519081900360640190fd5b6002546108f5908263ffffffff61082616565b6002556001600160a01b038216600090815260208190526040902054610921908263ffffffff61082616565b6001600160a01b0383166000818152602081815260408083209490945583518581529351929391927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9281900390910190a35050565b61098860038263ffffffff610a6e16565b6040516001600160a01b038216907f6ae172837ea30b801fbfcdd4108aa1d5bf8ff775444fd70256b44e6bf3dfc3f690600090a250565b6109d060038263ffffffff610aef16565b6040516001600160a01b038216907fe94479a9f7e1952cc78f2d6baab678adc1b772d936c6583def489e524cb6669290600090a250565b60006001600160a01b038216610a4e5760405162461bcd60e51b8152600401808060200182810382526022815260200180610c3b6022913960400191505060405180910390fd5b506001600160a01b03166000908152602091909152604090205460ff1690565b610a788282610a07565b15610aca576040805162461bcd60e51b815260206004820152601f60248201527f526f6c65733a206163636f756e7420616c72656164792068617320726f6c6500604482015290519081900360640190fd5b6001600160a01b0316600090815260209190915260409020805460ff19166001179055565b610af98282610a07565b610b345760405162461bcd60e51b8152600401808060200182810382526021815260200180610bf26021913960400191505060405180910390fd5b6001600160a01b0316600090815260209190915260409020805460ff1916905556fe45524332303a207472616e7366657220746f20746865207a65726f206164647265737345524332303a20617070726f766520746f20746865207a65726f206164647265737345524332303a207472616e7366657220616d6f756e7420657863656564732062616c616e63654d696e746572526f6c653a2063616c6c657220646f6573206e6f74206861766520746865204d696e74657220726f6c65526f6c65733a206163636f756e7420646f6573206e6f74206861766520726f6c6545524332303a207472616e7366657220616d6f756e74206578636565647320616c6c6f77616e6365526f6c65733a206163636f756e7420697320746865207a65726f206164647265737345524332303a207472616e736665722066726f6d20746865207a65726f206164647265737345524332303a20617070726f76652066726f6d20746865207a65726f206164647265737345524332303a2064656372656173656420616c6c6f77616e63652062656c6f77207a65726fa265627a7a723158209bffbae26a8473ab446e60484fc8f37931f262c4c630ff4ea7ef2fd99a2a4ba364736f6c634300050c0032526f6c65733a206163636f756e7420697320746865207a65726f2061646472657373"
 
 // DeployERC20Mintable deploys a new Ethereum contract, binding an instance of ERC20Mintable to it.
 func DeployERC20Mintable(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *ERC20Mintable, error) {
