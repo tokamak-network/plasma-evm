@@ -35,8 +35,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/depositmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/stakingmanager"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchainregistry"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/seigmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/wton"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -631,7 +633,7 @@ func registerRootChain(ctx *cli.Context) error {
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
 	// load contract instances
-	registry, err := stakingmanager.NewRootChainRegistry(managers.RootChainRegistry, backend)
+	registry, err := rootchainregistry.NewRootChainRegistry(managers.RootChainRegistry, backend)
 	if err != nil {
 		utils.Fatalf("Failed to load RootChainRegistry contract: %v", err)
 	}
@@ -760,11 +762,11 @@ func getBalances(ctx *cli.Context) error {
 	var (
 		TON            *ton.TON
 		WTON           *wton.WTON
-		depositManager *stakingmanager.DepositManager
-		seigManager    *stakingmanager.SeigManager
+		depositManager *depositmanager.DepositManager
+		seigManager    *seigmanager.SeigManager
 
-		tot     *stakingmanager.ERC20
-		coinage *stakingmanager.ERC20
+		tot     *seigmanager.ERC20
+		coinage *seigmanager.ERC20
 
 		tonBalance  *big.Int
 		wtonBalance *big.Int
@@ -790,10 +792,10 @@ func getBalances(ctx *cli.Context) error {
 	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
 		utils.Fatalf("Failed depositor load WTON contract: %v", err)
 	}
-	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
 		utils.Fatalf("Failed depositor load DepositManager contract: %v", err)
 	}
-	if seigManager, err = stakingmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
+	if seigManager, err = seigmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
 		utils.Fatalf("Failed depositor load SeigManager contract: %v", err)
 	}
 
@@ -806,10 +808,10 @@ func getBalances(ctx *cli.Context) error {
 		utils.Fatalf("Failed depositor load coinage address: %v", err)
 	}
 
-	if tot, err = stakingmanager.NewERC20(totAddr, backend); err != nil {
+	if tot, err = seigmanager.NewERC20(totAddr, backend); err != nil {
 		utils.Fatalf("Failed depositor load tot contract: %v", err)
 	}
-	if coinage, err = stakingmanager.NewERC20(coinageAddr, backend); err != nil {
+	if coinage, err = seigmanager.NewERC20(coinageAddr, backend); err != nil {
 		utils.Fatalf("Failed depositor load tot contract: %v", err)
 	}
 
@@ -1182,14 +1184,14 @@ func stakeWTON(ctx *cli.Context) error {
 
 	var (
 		WTON           *wton.WTON
-		depositManager *stakingmanager.DepositManager
+		depositManager *depositmanager.DepositManager
 	)
 
 	// load contract instances
 	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
 		utils.Fatalf("Failed to load WTON contract: %v", err)
 	}
-	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
 		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
 
@@ -1279,15 +1281,15 @@ func requestWithdrawal(ctx *cli.Context) error {
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
 	var (
-		depositManager *stakingmanager.DepositManager
-		seigManager    *stakingmanager.SeigManager
+		depositManager *depositmanager.DepositManager
+		seigManager    *seigmanager.SeigManager
 	)
 
 	// load contract instances
-	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
 		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
-	if seigManager, err = stakingmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
+	if seigManager, err = seigmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
 		utils.Fatalf("Failed to load SeigManager contract: %v", err)
 	}
 
@@ -1323,8 +1325,6 @@ func processWithdrawal(ctx *cli.Context) error {
 	if len(ctx.Args()) > 1 {
 		utils.Fatalf("Expected 1 or 0 parameters, not %d", len(ctx.Args()))
 	}
-
-	//decimals := params.WTONDecimals
 
 	var (
 		n int
@@ -1377,11 +1377,11 @@ func processWithdrawal(ctx *cli.Context) error {
 	var (
 		numPendingRequests *big.Int
 
-		depositManager *stakingmanager.DepositManager
+		depositManager *depositmanager.DepositManager
 	)
 
 	// load contract instances
-	if depositManager, err = stakingmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
 		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
 
@@ -1399,7 +1399,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		utils.Fatalf("No request to process")
 	}
 
-	if tx, err = depositManager.ProcessRequests(opt, rootchainAddr, big.NewInt(int64((n)))); err != nil {
+	if tx, err = depositManager.ProcessRequests(opt, rootchainAddr, big.NewInt(int64((n))), false); err != nil {
 		return err
 	}
 

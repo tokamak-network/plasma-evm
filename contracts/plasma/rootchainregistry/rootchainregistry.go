@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package wton
+package rootchainregistry
 
 import (
 	"math/big"
@@ -9269,7 +9269,7 @@ func (_CustomIncrementCoinageMock *CustomIncrementCoinageMockFilterer) ParseTran
 const DSMathABI = "[]"
 
 // DSMathBin is the compiled bytecode used for deploying new contracts.
-var DSMathBin = "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a72315820835d0f37e1207da2fc2224004e6efa210c7e8e2162ae19b8c8b7d3972779837464736f6c634300050c0032"
+var DSMathBin = "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a723158201d3383a4efea7d4c911511edcc2240f991199f32cf3b3c855dd9ffb45f3f45a164736f6c634300050c0032"
 
 // DeployDSMath deploys a new Ethereum contract, binding an instance of DSMath to it.
 func DeployDSMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *DSMath, error) {
@@ -22250,7 +22250,7 @@ func (_ReentrancyGuard *ReentrancyGuardTransactorRaw) Transact(opts *bind.Transa
 const RolesABI = "[]"
 
 // RolesBin is the compiled bytecode used for deploying new contracts.
-var RolesBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723158208b71254ffd63ec0cdf069ebd57900b2eed3f2d5481f989be20e2f19c163e323b64736f6c634300050c0032"
+var RolesBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a72315820451a2112c879141f72bbe0ec00d853511a9d98646af7e3081d90a3d70270eb1564736f6c634300050c0032"
 
 // DeployRoles deploys a new Ethereum contract, binding an instance of Roles to it.
 func DeployRoles(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Roles, error) {
@@ -22663,6 +22663,537 @@ func (_RootChainI *RootChainISession) Operator() (common.Address, error) {
 // Solidity: function operator() constant returns(address)
 func (_RootChainI *RootChainICallerSession) Operator() (common.Address, error) {
 	return _RootChainI.Contract.Operator(&_RootChainI.CallOpts)
+}
+
+// RootChainRegistryABI is the input ABI used to generate the binding from.
+const RootChainRegistryABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"seigManager\",\"type\":\"address\"}],\"name\":\"deployCoinage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isOwner\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"register\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"seigManager\",\"type\":\"address\"}],\"name\":\"registerAndDeployCoinage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"rootchains\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"rootchain\",\"type\":\"address\"}],\"name\":\"unregister\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+
+// RootChainRegistryFuncSigs maps the 4-byte function signature to its string representation.
+var RootChainRegistryFuncSigs = map[string]string{
+	"85108604": "deployCoinage(address,address)",
+	"8f32d59b": "isOwner()",
+	"8da5cb5b": "owner()",
+	"4420e486": "register(address)",
+	"bcb1a71e": "registerAndDeployCoinage(address,address)",
+	"715018a6": "renounceOwnership()",
+	"02a15299": "rootchains(address)",
+	"f2fde38b": "transferOwnership(address)",
+	"2ec2c246": "unregister(address)",
+}
+
+// RootChainRegistryBin is the compiled bytecode used for deploying new contracts.
+var RootChainRegistryBin = "0x608060405260006100176001600160e01b0361006616565b600080546001600160a01b0319166001600160a01b0383169081178255604051929350917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a35061006a565b3390565b6106f4806100796000396000f3fe608060405234801561001057600080fd5b50600436106100935760003560e01c8063851086041161006657806385108604146101285780638da5cb5b146101565780638f32d59b1461017a578063bcb1a71e14610182578063f2fde38b146101b057610093565b806302a15299146100985780632ec2c246146100d25780634420e486146100f8578063715018a61461011e575b600080fd5b6100be600480360360208110156100ae57600080fd5b50356001600160a01b03166101d6565b604080519115158252519081900360200190f35b6100be600480360360208110156100e857600080fd5b50356001600160a01b03166101f4565b6100be6004803603602081101561010e57600080fd5b50356001600160a01b0316610298565b6101266102a9565b005b6100be6004803603604081101561013e57600080fd5b506001600160a01b038135811691602001351661034c565b61015e61035f565b604080516001600160a01b039092168252519081900360200190f35b6100be61036e565b6100be6004803603604081101561019857600080fd5b506001600160a01b0381358116916020013516610392565b610126600480360360208110156101c657600080fd5b50356001600160a01b03166103c2565b6001600160a01b031660009081526001602052604090205460ff1690565b60006101fe61036e565b61024f576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b6001600160a01b03821660009081526001602052604090205460ff1661027457600080fd5b6001600160a01b039091166000908152600160205260409020805460ff1916905590565b60006102a382610427565b92915050565b6102b161036e565b610302576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b60006103588383610568565b9392505050565b6000546001600160a01b031690565b600080546001600160a01b03166103836105f5565b6001600160a01b031614905090565b600061039d83610427565b6103a657600080fd5b6103b08383610568565b6103b957600080fd5b50600192915050565b6103ca61036e565b61041b576040805162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015290519081900360640190fd5b610424816105f9565b50565b6001600160a01b03811660009081526001602052604081205460ff161561044d57600080fd5b816001600160a01b031663420bb4b86040518163ffffffff1660e01b815260040160206040518083038186803b15801561048657600080fd5b505afa15801561049a573d6000803e3d6000fd5b505050506040513d60208110156104b057600080fd5b50516104bb57600080fd5b6104c361036e565b61054057816001600160a01b031663570ca7356040518163ffffffff1660e01b815260040160206040518083038186803b15801561050057600080fd5b505afa158015610514573d6000803e3d6000fd5b505050506040513d602081101561052a57600080fd5b50516001600160a01b0316331461054057600080fd5b506001600160a01b03166000908152600160208190526040909120805460ff19168217905590565b6000816001600160a01b031663833a774f846040518263ffffffff1660e01b815260040180826001600160a01b03166001600160a01b03168152602001915050602060405180830381600087803b1580156105c257600080fd5b505af11580156105d6573d6000803e3d6000fd5b505050506040513d60208110156105ec57600080fd5b50519392505050565b3390565b6001600160a01b03811661063e5760405162461bcd60e51b815260040180806020018281038252602681526020018061069a6026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fe4f776e61626c653a206e6577206f776e657220697320746865207a65726f2061646472657373a265627a7a723158208767db8c8816762b49c37db78de6a5959458e9b5a03d095b0ab822c9d23031f464736f6c634300050c0032"
+
+// DeployRootChainRegistry deploys a new Ethereum contract, binding an instance of RootChainRegistry to it.
+func DeployRootChainRegistry(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *RootChainRegistry, error) {
+	parsed, err := abi.JSON(strings.NewReader(RootChainRegistryABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(RootChainRegistryBin), backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &RootChainRegistry{RootChainRegistryCaller: RootChainRegistryCaller{contract: contract}, RootChainRegistryTransactor: RootChainRegistryTransactor{contract: contract}, RootChainRegistryFilterer: RootChainRegistryFilterer{contract: contract}}, nil
+}
+
+// RootChainRegistry is an auto generated Go binding around an Ethereum contract.
+type RootChainRegistry struct {
+	RootChainRegistryCaller     // Read-only binding to the contract
+	RootChainRegistryTransactor // Write-only binding to the contract
+	RootChainRegistryFilterer   // Log filterer for contract events
+}
+
+// RootChainRegistryCaller is an auto generated read-only Go binding around an Ethereum contract.
+type RootChainRegistryCaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RootChainRegistryTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type RootChainRegistryTransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RootChainRegistryFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type RootChainRegistryFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// RootChainRegistrySession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type RootChainRegistrySession struct {
+	Contract     *RootChainRegistry // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts      // Call options to use throughout this session
+	TransactOpts bind.TransactOpts  // Transaction auth options to use throughout this session
+}
+
+// RootChainRegistryCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type RootChainRegistryCallerSession struct {
+	Contract *RootChainRegistryCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts            // Call options to use throughout this session
+}
+
+// RootChainRegistryTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type RootChainRegistryTransactorSession struct {
+	Contract     *RootChainRegistryTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts            // Transaction auth options to use throughout this session
+}
+
+// RootChainRegistryRaw is an auto generated low-level Go binding around an Ethereum contract.
+type RootChainRegistryRaw struct {
+	Contract *RootChainRegistry // Generic contract binding to access the raw methods on
+}
+
+// RootChainRegistryCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type RootChainRegistryCallerRaw struct {
+	Contract *RootChainRegistryCaller // Generic read-only contract binding to access the raw methods on
+}
+
+// RootChainRegistryTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type RootChainRegistryTransactorRaw struct {
+	Contract *RootChainRegistryTransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewRootChainRegistry creates a new instance of RootChainRegistry, bound to a specific deployed contract.
+func NewRootChainRegistry(address common.Address, backend bind.ContractBackend) (*RootChainRegistry, error) {
+	contract, err := bindRootChainRegistry(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &RootChainRegistry{RootChainRegistryCaller: RootChainRegistryCaller{contract: contract}, RootChainRegistryTransactor: RootChainRegistryTransactor{contract: contract}, RootChainRegistryFilterer: RootChainRegistryFilterer{contract: contract}}, nil
+}
+
+// NewRootChainRegistryCaller creates a new read-only instance of RootChainRegistry, bound to a specific deployed contract.
+func NewRootChainRegistryCaller(address common.Address, caller bind.ContractCaller) (*RootChainRegistryCaller, error) {
+	contract, err := bindRootChainRegistry(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &RootChainRegistryCaller{contract: contract}, nil
+}
+
+// NewRootChainRegistryTransactor creates a new write-only instance of RootChainRegistry, bound to a specific deployed contract.
+func NewRootChainRegistryTransactor(address common.Address, transactor bind.ContractTransactor) (*RootChainRegistryTransactor, error) {
+	contract, err := bindRootChainRegistry(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &RootChainRegistryTransactor{contract: contract}, nil
+}
+
+// NewRootChainRegistryFilterer creates a new log filterer instance of RootChainRegistry, bound to a specific deployed contract.
+func NewRootChainRegistryFilterer(address common.Address, filterer bind.ContractFilterer) (*RootChainRegistryFilterer, error) {
+	contract, err := bindRootChainRegistry(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &RootChainRegistryFilterer{contract: contract}, nil
+}
+
+// bindRootChainRegistry binds a generic wrapper to an already deployed contract.
+func bindRootChainRegistry(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(RootChainRegistryABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_RootChainRegistry *RootChainRegistryRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RootChainRegistry.Contract.RootChainRegistryCaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_RootChainRegistry *RootChainRegistryRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RootChainRegistryTransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_RootChainRegistry *RootChainRegistryRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RootChainRegistryTransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_RootChainRegistry *RootChainRegistryCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _RootChainRegistry.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_RootChainRegistry *RootChainRegistryTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_RootChainRegistry *RootChainRegistryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.contract.Transact(opts, method, params...)
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_RootChainRegistry *RootChainRegistryCaller) IsOwner(opts *bind.CallOpts) (bool, error) {
+	var (
+		ret0 = new(bool)
+	)
+	out := ret0
+	err := _RootChainRegistry.contract.Call(opts, out, "isOwner")
+	return *ret0, err
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) IsOwner() (bool, error) {
+	return _RootChainRegistry.Contract.IsOwner(&_RootChainRegistry.CallOpts)
+}
+
+// IsOwner is a free data retrieval call binding the contract method 0x8f32d59b.
+//
+// Solidity: function isOwner() constant returns(bool)
+func (_RootChainRegistry *RootChainRegistryCallerSession) IsOwner() (bool, error) {
+	return _RootChainRegistry.Contract.IsOwner(&_RootChainRegistry.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_RootChainRegistry *RootChainRegistryCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _RootChainRegistry.contract.Call(opts, out, "owner")
+	return *ret0, err
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_RootChainRegistry *RootChainRegistrySession) Owner() (common.Address, error) {
+	return _RootChainRegistry.Contract.Owner(&_RootChainRegistry.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() constant returns(address)
+func (_RootChainRegistry *RootChainRegistryCallerSession) Owner() (common.Address, error) {
+	return _RootChainRegistry.Contract.Owner(&_RootChainRegistry.CallOpts)
+}
+
+// Rootchains is a free data retrieval call binding the contract method 0x02a15299.
+//
+// Solidity: function rootchains(address rootchain) constant returns(bool)
+func (_RootChainRegistry *RootChainRegistryCaller) Rootchains(opts *bind.CallOpts, rootchain common.Address) (bool, error) {
+	var (
+		ret0 = new(bool)
+	)
+	out := ret0
+	err := _RootChainRegistry.contract.Call(opts, out, "rootchains", rootchain)
+	return *ret0, err
+}
+
+// Rootchains is a free data retrieval call binding the contract method 0x02a15299.
+//
+// Solidity: function rootchains(address rootchain) constant returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) Rootchains(rootchain common.Address) (bool, error) {
+	return _RootChainRegistry.Contract.Rootchains(&_RootChainRegistry.CallOpts, rootchain)
+}
+
+// Rootchains is a free data retrieval call binding the contract method 0x02a15299.
+//
+// Solidity: function rootchains(address rootchain) constant returns(bool)
+func (_RootChainRegistry *RootChainRegistryCallerSession) Rootchains(rootchain common.Address) (bool, error) {
+	return _RootChainRegistry.Contract.Rootchains(&_RootChainRegistry.CallOpts, rootchain)
+}
+
+// DeployCoinage is a paid mutator transaction binding the contract method 0x85108604.
+//
+// Solidity: function deployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactor) DeployCoinage(opts *bind.TransactOpts, rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "deployCoinage", rootchain, seigManager)
+}
+
+// DeployCoinage is a paid mutator transaction binding the contract method 0x85108604.
+//
+// Solidity: function deployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) DeployCoinage(rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.DeployCoinage(&_RootChainRegistry.TransactOpts, rootchain, seigManager)
+}
+
+// DeployCoinage is a paid mutator transaction binding the contract method 0x85108604.
+//
+// Solidity: function deployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactorSession) DeployCoinage(rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.DeployCoinage(&_RootChainRegistry.TransactOpts, rootchain, seigManager)
+}
+
+// Register is a paid mutator transaction binding the contract method 0x4420e486.
+//
+// Solidity: function register(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactor) Register(opts *bind.TransactOpts, rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "register", rootchain)
+}
+
+// Register is a paid mutator transaction binding the contract method 0x4420e486.
+//
+// Solidity: function register(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) Register(rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.Register(&_RootChainRegistry.TransactOpts, rootchain)
+}
+
+// Register is a paid mutator transaction binding the contract method 0x4420e486.
+//
+// Solidity: function register(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactorSession) Register(rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.Register(&_RootChainRegistry.TransactOpts, rootchain)
+}
+
+// RegisterAndDeployCoinage is a paid mutator transaction binding the contract method 0xbcb1a71e.
+//
+// Solidity: function registerAndDeployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactor) RegisterAndDeployCoinage(opts *bind.TransactOpts, rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "registerAndDeployCoinage", rootchain, seigManager)
+}
+
+// RegisterAndDeployCoinage is a paid mutator transaction binding the contract method 0xbcb1a71e.
+//
+// Solidity: function registerAndDeployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) RegisterAndDeployCoinage(rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RegisterAndDeployCoinage(&_RootChainRegistry.TransactOpts, rootchain, seigManager)
+}
+
+// RegisterAndDeployCoinage is a paid mutator transaction binding the contract method 0xbcb1a71e.
+//
+// Solidity: function registerAndDeployCoinage(address rootchain, address seigManager) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactorSession) RegisterAndDeployCoinage(rootchain common.Address, seigManager common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RegisterAndDeployCoinage(&_RootChainRegistry.TransactOpts, rootchain, seigManager)
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_RootChainRegistry *RootChainRegistryTransactor) RenounceOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "renounceOwnership")
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_RootChainRegistry *RootChainRegistrySession) RenounceOwnership() (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RenounceOwnership(&_RootChainRegistry.TransactOpts)
+}
+
+// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
+//
+// Solidity: function renounceOwnership() returns()
+func (_RootChainRegistry *RootChainRegistryTransactorSession) RenounceOwnership() (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.RenounceOwnership(&_RootChainRegistry.TransactOpts)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_RootChainRegistry *RootChainRegistryTransactor) TransferOwnership(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "transferOwnership", newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_RootChainRegistry *RootChainRegistrySession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.TransferOwnership(&_RootChainRegistry.TransactOpts, newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_RootChainRegistry *RootChainRegistryTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.TransferOwnership(&_RootChainRegistry.TransactOpts, newOwner)
+}
+
+// Unregister is a paid mutator transaction binding the contract method 0x2ec2c246.
+//
+// Solidity: function unregister(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactor) Unregister(opts *bind.TransactOpts, rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.contract.Transact(opts, "unregister", rootchain)
+}
+
+// Unregister is a paid mutator transaction binding the contract method 0x2ec2c246.
+//
+// Solidity: function unregister(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistrySession) Unregister(rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.Unregister(&_RootChainRegistry.TransactOpts, rootchain)
+}
+
+// Unregister is a paid mutator transaction binding the contract method 0x2ec2c246.
+//
+// Solidity: function unregister(address rootchain) returns(bool)
+func (_RootChainRegistry *RootChainRegistryTransactorSession) Unregister(rootchain common.Address) (*types.Transaction, error) {
+	return _RootChainRegistry.Contract.Unregister(&_RootChainRegistry.TransactOpts, rootchain)
+}
+
+// RootChainRegistryOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the RootChainRegistry contract.
+type RootChainRegistryOwnershipTransferredIterator struct {
+	Event *RootChainRegistryOwnershipTransferred // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *RootChainRegistryOwnershipTransferredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(RootChainRegistryOwnershipTransferred)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(RootChainRegistryOwnershipTransferred)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *RootChainRegistryOwnershipTransferredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *RootChainRegistryOwnershipTransferredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// RootChainRegistryOwnershipTransferred represents a OwnershipTransferred event raised by the RootChainRegistry contract.
+type RootChainRegistryOwnershipTransferred struct {
+	PreviousOwner common.Address
+	NewOwner      common.Address
+	Raw           types.Log // Blockchain specific contextual infos
+}
+
+// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_RootChainRegistry *RootChainRegistryFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*RootChainRegistryOwnershipTransferredIterator, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _RootChainRegistry.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &RootChainRegistryOwnershipTransferredIterator{contract: _RootChainRegistry.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
+}
+
+// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_RootChainRegistry *RootChainRegistryFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *RootChainRegistryOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _RootChainRegistry.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(RootChainRegistryOwnershipTransferred)
+				if err := _RootChainRegistry.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_RootChainRegistry *RootChainRegistryFilterer) ParseOwnershipTransferred(log types.Log) (*RootChainRegistryOwnershipTransferred, error) {
+	event := new(RootChainRegistryOwnershipTransferred)
+	if err := _RootChainRegistry.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
 
 // RootChainRegistryIABI is the input ABI used to generate the binding from.
