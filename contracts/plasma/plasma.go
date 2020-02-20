@@ -43,7 +43,7 @@ import (
 )
 
 func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, cfg *pls.Config, withPETH bool, development bool, NRELength *big.Int) (common.Address, error) {
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 
 	wait := func(hash common.Hash) {
 		<-time.NewTimer(1 * time.Second).C
@@ -155,7 +155,7 @@ func DeployManagers(
 	seigManagerAddr common.Address,
 	err error,
 ) {
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 
 	var (
 		//TON            *ton.TON
