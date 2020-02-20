@@ -372,7 +372,7 @@ func deployRootChain(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 	opt.GasPrice = big.NewInt(10 * params.GWei)
 
 	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)

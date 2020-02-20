@@ -378,7 +378,7 @@ func deployManagers(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 
 	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
@@ -621,7 +621,7 @@ func registerRootChain(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 
 	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)

@@ -1782,7 +1782,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			log.Info("Deploying contracts for development mode")
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
-			opt.GasLimit = 7000000
+			opt.GasLimit = 7500000
 			opt.GasPrice = big.NewInt(10 * params.GWei)
 
 			rootchainContract, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, cfg, withPETH, development, NRELength)
