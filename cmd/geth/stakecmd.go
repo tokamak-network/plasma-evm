@@ -919,17 +919,17 @@ func mintTON(ctx *cli.Context) error {
 
 	TON, err := ton.NewTON(managers.TON, backend)
 	if err != nil {
-		return err
+		utils.Fatalf("Failed to instantiate TON: %v", err)
 	}
 
 	var tx *types.Transaction
 	if tx, err = TON.Mint(opt, to, amount); err != nil {
-		return err
+		utils.Fatalf("Failed to mint TON: %v", err)
 	}
 	log.Info("Minting TON", "to", to, "amount", bigIntToString(amount, decimals)+" TON", "tx", tx.Hash())
 
 	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
-		return err
+		utils.Fatalf("Failed to wait transaction: %v", err)
 	}
 
 	return nil
