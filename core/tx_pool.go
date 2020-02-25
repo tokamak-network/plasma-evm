@@ -370,9 +370,9 @@ func (pool *TxPool) loop() {
 			pool.mu.Lock()
 			for addr := range pool.queue {
 				// Skip local transactions from the eviction mechanism
-				//if pool.locals.contains(addr) {
-				//	continue
-				//}
+				if pool.locals.contains(addr) {
+					continue
+				}
 				// Any non-locals old enough should be removed
 				if time.Since(pool.beats[addr]) > pool.config.Lifetime {
 					for _, tx := range pool.queue[addr].Flatten() {
