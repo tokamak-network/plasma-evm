@@ -170,7 +170,7 @@ func DeployManagers(
 	// 1. deploy TON
 	log.Info("1. deploy TON contract")
 	if (_tonAddr == common.Address{}) {
-		if tonAddr, tx, _, err = ton.DeployTON(opt, backend); err != nil {
+		if tonAddr, tx, TON, err = ton.DeployTON(opt, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy TON: %v", err))
 			return
 		}
@@ -184,7 +184,7 @@ func DeployManagers(
 	} else {
 		tonAddr = _tonAddr
 		log.Warn("use TON contract at %s", tonAddr.String())
-		if _, err = ton.NewTON(tonAddr, backend); err != nil {
+		if TON, err = ton.NewTON(tonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate TON: %v", err))
 			return
 		}
@@ -274,10 +274,10 @@ func DeployManagers(
 
 	// 7. add WTON minter role to SeigManager
 	log.Info("7. add TON minter role to WTON")
-	if ok, _ := TON.IsMinter(&bind.CallOpts{Pending: false}, _wtonAddr); ok {
+	if ok, _ := TON.IsMinter(&bind.CallOpts{Pending: false}, wtonAddr); ok {
 		log.Info("Already minter role provided")
 	} else {
-		if tx, err = TON.AddMinter(opt, _wtonAddr); err != nil {
+		if tx, err = TON.AddMinter(opt, wtonAddr); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to add TON minter role to WTON: %v", err))
 			return
 		}
