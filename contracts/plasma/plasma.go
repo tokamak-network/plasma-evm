@@ -158,7 +158,7 @@ func DeployManagers(
 	opt.GasLimit = 7500000
 
 	var (
-		//TON            *ton.TON
+		TON  *ton.TON
 		WTON *wton.WTON
 		//registry       *stakingmanager.RootChainRegistry
 		depositManager *depositmanager.DepositManager
@@ -170,7 +170,7 @@ func DeployManagers(
 	// 1. deploy TON
 	log.Info("1. deploy TON contract")
 	if (_tonAddr == common.Address{}) {
-		if tonAddr, tx, _, err = ton.DeployTON(opt, backend); err != nil {
+		if tonAddr, tx, TON, err = ton.DeployTON(opt, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to deploy TON: %v", err))
 			return
 		}
@@ -184,7 +184,7 @@ func DeployManagers(
 	} else {
 		tonAddr = _tonAddr
 		log.Warn("use TON contract at %s", tonAddr.String())
-		if _, err = ton.NewTON(tonAddr, backend); err != nil {
+		if TON, err = ton.NewTON(tonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate TON: %v", err))
 			return
 		}
@@ -256,17 +256,37 @@ func DeployManagers(
 	}
 	log.Info("SeigManager deployed", "addr", seigManagerAddr.String(), "tx", tx.Hash())
 
-	// 6. add WTON minter role to SeigManager
+	// 6. add TON minter role to SeigManager
 	log.Info("6. add WTON minter role to SeigManager")
-	if tx, err = WTON.AddMinter(opt, seigManagerAddr); err != nil {
-		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
-		return
+	if ok, _ := WTON.IsMinter(&bind.CallOpts{Pending: false}, seigManagerAddr); ok {
+		log.Info("Already minter role provided")
+	} else {
+		if tx, err = WTON.AddMinter(opt, seigManagerAddr); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
+			return
+		}
+		if err = WaitTx(backend, tx.Hash()); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
+			return
+		}
+		log.Info("Set WTON minter to SeigManager", "tx", tx.Hash())
 	}
-	if err = WaitTx(backend, tx.Hash()); err != nil {
-		err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
-		return
+
+	// 7. add WTON minter role to SeigManager
+	log.Info("7. add TON minter role to WTON")
+	if ok, _ := TON.IsMinter(&bind.CallOpts{Pending: false}, wtonAddr); ok {
+		log.Info("Already minter role provided")
+	} else {
+		if tx, err = TON.AddMinter(opt, wtonAddr); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add TON minter role to WTON: %v", err))
+			return
+		}
+		if err = WaitTx(backend, tx.Hash()); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add TON minter role to WTON: %v", err))
+			return
+		}
+		log.Info("Set TON minter to WTON", "tx", tx.Hash())
 	}
-	log.Info("Add WTON minter role to SeigManager", "tx", tx.Hash())
 
 	// 7. set seig manager to contracts
 	var contracts = []seigManagerSetter{depositManager, WTON}

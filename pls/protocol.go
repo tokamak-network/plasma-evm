@@ -178,9 +178,9 @@ func (request *newBlockData) sanityCheck() error {
 	if err := request.Block.SanityCheck(); err != nil {
 		return err
 	}
-	//TD at mainnet block #7753254 is 76 bits. If it becomes 100 million times
-	// larger, it will still fit within 100 bits
-	if tdlen := request.TD.BitLen(); tdlen > 100 {
+	// 128 most significant bits of TD refers fork number, which will fit
+	// within 64 bits.
+	if tdlen := request.TD.BitLen(); tdlen > 192 {
 		return fmt.Errorf("too large block TD: bitlen %d", tdlen)
 	}
 	return nil
