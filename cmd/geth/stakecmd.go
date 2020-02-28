@@ -355,8 +355,8 @@ func deployManagers(ctx *cli.Context) error {
 		seigPerBlock    *big.Int
 	)
 
-	withdrawalDelayStr := ctx.Args()[0]
-	seigPerBlockStr := ctx.Args()[1]
+	withdrawalDelayStr := ctx.Args().Get(0)
+	seigPerBlockStr := ctx.Args().Get(1)
 
 	// parse int string
 	withdrawalDelay, ok := big.NewInt(0).SetString(withdrawalDelayStr, 10)
@@ -723,7 +723,7 @@ func getBalances(ctx *cli.Context) error {
 		depositor common.Address
 	)
 
-	depositor = common.HexToAddress(ctx.Args()[0])
+	depositor = common.HexToAddress(ctx.Args().Get(0))
 
 	stack, cfg := makeConfigNode(ctx)
 
@@ -885,8 +885,8 @@ func mintTON(ctx *cli.Context) error {
 		ok bool
 	)
 
-	to = common.HexToAddress(ctx.Args()[0])
-	amountStr := parseIntString(ctx.Args()[1], decimals)
+	to = common.HexToAddress(ctx.Args().Get(0))
+	amountStr := parseIntString(ctx.Args().Get(1), decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
@@ -986,7 +986,7 @@ func swapFromTON(ctx *cli.Context) error {
 		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args()[0], decimals)
+	amountStr := parseIntString(ctx.Args().Get(0), decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
@@ -1066,7 +1066,7 @@ func swapToTON(ctx *cli.Context) error {
 		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args()[0], decimals)
+	amountStr := parseIntString(ctx.Args().Get(0), decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
@@ -1142,7 +1142,7 @@ func stakeWTON(ctx *cli.Context) error {
 		tx *types.Transaction
 	)
 
-	amountStr := parseIntString(ctx.Args()[0], decimals)
+	amountStr := parseIntString(ctx.Args().Get(0), decimals)
 	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
@@ -1237,7 +1237,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 	)
 
 	if len(ctx.Args()) == 1 {
-		amountStr := parseIntString(ctx.Args()[0], decimals)
+		amountStr := parseIntString(ctx.Args().Get(0), decimals)
 		if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
 			return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 		}
@@ -1334,7 +1334,7 @@ func processWithdrawal(ctx *cli.Context) error {
 	)
 
 	if len(ctx.Args()) == 1 {
-		if n, err = strconv.Atoi(ctx.Args()[0]); err != nil {
+		if n, err = strconv.Atoi(ctx.Args().Get(0)); err != nil {
 			return err
 		}
 	}
