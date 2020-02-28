@@ -353,16 +353,16 @@ func deployRootChain(ctx *cli.Context) error {
 		development = false
 	)
 
-	chainId, err := strconv.Atoi(ctx.Args()[1])
+	chainId, err := strconv.Atoi(ctx.Args().Get(1))
 	if err != nil {
 		return err
 	}
 
-	if ctx.Args()[2] == "true" {
+	if ctx.Args().Get(2) == "true" {
 		withPETH = true
 	}
 
-	NRELengthInt, err := strconv.Atoi(ctx.Args()[3])
+	NRELengthInt, err := strconv.Atoi(ctx.Args().Get(3))
 	if err != nil {
 		return err
 	}
