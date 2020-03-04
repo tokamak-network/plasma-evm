@@ -24,6 +24,11 @@ puppeth:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/puppeth\" to launch puppeth."
 
+faucet:
+	build/env.sh go run build/ci.go install ./cmd/faucet
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/faucet\" to launch faucet."
+
 android:
 	build/env.sh go run build/ci.go aar --local
 	@echo "Done building."
