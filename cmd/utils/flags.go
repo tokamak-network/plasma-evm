@@ -816,6 +816,10 @@ var (
 		Name:  "rootchain.seigManager",
 		Usage: "Address of SeigManager contract",
 	}
+	RootChainPowerTONFlag = cli.StringFlag{
+		Name:  "rootchain.powerton",
+		Usage: "Address of PowerTON contract",
+	}
 	RootChainGasPriceFlag = BigFlag{
 		Name:  "rootchain.gasPrice",
 		Usage: "Transaction gas price to root chain",

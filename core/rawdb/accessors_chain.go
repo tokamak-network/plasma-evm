@@ -738,3 +738,27 @@ func ReadSeigManager(db ethdb.Reader) common.Address {
 	}
 	return *addr
 }
+
+func WritePowerTON(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode PowerTON address", "err", err)
+	}
+
+	if err := db.Put(powertonKey, data); err != nil {
+		log.Crit("Failed to store PowerTON address", "err", err)
+	}
+}
+
+func ReadPowerTON(db ethdb.Reader) common.Address {
+	data, _ := db.Get(powertonKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}

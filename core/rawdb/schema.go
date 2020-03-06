@@ -67,6 +67,7 @@ var (
 	registryKey        = []byte("RootChainRegistry-address")
 	depositrManagerKey = []byte("DepositManager-address")
 	seigManagerKey     = []byte("SeigManager-address")
+	powertonKey        = []byte("PowerTON-address")
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
