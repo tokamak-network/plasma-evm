@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"strings"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/depositmanager"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/powerton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchainregistry"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/seigmanager"
@@ -68,7 +70,7 @@ Manage staking-related actions in the root chain.
 		Subcommands: []cli.Command{
 			{
 				Name:      "deployManagers",
-				Usage:     "Deploy staking manager contract",
+				Usage:     "Deploy staking manager contract (except PowerTON)",
 				ArgsUsage: "<withdrawalDelay> <seigPerBlock>",
 				Action:    utils.MigrateFlags(deployManagers),
 				Category:  "TON STAKING COMMANDS",
@@ -88,7 +90,55 @@ Manage staking-related actions in the root chain.
 Deploy new manager contracts.
 
 NOTE:
-use --rootchain.ton, --rootchain.wton flags to use already deployed token contracts
+set manager contracts or use --rootchain.ton, --rootchain.wton flags to use already deployed token contracts
+`,
+			},
+			{
+				Name:      "deployPowerTON",
+				Usage:     "Deploy PowerTON contract",
+				ArgsUsage: "<roundDuration>",
+				Action:    utils.MigrateFlags(deployPowerTON),
+				Category:  "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.OperatorAddressFlag,
+					utils.OperatorKeyFlag,
+					utils.DeveloperKeyFlag,
+					utils.RootChainGasPriceFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainSeigManagerFlag,
+				},
+				Description: `
+    geth staking deployPowerTON <roundDuration>
+
+Deploy new PowerTON contract.
+
+NOTE:
+set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to use already deployed token contracts
+`,
+			},
+			{
+				Name:     "startPowerTON",
+				Usage:    "Start PowerTON round",
+				Action:   utils.MigrateFlags(startPowerTON),
+				Category: "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.OperatorAddressFlag,
+					utils.OperatorKeyFlag,
+					utils.RootChainPowerTONFlag,
+					utils.DeveloperKeyFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+    geth staking startPowerTON
+
+Start first round of PowerTON
+
+NOTE:
+set manager contracts or use --rootchain.powerton flag to use already deployed token contracts
 `,
 			},
 			{
@@ -120,6 +170,7 @@ Get staking contract addresses
 					utils.RootChainDepositManagerFlag,
 					utils.RootChainRegistryFlag,
 					utils.RootChainSeigManagerFlag,
+					utils.RootChainPowerTONFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
@@ -276,6 +327,7 @@ type ManagerConfig struct {
 	DepositManager    common.Address `json:DepositManager`
 	RootChainRegistry common.Address `json:RootChainRegistry`
 	SeigManager       common.Address `json:SeigManager`
+	PowerTON          common.Address `json:PowerTON`
 }
 
 func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
@@ -285,6 +337,7 @@ func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
 		DepositManager:    rawdb.ReadDepositManager(reader),
 		RootChainRegistry: rawdb.ReadRegistry(reader),
 		SeigManager:       rawdb.ReadSeigManager(reader),
+		PowerTON:          rawdb.ReadPowerTON(reader),
 	}
 }
 
@@ -404,6 +457,124 @@ func deployManagers(ctx *cli.Context) error {
 	return nil
 }
 
+func deployPowerTON(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	// parse duration
+	roundDurationTime, err := time.ParseDuration(ctx.Args().Get(0))
+	if err != nil {
+		return errors.New(fmt.Sprintf("Failed to parse duration: %v", err))
+	}
+
+	roundDuration := big.NewInt(int64(roundDurationTime.Seconds()))
+
+	stack, cfg := makeConfigNode(ctx)
+
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+		return err
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	wtonAddr := managers.WTON
+	seigManagerAddr := managers.SeigManager
+
+	if ctx.GlobalIsSet(utils.RootChainWTONFlag.Name) {
+		addr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
+		if (wtonAddr != common.Address{}) && wtonAddr != addr {
+			log.Warn("Override WTON address", "previous", wtonAddr, "current", addr)
+		}
+		wtonAddr = addr
+	}
+
+	if ctx.GlobalIsSet(utils.RootChainSeigManagerFlag.Name) {
+		addr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
+		if (seigManagerAddr != common.Address{}) && seigManagerAddr != addr {
+			log.Warn("Override SeigManager address", "previous", seigManagerAddr, "current", addr)
+		}
+		seigManagerAddr = addr
+	}
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasLimit = 7500000
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	powertonAddr, err := plasma.DeployPowerTON(opt, backend, wtonAddr, seigManagerAddr, roundDuration)
+
+	if err != nil {
+		return err
+	}
+
+	log.Info("PowerTON deployed", "PowerTON", powertonAddr, "WTON", wtonAddr, "SeigManager", seigManagerAddr)
+
+	rawdb.WritePowerTON(chaindb, powertonAddr)
+
+	return nil
+}
+
+func startPowerTON(ctx *cli.Context) error {
+	stack, cfg := makeConfigNode(ctx)
+
+	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+
+	managers := getManagerConfig(chaindb)
+
+	powertonAddr := managers.PowerTON
+
+	if ctx.GlobalIsSet(utils.RootChainPowerTONFlag.Name) {
+		addr := common.HexToAddress(ctx.GlobalString(utils.RootChainPowerTONFlag.Name))
+		if (powertonAddr != common.Address{}) && powertonAddr != addr {
+			log.Warn("Override WTON address", "previous", powertonAddr, "current", addr)
+		}
+		powertonAddr = addr
+	}
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
+	opt.GasLimit = 7500000
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
+
+	if err != nil {
+		utils.Fatalf("Failed to connect rootchain: %v", err)
+	}
+
+	pton, err := powerton.NewPowerTON(powertonAddr, backend)
+
+	if err != nil {
+		utils.Fatalf("Failed to instantiate PowerTON contract: %v", err)
+	}
+
+	tx, err := pton.Start(opt)
+	if err != nil {
+		utils.Fatalf("Failed to start PowerTON: %v", err)
+	}
+
+	if err := plasma.WaitTx(backend, tx.Hash()); err != nil {
+		utils.Fatalf("Failed to start PowerTON: %v", err)
+	}
+
+	return nil
+}
+
 func getManagers(ctx *cli.Context) error {
 	configPath := ctx.Args().First()
 
@@ -509,6 +680,13 @@ func setManagers(ctx *cli.Context) error {
 		}
 		managers.SeigManager = seigManagerAddr
 	}
+	if ctx.GlobalIsSet(utils.RootChainPowerTONFlag.Name) {
+		powertonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainPowerTONFlag.Name))
+		if (managers.PowerTON != common.Address{}) && managers.PowerTON != powertonAddr {
+			log.Warn("Override PowerTON address", "previous", managers.PowerTON, "current", powertonAddr)
+		}
+		managers.PowerTON = powertonAddr
+	}
 
 	stack, _ := makeConfigNode(ctx)
 
@@ -555,6 +733,12 @@ func setManagers(ctx *cli.Context) error {
 			addr:  managers.SeigManager,
 			read:  rawdb.ReadSeigManager,
 			write: rawdb.WriteSeigManager,
+		},
+		{
+			name:  "PowerTON",
+			addr:  managers.PowerTON,
+			read:  rawdb.ReadPowerTON,
+			write: rawdb.WritePowerTON,
 		},
 	}
 

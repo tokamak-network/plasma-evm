@@ -10,6 +10,8 @@ package plasma
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/managers/SeigManager.sol --pkg seigmanager --out seigmanager/seigmanager.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/RootChainRegistry.sol --pkg rootchainregistry --out rootchainregistry/rootchainregistry.go
 
+//go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/stake/powerton/PowerTON.sol --pkg powerton --out powerton/powerton.go
+
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/contracts/RequestableSimpleToken.sol --pkg token --out token/token.go
 //go:generate ../../build/bin/abigen --sol plasma-evm-cotracts/node_modules/openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol --pkg mintabletoken --out mintabletoken/mintabletoken.go
 
@@ -28,6 +30,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/epochhandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ethertoken"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/mintabletoken"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/powerton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchainregistry"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/seigmanager"
@@ -306,6 +309,44 @@ func DeployManagers(
 		}
 
 		log.Info("Set SeigManager to target cotnract", "target", target, "tx", tx.Hash())
+	}
+
+	return
+}
+
+func DeployPowerTON(
+	opt *bind.TransactOpts,
+	backend *ethclient.Client,
+	wtonAddr common.Address,
+	seigManagerAddr common.Address,
+	roundDuration *big.Int,
+) (
+	powertonAddr common.Address,
+	err error,
+) {
+	// 1. deploy PowerTON
+	powertonAddr, tx, pton, err := powerton.DeployPowerTON(opt, backend, seigManagerAddr, wtonAddr, roundDuration)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to deploy PowerTON: %v", err))
+		return
+	}
+
+	err = WaitTx(backend, tx.Hash())
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to deploy PowerTON: %v", err))
+		return
+	}
+
+	// 2. init PowerTON
+	tx, err = pton.Init(opt)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to initialize PowerTON: %v", err))
+		return
+	}
+	err = WaitTx(backend, tx.Hash())
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to initialize PowerTON: %v", err))
+		return
 	}
 
 	return
