@@ -2236,8 +2236,8 @@ func (_RootChain *RootChainTransactorRaw) Transact(opts *bind.TransactOpts, meth
 	return _RootChain.Contract.contract.Transact(opts, method, params...)
 }
 
-// Struct1 is an auto generated low-level Go binding around an user-defined struct.
-type Struct1 struct {
+// Struct2 is an auto generated low-level Go binding around an user-defined struct.
+type Struct2 struct {
 	EpochStateRoot        [32]byte
 	EpochTransactionsRoot [32]byte
 	EpochReceiptsRoot     [32]byte
@@ -2248,8 +2248,8 @@ type Struct1 struct {
 	Challenged            bool
 }
 
-// Struct2 is an auto generated low-level Go binding around an user-defined struct.
-type Struct2 struct {
+// Struct3 is an auto generated low-level Go binding around an user-defined struct.
+type Struct3 struct {
 	StartBlockNumber uint64
 	EndBlockNumber   uint64
 	Timestamp        uint64
@@ -2258,12 +2258,12 @@ type Struct2 struct {
 	IsRequest        bool
 	UserActivated    bool
 	Rebase           bool
-	RE               Struct0
-	NRE              Struct1
+	RE               Struct1
+	NRE              Struct2
 }
 
-// Struct3 is an auto generated low-level Go binding around an user-defined struct.
-type Struct3 struct {
+// Struct0 is an auto generated low-level Go binding around an user-defined struct.
+type Struct0 struct {
 	EpochNumber      uint64
 	RequestBlockId   uint64
 	Timestamp        uint64
@@ -2279,8 +2279,8 @@ type Struct3 struct {
 	Finalized        bool
 }
 
-// Struct0 is an auto generated low-level Go binding around an user-defined struct.
-type Struct0 struct {
+// Struct1 is an auto generated low-level Go binding around an user-defined struct.
+type Struct1 struct {
 	RequestStart        uint64
 	RequestEnd          uint64
 	FirstRequestBlockId uint64
@@ -3213,10 +3213,10 @@ func (_RootChain *RootChainCallerSession) Forks(arg0 *big.Int) (struct {
 
 // GetBlock is a free data retrieval call binding the contract method 0x4a44bdb8.
 //
-// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct3)
-func (_RootChain *RootChainCaller) GetBlock(opts *bind.CallOpts, forkNumber *big.Int, blockNumber *big.Int) (Struct3, error) {
+// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct0)
+func (_RootChain *RootChainCaller) GetBlock(opts *bind.CallOpts, forkNumber *big.Int, blockNumber *big.Int) (Struct0, error) {
 	var (
-		ret0 = new(Struct3)
+		ret0 = new(Struct0)
 	)
 	out := ret0
 	err := _RootChain.contract.Call(opts, out, "getBlock", forkNumber, blockNumber)
@@ -3225,15 +3225,15 @@ func (_RootChain *RootChainCaller) GetBlock(opts *bind.CallOpts, forkNumber *big
 
 // GetBlock is a free data retrieval call binding the contract method 0x4a44bdb8.
 //
-// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct3)
-func (_RootChain *RootChainSession) GetBlock(forkNumber *big.Int, blockNumber *big.Int) (Struct3, error) {
+// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct0)
+func (_RootChain *RootChainSession) GetBlock(forkNumber *big.Int, blockNumber *big.Int) (Struct0, error) {
 	return _RootChain.Contract.GetBlock(&_RootChain.CallOpts, forkNumber, blockNumber)
 }
 
 // GetBlock is a free data retrieval call binding the contract method 0x4a44bdb8.
 //
-// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct3)
-func (_RootChain *RootChainCallerSession) GetBlock(forkNumber *big.Int, blockNumber *big.Int) (Struct3, error) {
+// Solidity: function getBlock(uint256 forkNumber, uint256 blockNumber) constant returns(Struct0)
+func (_RootChain *RootChainCallerSession) GetBlock(forkNumber *big.Int, blockNumber *big.Int) (Struct0, error) {
 	return _RootChain.Contract.GetBlock(&_RootChain.CallOpts, forkNumber, blockNumber)
 }
 
@@ -3291,10 +3291,10 @@ func (_RootChain *RootChainCallerSession) GetEROBytes(_requestId *big.Int) ([]by
 
 // GetEpoch is a free data retrieval call binding the contract method 0x2b25a38b.
 //
-// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct2 epoch)
-func (_RootChain *RootChainCaller) GetEpoch(opts *bind.CallOpts, forkNumber *big.Int, epochNumber *big.Int) (Struct2, error) {
+// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct3 epoch)
+func (_RootChain *RootChainCaller) GetEpoch(opts *bind.CallOpts, forkNumber *big.Int, epochNumber *big.Int) (Struct3, error) {
 	var (
-		ret0 = new(Struct2)
+		ret0 = new(Struct3)
 	)
 	out := ret0
 	err := _RootChain.contract.Call(opts, out, "getEpoch", forkNumber, epochNumber)
@@ -3303,24 +3303,24 @@ func (_RootChain *RootChainCaller) GetEpoch(opts *bind.CallOpts, forkNumber *big
 
 // GetEpoch is a free data retrieval call binding the contract method 0x2b25a38b.
 //
-// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct2 epoch)
-func (_RootChain *RootChainSession) GetEpoch(forkNumber *big.Int, epochNumber *big.Int) (Struct2, error) {
+// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct3 epoch)
+func (_RootChain *RootChainSession) GetEpoch(forkNumber *big.Int, epochNumber *big.Int) (Struct3, error) {
 	return _RootChain.Contract.GetEpoch(&_RootChain.CallOpts, forkNumber, epochNumber)
 }
 
 // GetEpoch is a free data retrieval call binding the contract method 0x2b25a38b.
 //
-// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct2 epoch)
-func (_RootChain *RootChainCallerSession) GetEpoch(forkNumber *big.Int, epochNumber *big.Int) (Struct2, error) {
+// Solidity: function getEpoch(uint256 forkNumber, uint256 epochNumber) constant returns(Struct3 epoch)
+func (_RootChain *RootChainCallerSession) GetEpoch(forkNumber *big.Int, epochNumber *big.Int) (Struct3, error) {
 	return _RootChain.Contract.GetEpoch(&_RootChain.CallOpts, forkNumber, epochNumber)
 }
 
 // GetLastEpoch is a free data retrieval call binding the contract method 0x398bac63.
 //
-// Solidity: function getLastEpoch() constant returns(Struct2)
-func (_RootChain *RootChainCaller) GetLastEpoch(opts *bind.CallOpts) (Struct2, error) {
+// Solidity: function getLastEpoch() constant returns(Struct3)
+func (_RootChain *RootChainCaller) GetLastEpoch(opts *bind.CallOpts) (Struct3, error) {
 	var (
-		ret0 = new(Struct2)
+		ret0 = new(Struct3)
 	)
 	out := ret0
 	err := _RootChain.contract.Call(opts, out, "getLastEpoch")
@@ -3329,15 +3329,15 @@ func (_RootChain *RootChainCaller) GetLastEpoch(opts *bind.CallOpts) (Struct2, e
 
 // GetLastEpoch is a free data retrieval call binding the contract method 0x398bac63.
 //
-// Solidity: function getLastEpoch() constant returns(Struct2)
-func (_RootChain *RootChainSession) GetLastEpoch() (Struct2, error) {
+// Solidity: function getLastEpoch() constant returns(Struct3)
+func (_RootChain *RootChainSession) GetLastEpoch() (Struct3, error) {
 	return _RootChain.Contract.GetLastEpoch(&_RootChain.CallOpts)
 }
 
 // GetLastEpoch is a free data retrieval call binding the contract method 0x398bac63.
 //
-// Solidity: function getLastEpoch() constant returns(Struct2)
-func (_RootChain *RootChainCallerSession) GetLastEpoch() (Struct2, error) {
+// Solidity: function getLastEpoch() constant returns(Struct3)
+func (_RootChain *RootChainCallerSession) GetLastEpoch() (Struct3, error) {
 	return _RootChain.Contract.GetLastEpoch(&_RootChain.CallOpts)
 }
 
