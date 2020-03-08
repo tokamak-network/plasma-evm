@@ -27,8 +27,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/Onther-Tech/plasma-evm/tx"
-	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"html/template"
 	"io/ioutil"
 	"math"
@@ -43,13 +41,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/tx"
+
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
-	"github.com/Onther-Tech/plasma-evm/les"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
@@ -58,8 +58,8 @@ import (
 	"github.com/Onther-Tech/plasma-evm/p2p/nat"
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls"
-	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/gorilla/websocket"
 )
@@ -72,10 +72,10 @@ var (
 	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
 	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
 
-	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
-	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
-	minutesFlag = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
-	tiersFlag   = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
+	netnameFlag   = flag.String("faucet.name", "", "Network name to assign to the faucet")
+	payoutFlag    = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
+	minutesFlag   = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
+	tiersFlag     = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
 	rootchainFlag = flag.String("rootchain.url", "", "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.")
 
 	accJSONFlag = flag.String("account.json", "", "Key json file to fund user requests with")
@@ -204,8 +204,8 @@ type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
 	// pls	   *pls.plasma		   // Full Ethereum service if monitoring a full node
-	client *plsclient.Client   // Client connection to the Ethereum chain
-	index  []byte              // Index page to serve up on the web
+	client *plsclient.Client // Client connection to the Ethereum chain
+	index  []byte            // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
 	account  accounts.Account   // Account funding user faucet requests
@@ -243,7 +243,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	// Using Plasma-evm full node as client
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		cfg := pls.Config{
-			Genesis: genesis,
+			Genesis:  genesis,
 			NodeMode: 1,
 			SyncMode: downloader.FullSync,
 			TxConfig: *tx.DefaultConfig,
@@ -262,7 +262,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 			TrieDirtyCache:     256,
 			TrieTimeout:        60 * time.Minute,
 
-			RootChainURL:       rootchain,
+			RootChainURL:      rootchain,
 			RootChainContract: common.BytesToAddress(genesis.ExtraData),
 
 			OperatorMinEther: big.NewInt(0.5 * params.Ether),
@@ -283,9 +283,10 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			var serv *les.LightEthereum
+			// var serv *les.LightEthereum
+			var serv *pls.Plasma
 			ctx.Service(&serv)
-			return ethstats.New(stats, nil, serv)
+			return ethstats.New(stats, serv, nil)
 		}); err != nil {
 			return nil, err
 		}
