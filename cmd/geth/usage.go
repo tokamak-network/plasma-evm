@@ -311,6 +311,17 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "PLASMA EVM - STAKING OPTIONS",
+		Flags: []cli.Flag{
+			utils.RootChainTONFlag,
+			utils.RootChainWTONFlag,
+			utils.RootChainRegistryFlag,
+			utils.RootChainDepositManagerFlag,
+			utils.RootChainSeigManagerFlag,
+			utils.RootChainPowerTONFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }
