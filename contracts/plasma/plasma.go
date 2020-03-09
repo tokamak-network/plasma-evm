@@ -186,7 +186,7 @@ func DeployManagers(
 		log.Info("TON deployed", "addr", tonAddr.String(), "tx", tx.Hash())
 	} else {
 		tonAddr = _tonAddr
-		log.Warn("use TON contract at %s", tonAddr.String())
+		log.Warn("use already deployed TON", "addr", tonAddr.String())
 		if TON, err = ton.NewTON(tonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate TON: %v", err))
 			return
@@ -208,7 +208,7 @@ func DeployManagers(
 		log.Info("WTON deployed", "addr", wtonAddr.String(), "tx", tx.Hash())
 	} else {
 		wtonAddr = _wtonAddr
-		log.Warn("use WTON contract at %s", wtonAddr.String())
+		log.Warn("use already deployed WTON", "addr", wtonAddr.String())
 		if WTON, err = wton.NewWTON(wtonAddr, backend); err != nil {
 			err = errors.New(fmt.Sprintf("Failed to instantiate WTON: %v", err))
 			return
@@ -291,11 +291,11 @@ func DeployManagers(
 		log.Info("Set TON minter to WTON", "tx", tx.Hash())
 	}
 
-	// 7. set seig manager to contracts
+	// 8. set seig manager to contracts
 	var contracts = []seigManagerSetter{depositManager, WTON}
 	targets := []string{"DepositManager", "WTON"}
 
-	log.Info("Setting SeigManager address to target contracts", "targets", targets)
+	log.Info("8. Setting SeigManager address to target contracts", "targets", targets)
 	for i, c := range contracts {
 		target := targets[i]
 
