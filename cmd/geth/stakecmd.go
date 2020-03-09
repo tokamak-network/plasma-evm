@@ -425,8 +425,8 @@ func deployManagers(ctx *cli.Context) error {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", seigPerBlockStr))
 	}
 
-	_tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
-	_wtonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
+	_tonAddr := common.HexToAddress(ctx.String(utils.RootChainTONFlag.Name))
+	_wtonAddr := common.HexToAddress(ctx.String(utils.RootChainWTONFlag.Name))
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
@@ -483,21 +483,23 @@ func deployPowerTON(ctx *cli.Context) error {
 	wtonAddr := managers.WTON
 	seigManagerAddr := managers.SeigManager
 
-	if ctx.GlobalIsSet(utils.RootChainWTONFlag.Name) {
-		addr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
+	if ctx.IsSet(utils.RootChainWTONFlag.Name) {
+		addr := common.HexToAddress(ctx.String(utils.RootChainWTONFlag.Name))
 		if (wtonAddr != common.Address{}) && wtonAddr != addr {
 			log.Warn("Override WTON address", "previous", wtonAddr, "current", addr)
 		}
 		wtonAddr = addr
 	}
 
-	if ctx.GlobalIsSet(utils.RootChainSeigManagerFlag.Name) {
-		addr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
+	if ctx.IsSet(utils.RootChainSeigManagerFlag.Name) {
+		addr := common.HexToAddress(ctx.String(utils.RootChainSeigManagerFlag.Name))
 		if (seigManagerAddr != common.Address{}) && seigManagerAddr != addr {
 			log.Warn("Override SeigManager address", "previous", seigManagerAddr, "current", addr)
 		}
 		seigManagerAddr = addr
 	}
+
+	log.Info("Deploy PowerTON", "TON", wtonAddr, "SeigManager", seigManagerAddr, "roundDuration", roundDuration.String())
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
@@ -571,6 +573,8 @@ func startPowerTON(ctx *cli.Context) error {
 	if err := plasma.WaitTx(backend, tx.Hash()); err != nil {
 		utils.Fatalf("Failed to start PowerTON: %v", err)
 	}
+
+	log.Info("PowerTON started", "PowerTON", powertonAddr)
 
 	return nil
 }
