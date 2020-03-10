@@ -759,11 +759,16 @@ var (
 	// Operator flags
 	OperatorAddressFlag = cli.StringFlag{
 		Name:  "operator",
-		Usage: "Plasma operator address as hex. The account should be unlock by using --unlock ",
+		Usage: "Plasma operator address as hex.",
 	}
 	OperatorKeyFlag = cli.StringFlag{
 		Name:  "operator.key",
 		Usage: "Plasma operator key as hex(for dev)",
+	}
+	OperatorPasswordFileFlag = cli.StringFlag{
+		Name:  "operator.password",
+		Usage: "Plasma operator key as hex(for dev)",
+		Value: "",
 	}
 	OperatorMinEtherFlag = cli.StringFlag{
 		Name:  "operator.minether",
@@ -772,9 +777,14 @@ var (
 	}
 
 	// Challenger flags
-	PlasmaRootChainChallenger = cli.StringFlag{
+	ChallengerAddressFlag = cli.StringFlag{
 		Name:  "rootchain.challenger",
 		Usage: "Address of challenger account",
+	}
+	ChallengerPasswordFileFlag = cli.StringFlag{
+		Name:  "challenger.password",
+		Usage: "Plasma operator key as hex(for dev)",
+		Value: "",
 	}
 
 	// Rootchain Flags
@@ -1174,6 +1184,27 @@ func MakePasswordList(ctx *cli.Context) []string {
 		lines[i] = strings.TrimRight(lines[i], "\r")
 	}
 	return lines
+}
+
+func readPassword(ctx *cli.Context, path string) string {
+	if path == "" {
+		return ""
+	}
+	text, err := ioutil.ReadFile(path)
+	if err != nil {
+		Fatalf("Failed to read %s file: %v", path, err)
+	}
+	lines := strings.Split(string(text), "\n")
+	// Sanitise DOS line endings.
+	for i := range lines {
+		lines[i] = strings.TrimRight(lines[i], "\r")
+	}
+
+	if len(lines) == 0 {
+		Fatalf("Failed to parse %s file", path)
+	}
+
+	return lines[0]
 }
 
 func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
@@ -1633,7 +1664,9 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			Fatalf("Failed to find operator account: %v", err)
 		}
 
-		if err = ks.Unlock(account, ""); err != nil {
+		pwd := readPassword(ctx, ctx.GlobalString(OperatorPasswordFileFlag.Name))
+
+		if err = ks.Unlock(account, pwd); err != nil {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
 
@@ -1646,6 +1679,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		hex := ctx.GlobalString(OperatorKeyFlag.Name)
 		key, _ := crypto.HexToECDSA(hex)
 		operatorAddr = crypto.PubkeyToAddress(key.PublicKey)
+		pwd := readPassword(ctx, ctx.GlobalString(OperatorPasswordFileFlag.Name))
 
 		if ks.HasAddress(operatorAddr) {
 			cfg.Operator, err = ks.Find(accounts.Account{Address: operatorAddr})
@@ -1653,32 +1687,33 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 				Fatalf("Faild to find operator account: %v", err)
 			}
 
-			log.Info("Using already existing operator account")
+			log.Warn("Using already existing operator account")
 		} else {
-			if cfg.Operator, err = ks.ImportECDSA(key, ""); err != nil {
+			if cfg.Operator, err = ks.ImportECDSA(key, pwd); err != nil {
 				Fatalf("Faild to import operator account: %v", err)
 			}
 		}
 
 		log.Info("Unlocking operator account", "address", cfg.Operator.Address)
 
-		if err = ks.Unlock(cfg.Operator, ""); err != nil {
+		if err = ks.Unlock(cfg.Operator, pwd); err != nil {
 			Fatalf("Failed to unlock operator account: %v", err)
 		}
 		// set mode:operator
 		cfg.NodeMode = pls.ModeOperator
 	}
 
-	if ctx.GlobalIsSet(PlasmaRootChainChallenger.Name) {
-		hex := ctx.GlobalString(PlasmaRootChainChallenger.Name)
+	if ctx.GlobalIsSet(ChallengerAddressFlag.Name) {
+		hex := ctx.GlobalString(ChallengerAddressFlag.Name)
 		addr := common.HexToAddress(hex)
 		account, err := ks.Find(accounts.Account{Address: addr})
+		pwd := readPassword(ctx, ctx.GlobalString(ChallengerPasswordFileFlag.Name))
 
 		if err != nil {
 			Fatalf("Failed to find challenger account: %v", err)
 		}
 
-		if err = ks.Unlock(account, ""); err != nil {
+		if err = ks.Unlock(account, pwd); err != nil {
 			Fatalf("Failed to unlock challenger account: %v", err)
 		}
 		log.Info("Challenger account is unlocked", "address", addr)

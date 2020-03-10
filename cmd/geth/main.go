@@ -178,13 +178,15 @@ var (
 		utils.OperatorMinEtherFlag,
 		utils.OperatorAddressFlag,
 		utils.OperatorKeyFlag,
+		utils.OperatorPasswordFileFlag,
 		utils.DeveloperKeyFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
 		utils.TxMinGasPriceFlag,
 		utils.TxMaxGasPriceFlag,
 		utils.TxResubmitFlag,
-		utils.PlasmaRootChainChallenger,
+		utils.ChallengerAddressFlag,
+		utils.ChallengerPasswordFileFlag,
 	}
 
 	staminaFlags = []cli.Flag{

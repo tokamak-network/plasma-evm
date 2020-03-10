@@ -276,6 +276,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.OperatorAddressFlag,
 			utils.OperatorKeyFlag,
+			utils.OperatorPasswordFileFlag,
 			utils.OperatorMinEtherFlag,
 			utils.MinerRecommitIntervalFlag,
 		},
@@ -300,7 +301,8 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "PLASMA EVM - CHALLENGER",
 		Flags: []cli.Flag{
-			utils.PlasmaRootChainChallenger,
+			utils.ChallengerAddressFlag,
+			utils.ChallengerPasswordFileFlag,
 		},
 	},
 	{
