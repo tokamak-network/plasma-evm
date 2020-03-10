@@ -41,9 +41,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/tx"
-
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
@@ -59,7 +56,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/gorilla/websocket"
 )
@@ -203,9 +199,8 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
-	// pls	   *pls.plasma		   // Full Ethereum service if monitoring a full node
-	client *plsclient.Client // Client connection to the Ethereum chain
-	index  []byte            // Index page to serve up on the web
+	client *plsclient.Client   // Client connection to the Ethereum chain
+	index  []byte              // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
 	account  accounts.Account   // Account funding user faucet requests
@@ -242,39 +237,13 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	}
 	// Using Plasma-evm full node as client
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		cfg := pls.Config{
-			Genesis:  genesis,
-			NodeMode: 1,
-			SyncMode: downloader.FullSync,
-			TxConfig: *tx.DefaultConfig,
-			Ethash: ethash.Config{
-				CacheDir:       "ethash",
-				CachesInMem:    2,
-				CachesOnDisk:   3,
-				DatasetsInMem:  1,
-				DatasetsOnDisk: 2,
-			},
-			NetworkId:          genesis.Config.ChainID.Uint64(),
-			LightPeers:         100,
-			UltraLightFraction: 75,
-			DatabaseCache:      512,
-			TrieCleanCache:     256,
-			TrieDirtyCache:     256,
-			TrieTimeout:        60 * time.Minute,
-
-			RootChainURL:      rootchain,
-			RootChainContract: common.BytesToAddress(genesis.ExtraData),
-
-			OperatorMinEther: big.NewInt(0.5 * params.Ether),
-
-			StaminaConfig: core.DefaultStaminaConfig,
-
-			TxPool: core.DefaultTxPoolConfig,
-			GPO: gasprice.Config{
-				Blocks:     20,
-				Percentile: 60,
-			},
-		}
+		cfg := pls.DefaultConfig
+		cfg.SyncMode = downloader.FullSync
+		cfg.NetworkId = genesis.Config.ChainID.Uint64()
+		cfg.Genesis = genesis
+		cfg.NodeMode = 1
+		cfg.RootChainURL = rootchain
+		cfg.RootChainContract = common.BytesToAddress(genesis.ExtraData)
 
 		return pls.New(ctx, &cfg)
 	}); err != nil {
@@ -283,7 +252,6 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			// var serv *les.LightEthereum
 			var serv *pls.Plasma
 			ctx.Service(&serv)
 			return ethstats.New(stats, serv, nil)
