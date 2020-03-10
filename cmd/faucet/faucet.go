@@ -41,13 +41,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
+	"github.com/Onther-Tech/plasma-evm/tx"
+
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
-	"github.com/Onther-Tech/plasma-evm/les"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
@@ -57,6 +59,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
+	"github.com/Onther-Tech/plasma-evm/pls/gasprice"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"github.com/gorilla/websocket"
 )
@@ -64,15 +67,16 @@ import (
 var (
 	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
-	ethPortFlag = flag.Int("ethport", 30305, "Listener port for the devp2p connection")
+	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
 	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
 	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
 
-	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
-	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
-	minutesFlag = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
-	tiersFlag   = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
+	netnameFlag   = flag.String("faucet.name", "", "Network name to assign to the faucet")
+	payoutFlag    = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
+	minutesFlag   = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
+	tiersFlag     = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
+	rootchainFlag = flag.String("rootchain.url", "", "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.")
 
 	accJSONFlag = flag.String("account.json", "", "Key json file to fund user requests with")
 	accPassFlag = flag.String("account.pass", "", "Decryption password to access faucet funds")
@@ -176,7 +180,7 @@ func main() {
 	ks.Unlock(acc, pass)
 
 	// Assemble and start the faucet light service
-	faucet, err := newFaucet(genesis, *ethPortFlag, enodes, *netFlag, *statsFlag, ks, website.Bytes())
+	faucet, err := newFaucet(genesis, *ethPortFlag, enodes, *netFlag, *rootchainFlag, *statsFlag, ks, website.Bytes())
 	if err != nil {
 		log.Crit("Failed to start faucet", "err", err)
 	}
@@ -199,8 +203,9 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
-	client *plsclient.Client   // Client connection to the Ethereum chain
-	index  []byte              // Index page to serve up on the web
+	// pls	   *pls.plasma		   // Full Ethereum service if monitoring a full node
+	client *plsclient.Client // Client connection to the Ethereum chain
+	index  []byte            // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
 	account  accounts.Account   // Account funding user faucet requests
@@ -217,7 +222,7 @@ type faucet struct {
 	lock sync.RWMutex // Lock protecting the faucet's internals
 }
 
-func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network uint64, stats string, ks *keystore.KeyStore, index []byte) (*faucet, error) {
+func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network uint64, rootchain string, stats string, ks *keystore.KeyStore, index []byte) (*faucet, error) {
 	// Assemble the raw devp2p protocol stack
 	stack, err := node.New(&node.Config{
 		Name:    "geth",
@@ -235,22 +240,53 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	if err != nil {
 		return nil, err
 	}
-	// Assemble the Ethereum light client protocol
+	// Using Plasma-evm full node as client
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		cfg := pls.DefaultConfig
-		cfg.SyncMode = downloader.LightSync
-		cfg.NetworkId = network
-		cfg.Genesis = genesis
-		return les.New(ctx, &cfg)
+		cfg := pls.Config{
+			Genesis:  genesis,
+			NodeMode: 1,
+			SyncMode: downloader.FullSync,
+			TxConfig: *tx.DefaultConfig,
+			Ethash: ethash.Config{
+				CacheDir:       "ethash",
+				CachesInMem:    2,
+				CachesOnDisk:   3,
+				DatasetsInMem:  1,
+				DatasetsOnDisk: 2,
+			},
+			NetworkId:          genesis.Config.ChainID.Uint64(),
+			LightPeers:         100,
+			UltraLightFraction: 75,
+			DatabaseCache:      512,
+			TrieCleanCache:     256,
+			TrieDirtyCache:     256,
+			TrieTimeout:        60 * time.Minute,
+
+			RootChainURL:      rootchain,
+			RootChainContract: common.BytesToAddress(genesis.ExtraData),
+
+			OperatorMinEther: big.NewInt(0.5 * params.Ether),
+
+			StaminaConfig: core.DefaultStaminaConfig,
+
+			TxPool: core.DefaultTxPoolConfig,
+			GPO: gasprice.Config{
+				Blocks:     20,
+				Percentile: 60,
+			},
+		}
+
+		return pls.New(ctx, &cfg)
 	}); err != nil {
 		return nil, err
 	}
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			var serv *les.LightEthereum
+			// var serv *les.LightEthereum
+			var serv *pls.Plasma
 			ctx.Service(&serv)
-			return ethstats.New(stats, nil, serv)
+			return ethstats.New(stats, serv, nil)
 		}); err != nil {
 			return nil, err
 		}
@@ -466,7 +502,8 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 		case *noauthFlag:
 			username, avatar, address, err = authNoAuth(msg.URL)
 		default:
-			err = errors.New("Something funky happened, please open an issue at https://github.com/Onther-Tech/plasma-evm/issues")
+			//lint:ignore ST1005 This error is to be displayed in the browser
+			err = errors.New("Something funky happened, please open an issue at https://github.com/ethereum/go-ethereum/issues")
 		}
 		if err != nil {
 			if err = sendError(conn, err); err != nil {
@@ -600,10 +637,10 @@ func (f *faucet) loop() {
 		for head := range update {
 			// New chain head arrived, query the current stats and stream to clients
 			timestamp := time.Unix(int64(head.Time), 0)
-			if time.Since(timestamp) > time.Hour {
-				log.Warn("Skipping faucet refresh, head too old", "number", head.Number, "hash", head.Hash(), "age", common.PrettyAge(timestamp))
-				continue
-			}
+			//if time.Since(timestamp) > time.Hour {
+			//	log.Warn("Skipping faucet refresh, head too old", "number", head.Number, "hash", head.Hash(), "age", common.PrettyAge(timestamp))
+			//	continue
+			//}
 			if err := f.refresh(head); err != nil {
 				log.Warn("Failed to update faucet state", "block", head.Number, "hash", head.Hash(), "err", err)
 				continue
