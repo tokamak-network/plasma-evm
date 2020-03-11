@@ -50,6 +50,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls/registry"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -397,12 +398,6 @@ func deployManagers(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-		return err
-	}
-
 	var (
 		withdrawalDelay *big.Int
 		seigPerBlock    *big.Int
@@ -448,11 +443,9 @@ func deployManagers(ctx *cli.Context) error {
 
 	log.Info("Staking manager contract deployed", "TON", tonAddr, "WTON", wtonAddr, "RootChainRegistry", registryAddr, "DepositManager", depositManagerAddr, "SeigManager", seigManagerAddr)
 
-	rawdb.WriteTON(chaindb, tonAddr)
-	rawdb.WriteWTON(chaindb, wtonAddr)
-	rawdb.WriteRegistry(chaindb, registryAddr)
-	rawdb.WriteDepositManager(chaindb, depositManagerAddr)
-	rawdb.WriteSeigManager(chaindb, seigManagerAddr)
+	if err = registry.SetManagers(tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr); err != nil {
+		utils.Fatalf("Failed to set manager contracts's address: %v", err)
+	}
 
 	return nil
 }
@@ -790,12 +783,10 @@ func getRootChainAddr(datadir string) (rootchainAddr common.Address, err error) 
 func registerRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	managers, err := registry.GetManagers()
 	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
-
-	managers := getManagerConfig(chaindb)
 
 	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -804,6 +795,9 @@ func registerRootChain(ctx *cli.Context) error {
 	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
+	}
+	if err = registry.SetRootChain(rootchainAddr); err != nil {
+		utils.Fatalf("Failed to set rootchain contract's address: %v", err)
 	}
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -828,7 +822,6 @@ func registerRootChain(ctx *cli.Context) error {
 	rootchainCtr, err := rootchain.NewRootChain(rootchainAddr, backend)
 	if err != nil {
 		utils.Fatalf("Failed to load RootChain contract: %v", err)
-
 	}
 
 	// send transactions
@@ -913,16 +906,14 @@ func getBalances(ctx *cli.Context) error {
 
 	depositor = common.HexToAddress(ctx.Args().Get(0))
 
-	stack, cfg := makeConfigNode(ctx)
+	_, cfg := makeConfigNode(ctx)
 
 	log.Info("cfg.Node.DataDir", "v", filepath.Join(cfg.Node.DataDir, "geth", "genesis.json"))
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	managers, err := registry.GetManagers()
 	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
-
-	managers := getManagerConfig(chaindb)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1081,12 +1072,10 @@ func mintTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	managers, err := registry.GetManagers()
 	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
-
-	managers := getManagerConfig(chaindb)
 
 	if (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1181,12 +1170,10 @@ func swapFromTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	managers, err := registry.GetManagers()
 	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
-
-	managers := getManagerConfig(chaindb)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1261,12 +1248,10 @@ func swapToTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	managers, err := registry.GetManagers()
 	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
-
-	managers := getManagerConfig(chaindb)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1337,17 +1322,15 @@ func stakeWTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
 	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers, err := registry.GetManagers()
+	if err != nil {
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
+	}
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1433,17 +1416,15 @@ func requestWithdrawal(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
 	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers, err := registry.GetManagers()
+	if err != nil {
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
+	}
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1529,17 +1510,15 @@ func processWithdrawal(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
 	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
 	if err != nil {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers, err := registry.GetManagers()
+	if err != nil {
+		utils.Fatalf("Failed to get managers contract's address: %v", err)
+	}
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
