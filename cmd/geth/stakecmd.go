@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,7 +51,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls/registry"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -342,6 +342,68 @@ func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
 	}
 }
 
+type Managers struct {
+	TON               common.Address `json:TON`
+	WTON              common.Address `json:WTON`
+	DepositManager    common.Address `json:DepositManager`
+	RootChainRegistry common.Address `json:RootChainRegistry`
+	SeigManager       common.Address `json:SeigManager`
+	// PowerTON          common.Address `json:PowerTON`
+}
+
+func SetManagers(tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr common.Address) error {
+	managers := Managers{tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr}
+	pbytes, _ := json.Marshal(managers)
+	buffer := bytes.NewBuffer(pbytes)
+
+	resp, err := http.Post("http://localhost:9000/managers", "application/json", buffer)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func GetManagers() (*Managers, error) {
+	resp, err := http.Get("http://localhost:9000/managers")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var managers = new(Managers)
+	if err := json.Unmarshal(body, &managers); err != nil {
+		return nil, err
+	}
+
+	log.Info("managers", "managers", managers)
+	return managers, nil
+}
+
+func SetRootChain(addr common.Address) error {
+	requestBody, err := json.Marshal(map[string]common.Address{
+		"address": addr,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post("http://localhost:9000/rootchains", "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
 func parseIntString(str string, decimals int) string {
 	if decimals != 18 && decimals != 27 {
 		utils.Fatalf("decimals should be 18 or 27, not %d", decimals)
@@ -443,7 +505,7 @@ func deployManagers(ctx *cli.Context) error {
 
 	log.Info("Staking manager contract deployed", "TON", tonAddr, "WTON", wtonAddr, "RootChainRegistry", registryAddr, "DepositManager", depositManagerAddr, "SeigManager", seigManagerAddr)
 
-	if err = registry.SetManagers(tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr); err != nil {
+	if err = SetManagers(tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr); err != nil {
 		utils.Fatalf("Failed to set manager contracts's address: %v", err)
 	}
 
@@ -783,7 +845,7 @@ func getRootChainAddr(datadir string) (rootchainAddr common.Address, err error) 
 func registerRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -796,7 +858,7 @@ func registerRootChain(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = registry.SetRootChain(rootchainAddr); err != nil {
+	if err = SetRootChain(rootchainAddr); err != nil {
 		utils.Fatalf("Failed to set rootchain contract's address: %v", err)
 	}
 
@@ -910,7 +972,7 @@ func getBalances(ctx *cli.Context) error {
 
 	log.Info("cfg.Node.DataDir", "v", filepath.Join(cfg.Node.DataDir, "geth", "genesis.json"))
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1072,7 +1134,7 @@ func mintTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1170,7 +1232,7 @@ func swapFromTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1248,7 +1310,7 @@ func swapToTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1327,7 +1389,7 @@ func stakeWTON(ctx *cli.Context) error {
 		return err
 	}
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1421,7 +1483,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		return err
 	}
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
@@ -1515,7 +1577,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		return err
 	}
 
-	managers, err := registry.GetManagers()
+	managers, err := GetManagers()
 	if err != nil {
 		utils.Fatalf("Failed to get managers contract's address: %v", err)
 	}
