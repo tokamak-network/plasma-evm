@@ -173,7 +173,7 @@ func (w *wizard) deployFaucet() {
 		fmt.Printf("Should the faucet be built from scratch (y/n)? (default = no)\n")
 		nocache = w.readDefaultYesNo(false)
 	}
-	if out, err := deployFaucet(client, w.network, w.conf.bootnodes, infos, nocache); err != nil {
+	if out, err := deployFaucet(client, w.network, w.images["faucet"], w.conf.bootnodes, infos, nocache); err != nil {
 		log.Error("Failed to deploy faucet container", "err", err)
 		if len(out) > 0 {
 			fmt.Printf("%s\n", out)

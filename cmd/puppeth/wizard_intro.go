@@ -30,12 +30,13 @@ import (
 )
 
 // makeWizard creates and returns a new puppeth wizard.
-func makeWizard(network string) *wizard {
+func makeWizard(network string, images map[string]string) *wizard {
 	return &wizard{
 		network: network,
 		conf: config{
 			Servers: make(map[string][]byte),
 		},
+		images:   images,
 		servers:  make(map[string]*sshClient),
 		services: make(map[string][]string),
 		in:       bufio.NewReader(os.Stdin),

@@ -31,7 +31,7 @@ import (
 // ethstatsDockerfile is the Dockerfile required to build an ethstats backend
 // and associated monitoring site.
 var ethstatsDockerfile = `
-FROM puppeth/ethstats:latest
+FROM {{.Image}}
 
 RUN echo 'module.exports = {trusted: [{{.Trusted}}], banned: [{{.Banned}}], reserved: ["yournode"]};' > lib/utils/config.js
 `
@@ -62,7 +62,7 @@ services:
 // deployEthstats deploys a new ethstats container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployEthstats(client *sshClient, network string, port int, secret string, vhost string, trusted []string, banned []string, nocache bool) ([]byte, error) {
+func deployEthstats(client *sshClient, network string, image string, port int, secret string, vhost string, trusted []string, banned []string, nocache bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
@@ -78,6 +78,7 @@ func deployEthstats(client *sshClient, network string, port int, secret string, 
 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(ethstatsDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image":   image,
 		"Trusted": strings.Join(trustedLabels, ", "),
 		"Banned":  strings.Join(bannedLabels, ", "),
 	})
