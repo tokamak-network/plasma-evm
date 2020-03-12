@@ -32,7 +32,7 @@ import (
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
-FROM onthertech/plasma-evm:latest
+FROM {{.Image}}
 
 ADD genesis.json /genesis.json
 {{if .Operator}}
@@ -99,7 +99,7 @@ services:
 // deployNode deploys a new Ethereum node container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
+func deployNode(client *sshClient, network string, image string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
 	if config.operatorKeyJSON == "" && config.etherbase == "" {
 		kind = "bootnode"
@@ -156,6 +156,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 	unlock := strings.Join(accounts, ",")
 
 	template.Must(template.New("").Parse(nodeDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image":        image,
 		"NetworkID":    config.network,
 		"RootChainURL": config.rootchainURL,
 		"Operator":     operator,

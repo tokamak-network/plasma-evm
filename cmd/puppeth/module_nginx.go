@@ -29,7 +29,7 @@ import (
 
 // nginxDockerfile is theis the Dockerfile required to build an nginx reverse-
 // proxy.
-var nginxDockerfile = `FROM jwilder/nginx-proxy`
+var nginxDockerfile = `FROM {{.Image}}`
 
 // nginxComposefile is the docker-compose.yml file required to deploy and maintain
 // an nginx reverse-proxy. The proxy is responsible for exposing one or more HTTP
@@ -56,7 +56,7 @@ services:
 // deployNginx deploys a new nginx reverse-proxy container to expose one or more
 // HTTP services running on a single host. If an instance with the specified
 // network name already exists there, it will be overwritten!
-func deployNginx(client *sshClient, network string, port int, nocache bool) ([]byte, error) {
+func deployNginx(client *sshClient, network string, image string, port int, nocache bool) ([]byte, error) {
 	log.Info("Deploying nginx reverse-proxy", "server", client.server, "port", port)
 
 	// Generate the content to upload to the server
@@ -64,7 +64,9 @@ func deployNginx(client *sshClient, network string, port int, nocache bool) ([]b
 	files := make(map[string][]byte)
 
 	dockerfile := new(bytes.Buffer)
-	template.Must(template.New("").Parse(nginxDockerfile)).Execute(dockerfile, nil)
+	template.Must(template.New("").Parse(nginxDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image": image,
+	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
 	composefile := new(bytes.Buffer)

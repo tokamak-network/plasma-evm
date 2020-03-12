@@ -146,7 +146,7 @@ func (w *wizard) deployDashboard() {
 		fmt.Printf("Should the dashboard be built from scratch (y/n)? (default = no)\n")
 		nocache = w.readDefaultYesNo(false)
 	}
-	if out, err := deployDashboard(client, w.network, &w.conf, infos, nocache); err != nil {
+	if out, err := deployDashboard(client, w.network, w.images["dashboard"], &w.conf, infos, nocache); err != nil {
 		log.Error("Failed to deploy dashboard container", "err", err)
 		if len(out) > 0 {
 			fmt.Printf("%s\n", out)
