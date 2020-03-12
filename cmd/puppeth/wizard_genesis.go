@@ -42,6 +42,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
+// TODO: deploy RootChain contract and make genesis
 // makeGenesis creates a new genesis struct based on some user input.
 func (w *wizard) makeGenesis() {
 	// Construct a default genesis block

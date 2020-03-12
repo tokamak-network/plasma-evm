@@ -486,7 +486,7 @@ func (tm *TransactionManager) Start() {
 						}
 
 						if err2 == ethereum.NotFound {
-							log.Warn("Ethereum Transaction not found. It may be pending", "err", err2, "hash", hash.Hex())
+							log.Warn("Ethereum Transaction not found. It may be pending", "err", err2, "caption", raw.getCaption(), "hash", hash.Hex())
 							fixed = true
 							tm.adjustGasPrice(raw, false)
 						}

@@ -32,14 +32,16 @@ import (
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
-FROM onthertech/plasma-evm:latest
+FROM {{.Image}}
 
 ADD genesis.json /genesis.json
 {{if .Operator}}
   ADD operator.json /operator.json
+	ADD operator.pass /operator.pass
 {{end}}
 {{if .Challenger}}
   ADD challenger.json /challenger.json
+	ADD challenger.pass /challenger.pass
 {{end}}
 {{if .Unlock}}
 	ADD signer.pass /signer.pass
@@ -49,7 +51,7 @@ RUN \
 	echo 'mkdir -p /root/.ethereum/keystore/' >> geth.sh && \{{end}}{{if .Operator}}
   echo 'cp /operator.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}{{if .Challenger}}
 	echo 'cp /challenger.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --debug --syncmode="full" --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .Operator}}--operator {{.Operator}}{{end}} {{if .Challenger}}--rootchain.challenger {{.Challenger}}{{end}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug --rpccorsdomain "*" {{if .VHOST}}--rpcvhosts={{.VHOST}}{{end}}{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1 --tx.interval "10s" --tx.maxgasprice 10000000000 --miner.recommit "15s" --{{end}} {{if .Unlock}}--unlock {{.Unlock}} --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+	echo $'exec geth --syncmode="full" --networkid {{.NetworkID}} --rootchain.url {{.RootChainURL}} {{if .Operator}}--operator {{.Operator}} --operator.password /operator.pass {{end}} {{if .Challenger}}--rootchain.challenger {{.Challenger}} --challenger.password /challenger.pass{{end}} {{if .RPCPort}}--rpc --rpcaddr \'0.0.0.0\' --rpcport {{.RPCPort}} --rpcapi eth,net,debug --rpccorsdomain "*" {{if .VHOST}}--rpcvhosts={{.VHOST}}{{end}}{{end}} {{if .WSPort}}--ws --wsorigins \'*\' --wsaddr \'0.0.0.0\' --wsport {{.WSPort}}{{end}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1 --tx.interval "10s" --tx.maxgasprice 10000000000 --miner.recommit "15s" --{{end}} {{if .Unlock}}--unlock {{.Unlock}} --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -97,7 +99,7 @@ services:
 // deployNode deploys a new Ethereum node container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
+func deployNode(client *sshClient, network string, image string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
 	if config.operatorKeyJSON == "" && config.etherbase == "" {
 		kind = "bootnode"
@@ -143,15 +145,18 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		accounts = append(accounts, operator)
 		passwords = append(passwords, config.operatorKeyPass)
 		files[filepath.Join(workdir, "operator.json")] = []byte(config.operatorKeyJSON)
+		files[filepath.Join(workdir, "operator.pass")] = []byte(config.operatorKeyPass)
 	}
 	if challenger != "" {
 		accounts = append(accounts, challenger)
 		passwords = append(passwords, config.challengerKeyPass)
 		files[filepath.Join(workdir, "challenger.json")] = []byte(config.challengerKeyJSON)
+		files[filepath.Join(workdir, "challenger.pass")] = []byte(config.challengerKeyPass)
 	}
 	unlock := strings.Join(accounts, ",")
 
 	template.Must(template.New("").Parse(nodeDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image":        image,
 		"NetworkID":    config.network,
 		"RootChainURL": config.rootchainURL,
 		"Operator":     operator,

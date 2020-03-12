@@ -516,7 +516,7 @@ var dashboardMascot = []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01s\x
 // dashboardDockerfile is the Dockerfile required to build an dashboard container
 // to aggregate various private network services under one easily accessible page.
 var dashboardDockerfile = `
-FROM mhart/alpine-node:latest
+FROM {{.Image}}
 
 RUN \
 	npm install connect serve-static && \
@@ -567,7 +567,7 @@ services:
 // deployDashboard deploys a new dashboard container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployDashboard(client *sshClient, network string, conf *config, config *dashboardInfos, nocache bool) ([]byte, error) {
+func deployDashboard(client *sshClient, network string, image string, conf *config, config *dashboardInfos, nocache bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
@@ -575,6 +575,7 @@ func deployDashboard(client *sshClient, network string, conf *config, config *da
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(dashboardDockerfile)).Execute(dockerfile, map[string]interface{}{
 		"Network": network,
+		"Image":   image,
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
