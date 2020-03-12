@@ -151,7 +151,7 @@ type announceData struct {
 
 // sanityCheck verifies that the values are reasonable, as a DoS protection
 func (a *announceData) sanityCheck() error {
-	if tdlen := a.Td.BitLen(); tdlen > 100 {
+	if tdlen := a.Td.BitLen(); tdlen > 192 {
 		return fmt.Errorf("too large block TD: bitlen %d", tdlen)
 	}
 	return nil

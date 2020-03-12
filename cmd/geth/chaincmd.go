@@ -71,7 +71,7 @@ participating.
 It expects the genesis file as argument.`,
 	}
 	deployCommand = cli.Command{
-		Action:    utils.MigrateFlags(deployContract),
+		Action:    utils.MigrateFlags(deployRootChain),
 		Name:      "deploy",
 		Usage:     "Deploy RootChain contract and make genesis file",
 		ArgsUsage: "<genesisPath> <chainId> <withPETH> <NRELength>",
@@ -81,6 +81,7 @@ It expects the genesis file as argument.`,
 			utils.OperatorAddressFlag,
 			utils.OperatorKeyFlag,
 			utils.OperatorPasswordFileFlag,
+			utils.DeveloperKeyFlag,
 			utils.StaminaMinDepositFlag,
 			utils.StaminaRecoverEpochLengthFlag,
 			utils.StaminaWithdrawalDelayFlag,
@@ -333,7 +334,7 @@ func initGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-func deployContract(ctx *cli.Context) error {
+func deployRootChain(ctx *cli.Context) error {
 	if len(ctx.Args()) != 4 {
 		utils.Fatalf("Expected 4 parameters, not %d", len(ctx.Args()))
 	}
@@ -352,16 +353,16 @@ func deployContract(ctx *cli.Context) error {
 		development = false
 	)
 
-	chainId, err := strconv.Atoi(ctx.Args()[1])
+	chainId, err := strconv.Atoi(ctx.Args().Get(1))
 	if err != nil {
 		return err
 	}
 
-	if ctx.Args()[2] == "true" {
+	if ctx.Args().Get(2) == "true" {
 		withPETH = true
 	}
 
-	NRELengthInt, err := strconv.Atoi(ctx.Args()[3])
+	NRELengthInt, err := strconv.Atoi(ctx.Args().Get(3))
 	if err != nil {
 		return err
 	}
@@ -372,7 +373,7 @@ func deployContract(ctx *cli.Context) error {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
 	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7000000
+	opt.GasLimit = 7500000
 	opt.GasPrice = big.NewInt(10 * params.GWei)
 
 	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
