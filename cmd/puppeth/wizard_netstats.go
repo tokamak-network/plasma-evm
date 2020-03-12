@@ -114,14 +114,13 @@ func (w *wizard) gatherStats(server string, pubkey []byte, client *sshClient) *s
 		ethstats = infos.config
 	}
 	logger.Debug("Checking for bootnode availability")
-	if infos, err := checkNode(client, w.network, true); err != nil {
+	if infos, err := checkBootnode(client, w.network); err != nil {
 		if err != ErrServiceUnknown {
 			stat.services["bootnode"] = map[string]string{"offline": err.Error()}
 		}
 	} else {
 		stat.services["bootnode"] = infos.Report()
 
-		genesis = string(infos.genesis)
 		bootnodes = append(bootnodes, infos.enode)
 	}
 	logger.Debug("Checking for sealnode availability")

@@ -26,7 +26,7 @@ import (
 )
 
 // deployNode creates a new node configuration based on some user input.
-func (w *wizard) deployNode(boot bool) {
+func (w *wizard) deployNode(user bool) {
 	// Do some sanity check before the user wastes time on input
 	if w.conf.Genesis == nil {
 		log.Error("No genesis block configured")
@@ -44,9 +44,9 @@ func (w *wizard) deployNode(boot bool) {
 	client := w.servers[server]
 
 	// Retrieve any active node configurations from the server
-	infos, err := checkNode(client, w.network, boot)
+	infos, err := checkNode(client, w.network, user)
 	if err != nil {
-		if boot {
+		if user {
 			infos = &nodeInfos{port: 30305, peersTotal: 512, peersLight: 256}
 		} else {
 			infos = &nodeInfos{port: 30305, peersTotal: 50, peersLight: 0, gasTarget: 7.5, gasLimit: 10, gasPrice: 1}
@@ -90,7 +90,7 @@ func (w *wizard) deployNode(boot bool) {
 		fmt.Printf("Where should data be stored on the remote machine? (default = %s)\n", infos.datadir)
 		infos.datadir = w.readDefaultString(infos.datadir)
 	}
-	if w.conf.Genesis.Config.Ethash != nil && !boot {
+	if w.conf.Genesis.Config.Ethash != nil && !user {
 		fmt.Println()
 		if infos.ethashdir == "" {
 			fmt.Printf("Where should the ethash mining DAGs be stored on the remote machine?\n")
@@ -125,7 +125,7 @@ func (w *wizard) deployNode(boot bool) {
 		infos.ethstats = w.readDefaultString(infos.ethstats) + ":" + w.conf.ethstats
 	}
 	// If the node is an operator, load up needed credentials
-	if !boot {
+	if !user {
 		if w.conf.Genesis.Config.Ethash != nil {
 			// If a previous operator was already set, offer to reuse it
 			if infos.operatorKeyJSON != "" {

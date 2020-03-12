@@ -102,7 +102,7 @@ services:
 func deployNode(client *sshClient, network string, bootnodes []string, config *nodeInfos, nocache bool) ([]byte, error) {
 	kind := "sealnode"
 	if config.operatorKeyJSON == "" && config.etherbase == "" {
-		kind = "bootnode"
+		kind = "usernode"
 		bootnodes = make([]string, 0)
 	}
 	// Generate the content to upload to the server
@@ -297,12 +297,12 @@ func (info *nodeInfos) Report() map[string]string {
 
 // checkNode does a health-check against a boot or seal node server to verify
 // whether it's running, and if yes, whether it's responsive.
-func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error) {
-	kind := "bootnode"
-	if !boot {
+func checkNode(client *sshClient, network string, user bool) (*nodeInfos, error) {
+	kind := "usernode"
+	if !user {
 		kind = "sealnode"
 	}
-	// Inspect a possible bootnode container on the host
+	// Inspect a possible usernode container on the host
 	infos, err := inspectContainer(client, fmt.Sprintf("%s_%s_1", network, kind))
 	if err != nil {
 		return nil, err
