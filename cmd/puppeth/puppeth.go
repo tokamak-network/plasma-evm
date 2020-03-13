@@ -42,6 +42,11 @@ func main() {
 			Value: 3,
 			Usage: "log level to emit to the screen",
 		},
+		cli.StringFlag{
+			Name:  "bootnodes",
+			Usage: "Comma separated enode URLs for P2P discovery bootstrap for Sealer or usernode",
+			Value: "",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		// Set up the logger to print everything and the random generator
@@ -57,9 +62,30 @@ func main() {
 // runWizard start the wizard and relinquish control to it.
 func runWizard(c *cli.Context) error {
 	network := c.String("network")
+	bootnodes := c.String("bootnodes")
+
+	urls := []string{}
+	urls = strings.Split(bootnodes, ",")
+
 	if strings.Contains(network, " ") || strings.Contains(network, "-") || strings.ToLower(network) != network {
 		log.Crit("No spaces, hyphens or capital letters allowed in network name")
 	}
-	makeWizard(c.String("network")).run()
+
+	// Checking enode address
+	for _, url := range urls {
+		if url != "" {
+			// prefix check
+			if !strings.HasPrefix(url, "enode://") {
+				log.Crit("Bootstrap URL invalid, has not `enode://`")
+			}
+			url = url[8:]
+			addrs := strings.Split(url, "@")
+			if len(addrs[0]) != 128 {
+				log.Crit("Bootstrap URL invalid, wrong length, want 128 hex chars")
+			}
+		}
+	}
+
+	makeWizard(c.String("network"), urls).run()
 	return nil
 }
