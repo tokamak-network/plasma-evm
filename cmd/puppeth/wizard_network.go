@@ -174,7 +174,7 @@ func (w *wizard) deployComponent() {
 	fmt.Println(" 1. Ethstats  - Network monitoring tool")
 	fmt.Println(" 2. Bootnode  - Entry point of the network")
 	fmt.Println(" 3. Sealer    - Full node minting new blocks")
-	fmt.Println(" 4. Usernode  - Entry point of the network")
+	fmt.Println(" 4. Usernode  - Full node for user, not mining")
 	fmt.Println(" 5. Explorer  - Chain analysis webservice")
 	fmt.Println(" 6. Wallet    - Browser wallet for quick sends")
 	fmt.Println(" 7. Faucet    - Crypto faucet to give away funds")

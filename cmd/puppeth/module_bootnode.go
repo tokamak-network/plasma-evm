@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // faucetDockerfile is the Dockerfile required to build a faucet container to
@@ -72,10 +73,11 @@ type bootnodeInfos struct {
 // Report converts the typed struct into a plain string->string map, containing
 // most - but not all - fields for reporting to the user.
 func (info *bootnodeInfos) Report() map[string]string {
+	enode := strings.Split(info.enode, "@")[0]
 	report := map[string]string{
 		"IP address":    info.host,
 		"listener port": strconv.Itoa(info.port),
-		"enode address": info.enode[:14] + " ... ",
+		"enode address": enode[8:14] + "..." + enode[len(enode)-6:],
 	}
 	return report
 }
