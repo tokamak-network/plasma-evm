@@ -73,9 +73,9 @@ type bootnodeInfos struct {
 // most - but not all - fields for reporting to the user.
 func (info *bootnodeInfos) Report() map[string]string {
 	report := map[string]string{
-		"bootnode IP address":    info.host,
-		"bootnode listener port": strconv.Itoa(info.port),
-		"bootnode enode address": info.enode,
+		"IP address":    info.host,
+		"listener port": strconv.Itoa(info.port),
+		"enode address": info.enode,
 	}
 	return report
 }
@@ -109,8 +109,7 @@ func deployBootnode(client *sshClient, network string, config *bootnodeInfos, no
 	if out, err := client.Upload(files); err != nil {
 		return out, err
 	}
-	// TODO : remove before PR, just for check now.
-	// defer client.Run("rm -rf " + workdir)
+	defer client.Run("rm -rf " + workdir)
 
 	// Build and deploy the bootnode service
 	if nocache {

@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"crypto/ecdsa"
 	"fmt"
+	"strconv"
 
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/crypto"
@@ -34,10 +35,6 @@ func (w *wizard) deployBootnode() {
 		return
 	}
 	client := w.servers[server]
-
-	// TODO : import hex key for bootnode enode address
-	// Retrieve any active bootnode configurations from the server
-	// infos, err := checkBootnode(client, w.network)
 
 	// Generate random key
 	var nodeKeyHex *ecdsa.PrivateKey
@@ -61,7 +58,7 @@ func (w *wizard) deployBootnode() {
 
 	// Figure out which node key use
 	fmt.Println()
-	fmt.Printf("Which key should bootnode enode address? (default = random)\n")
+	fmt.Printf("Which key should bootnode use for generate enode address? (empty, random)\n")
 	infos.nodekey = w.readDefaultString(infos.nodekey)
 
 	nodeKeyHex, err = crypto.HexToECDSA(infos.nodekey)
@@ -69,7 +66,8 @@ func (w *wizard) deployBootnode() {
 		utils.Fatalf("could not generate key: %v", err)
 	}
 
-	infos.enode =  hex.EncodeToString(crypto.FromECDSAPub(&nodeKeyHex.PublicKey))
+	infos.enode = "enode://" + hex.EncodeToString(crypto.FromECDSAPub(&nodeKeyHex.PublicKey))
+	infos.enode = infos.enode + ":" + strconv.Itoa(infos.port)
 
 	// Try to deploy the bootnode server on the host
 	nocache := false

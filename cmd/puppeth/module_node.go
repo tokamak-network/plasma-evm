@@ -103,7 +103,6 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 	kind := "sealnode"
 	if config.operatorKeyJSON == "" && config.etherbase == "" {
 		kind = "usernode"
-		bootnodes = make([]string, 0)
 	}
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
