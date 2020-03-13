@@ -66,8 +66,8 @@ func (w *wizard) deployBootnode() {
 		utils.Fatalf("could not generate key: %v", err)
 	}
 
-	infos.enode = "enode://" + hex.EncodeToString(crypto.FromECDSAPub(&nodeKeyHex.PublicKey))
-	infos.enode = infos.enode + ":" + strconv.Itoa(infos.port)
+	infos.enode = "enode://" + hex.EncodeToString(crypto.FromECDSAPub(&nodeKeyHex.PublicKey)[1:])
+	infos.enode = infos.enode + "@" + infos.host + ":" + strconv.Itoa(infos.port)
 
 	// Try to deploy the bootnode server on the host
 	nocache := false

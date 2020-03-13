@@ -186,9 +186,9 @@ func (w *wizard) deployComponent() {
 	case "2":
 		w.deployBootnode()
 	case "3":
-		w.deployNode(true)
-	case "4":
 		w.deployNode(false)
+	case "4":
+		w.deployNode(true)
 	case "5":
 		w.deployExplorer()
 	case "6":

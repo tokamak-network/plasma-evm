@@ -75,7 +75,7 @@ func (info *bootnodeInfos) Report() map[string]string {
 	report := map[string]string{
 		"IP address":    info.host,
 		"listener port": strconv.Itoa(info.port),
-		"enode address": info.enode,
+		"enode address": info.enode[:14] + " ... ",
 	}
 	return report
 }
