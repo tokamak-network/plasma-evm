@@ -74,6 +74,8 @@ type wizard struct {
 	network string // Network name to manage
 	conf    config // Configurations from previous runs
 
+	images map[string]string // Docker image names
+
 	servers  map[string]*sshClient // SSH connections to servers to administer
 	services map[string][]string   // Ethereum services known to be running on servers
 

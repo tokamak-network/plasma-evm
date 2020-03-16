@@ -584,13 +584,13 @@ func WriteEpochEnv(db ethdb.KeyValueWriter, e *epoch.EpochEnvironment) {
 	if err != nil {
 		log.Crit("Failed to RLP encode epoch environment", "err", err)
 	}
-	if err := db.Put(epochEnvKey(), data); err != nil {
+	if err := db.Put(epochEnvKey, data); err != nil {
 		log.Crit("Failed to store epoch environment", "err", err)
 	}
 }
 
 func ReadEpochEnv(db ethdb.Reader) *epoch.EpochEnvironment {
-	data, _ := db.Get(epochEnvKey())
+	data, _ := db.Get(epochEnvKey)
 	if len(data) == 0 {
 		return epoch.New()
 	}
@@ -603,18 +603,162 @@ func ReadEpochEnv(db ethdb.Reader) *epoch.EpochEnvironment {
 }
 
 func DeleteEpochEnv(db ethdb.KeyValueWriter) {
-	if err := db.Delete(epochEnvKey()); err != nil {
+	if err := db.Delete(epochEnvKey); err != nil {
 		log.Crit("Failed to delete epoch environment", "err", err)
 	}
 }
 
 func WriteGenesis(db ethdb.KeyValueWriter, data rlp.RawValue) {
-	if err := db.Put(genesisPrefix, data); err != nil {
+	if err := db.Put(genesisKey, data); err != nil {
 		log.Crit("Failed to store genesis", "err", err)
 	}
 }
 
 func ReadGenesis(db ethdb.Reader) rlp.RawValue {
-	data, _ := db.Get(genesisPrefix)
+	data, _ := db.Get(genesisKey)
 	return data
+}
+
+func WriteTON(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode TON address", "err", err)
+	}
+
+	if err := db.Put(tonKey, data); err != nil {
+		log.Crit("Failed to store TON address", "err", err)
+	}
+}
+
+func ReadTON(db ethdb.Reader) common.Address {
+	data, _ := db.Get(tonKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}
+
+func WriteWTON(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode WTON address", "err", err)
+	}
+
+	if err := db.Put(wtonKey, data); err != nil {
+		log.Crit("Failed to store WTON address", "err", err)
+	}
+}
+
+func ReadWTON(db ethdb.Reader) common.Address {
+	data, _ := db.Get(wtonKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}
+
+func WriteRegistry(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode RootChainRegistry address", "err", err)
+	}
+
+	if err := db.Put(registryKey, data); err != nil {
+		log.Crit("Failed to store RootChainRegistry address", "err", err)
+	}
+}
+
+func ReadRegistry(db ethdb.Reader) common.Address {
+	data, _ := db.Get(registryKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}
+
+func WriteDepositManager(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode DepositManager address", "err", err)
+	}
+
+	if err := db.Put(depositrManagerKey, data); err != nil {
+		log.Crit("Failed to store DepositManager address", "err", err)
+	}
+}
+
+func ReadDepositManager(db ethdb.Reader) common.Address {
+	data, _ := db.Get(depositrManagerKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}
+
+func WriteSeigManager(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode SeigManager address", "err", err)
+	}
+
+	if err := db.Put(seigManagerKey, data); err != nil {
+		log.Crit("Failed to store SeigManager address", "err", err)
+	}
+}
+
+func ReadSeigManager(db ethdb.Reader) common.Address {
+	data, _ := db.Get(seigManagerKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
+}
+
+func WritePowerTON(db ethdb.KeyValueWriter, addr common.Address) {
+	data, err := rlp.EncodeToBytes(addr)
+	if err != nil {
+		log.Crit("Failed to RLP encode PowerTON address", "err", err)
+	}
+
+	if err := db.Put(powertonKey, data); err != nil {
+		log.Crit("Failed to store PowerTON address", "err", err)
+	}
+}
+
+func ReadPowerTON(db ethdb.Reader) common.Address {
+	data, _ := db.Get(powertonKey)
+	if len(data) == 0 {
+		return common.Address{}
+	}
+	addr := new(common.Address)
+	if err := rlp.Decode(bytes.NewReader(data), addr); err != nil {
+		log.Error("Invalid address RLP", "addr", addr, "err", err)
+		return common.Address{}
+	}
+	return *addr
 }

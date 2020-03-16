@@ -248,6 +248,8 @@ func init() {
 		dumpConfigCommand,
 		// See retesteth.go
 		retestethCommand,
+		// See stakecmd.go
+		stakingCmd,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

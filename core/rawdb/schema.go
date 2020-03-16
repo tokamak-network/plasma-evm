@@ -57,9 +57,17 @@ var (
 	invalidExitReceiptsLookupPrefix = []byte("rl") // invalidExitReceiptsLookupPrefix + num (uint64 big endian)+ num (uint64 big endian) -> invalid exit receipt lookup metadata
 	bloomBitsPrefix                 = []byte("B")  // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
-	epochEnvPrefix = []byte("e") // epochEnvPrefix -> epochEnvrionment
+	// epochEnvKey tracks the lastest known root chain epoch envirionment
+	epochEnvKey = []byte("e")
 
-	genesisPrefix = []byte("Genesis")
+	genesisKey = []byte("Genesis")
+
+	tonKey             = []byte("TON-address")
+	wtonKey            = []byte("WTON-address")
+	registryKey        = []byte("RootChainRegistry-address")
+	depositrManagerKey = []byte("DepositManager-address")
+	seigManagerKey     = []byte("SeigManager-address")
+	powertonKey        = []byte("PowerTON-address")
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
@@ -181,10 +189,6 @@ func bloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
 	binary.BigEndian.PutUint64(key[3:], section)
 
 	return key
-}
-
-func epochEnvKey() []byte {
-	return epochEnvPrefix
 }
 
 // preimageKey = preimagePrefix + hash

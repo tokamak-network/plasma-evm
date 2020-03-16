@@ -43,6 +43,41 @@ func main() {
 			Usage: "log level to emit to the screen",
 		},
 		cli.StringFlag{
+			Name:  "images.ethstats",
+			Usage: "name of ethstats docker image",
+			Value: "puppeth/ethstats:latest",
+		},
+		cli.StringFlag{
+			Name:  "images.node",
+			Usage: "name of node docker image",
+			Value: "onthertech/plasma-evm:latest",
+		},
+		cli.StringFlag{
+			Name:  "images.explorer",
+			Usage: "name of explorer docker image",
+			Value: "onthertech/blockscout:latest",
+		},
+		cli.StringFlag{
+			Name:  "images.nginx",
+			Usage: "name of nginx docker image",
+			Value: "jwilder/nginx-proxy",
+		},
+		cli.StringFlag{
+			Name:  "images.wallet",
+			Usage: "name of wallet docker image",
+			Value: "puppeth/wallet:latest",
+		},
+		cli.StringFlag{
+			Name:  "images.faucet",
+			Usage: "name of faucet docker image",
+			Value: "onthertech/plasma-evm:alltools-latest",
+		},
+		cli.StringFlag{
+			Name:  "images.dashboard",
+			Usage: "name of dashboard docker image",
+			Value: "mhart/alpine-node:latest",
+		},
+		cli.StringFlag{
 			Name:  "bootnodes",
 			Usage: "Comma separated enode URLs for P2P discovery bootstrap for Sealer or usernode",
 			Value: "",
@@ -62,6 +97,15 @@ func main() {
 // runWizard start the wizard and relinquish control to it.
 func runWizard(c *cli.Context) error {
 	network := c.String("network")
+	images := map[string]string{
+		"ethstats":  c.String("images.ethstats"),
+		"node":      c.String("images.node"),
+		"explorer":  c.String("images.explorer"),
+		"nginx":     c.String("images.nginx"),
+		"wallet":    c.String("images.wallet"),
+		"faucet":    c.String("images.faucet"),
+		"dashboard": c.String("images.dashboard"),
+	}
 	bootnodes := c.String("bootnodes")
 
 	urls := []string{}
@@ -86,6 +130,6 @@ func runWizard(c *cli.Context) error {
 		}
 	}
 
-	makeWizard(c.String("network"), urls).run()
+	makeWizard(c.String("network"), images).run()
 	return nil
 }

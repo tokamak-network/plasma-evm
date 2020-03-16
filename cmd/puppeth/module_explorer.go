@@ -30,7 +30,7 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-FROM onthertech/blockscout:latest
+FROM {{.Image}}
 
 ADD genesis.json /genesis.json
 RUN \
@@ -79,18 +79,19 @@ services:
 // deployExplorer deploys a new block explorer container to a remote machine via
 // SSH, docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployExplorer(client *sshClient, network string, bootnodes []string, config *explorerInfos, nocache bool, isClique bool) ([]byte, error) {
+func deployExplorer(client *sshClient, network string, image string, bootnodes []string, config *explorerInfos, nocache bool, isClique bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerDockerfile)).Execute(dockerfile, map[string]interface{}{
-		"NetworkID": config.node.network,
+		"Image":        image,
+		"NetworkID":    config.node.network,
 		"RootChainURL": config.node.rootchainURL,
-		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.node.ethstats,
-		"EthPort":   config.node.port,
+		"Bootnodes":    strings.Join(bootnodes, ","),
+		"Ethstats":     config.node.ethstats,
+		"EthPort":      config.node.port,
 	})
 
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
@@ -100,16 +101,16 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	}
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerComposefile)).Execute(composefile, map[string]interface{}{
-		"Network":     network,
+		"Network":      network,
 		"RootChainURL": config.node.rootchainURL,
-		"VHost":       config.host,
-		"Ethstats":    config.node.ethstats,
-		"Datadir":     config.node.datadir,
-		"DBDir":       config.dbdir,
-		"EthPort":     config.node.port,
-		"EthName":     config.node.ethstats[:strings.Index(config.node.ethstats, ":")],
-		"WebPort":     config.port,
-		"Transformer": transformer,
+		"VHost":        config.host,
+		"Ethstats":     config.node.ethstats,
+		"Datadir":      config.node.datadir,
+		"DBDir":        config.dbdir,
+		"EthPort":      config.node.port,
+		"EthName":      config.node.ethstats[:strings.Index(config.node.ethstats, ":")],
+		"WebPort":      config.port,
+		"Transformer":  transformer,
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 	files[filepath.Join(workdir, "genesis.json")] = config.node.genesis
@@ -186,9 +187,9 @@ func checkExplorer(client *sshClient, network string) (*explorerInfos, error) {
 	stats := &explorerInfos{
 		node: &nodeInfos{
 			rootchainURL: infos.envvars["ROOTCHAIN_URL"],
-			datadir:  infos.volumes["/opt/app/.ethereum"],
-			port:     infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
-			ethstats: infos.envvars["ETH_NAME"],
+			datadir:      infos.volumes["/opt/app/.ethereum"],
+			port:         infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
+			ethstats:     infos.envvars["ETH_NAME"],
 		},
 		dbdir: infos.volumes["/var/lib/postgresql/data"],
 		host:  host,
