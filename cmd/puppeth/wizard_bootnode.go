@@ -71,7 +71,7 @@ func (w *wizard) deployBootnode() {
 
 	// Try to deploy the bootnode server on the host
 	nocache := false
-	if out, err := deployBootnode(client, w.network, infos, nocache); err != nil {
+	if out, err := deployBootnode(client, w.images["bootnode"], w.network, infos, nocache); err != nil {
 		log.Error("Failed to deploy bootnode container", "err", err)
 		if len(out) > 0 {
 			fmt.Printf("%s\n", out)

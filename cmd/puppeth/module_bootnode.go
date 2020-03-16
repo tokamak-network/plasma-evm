@@ -30,7 +30,7 @@ import (
 // faucetDockerfile is the Dockerfile required to build a faucet container to
 // grant crypto tokens based on GitHub authentications.
 var bootnodeDockerfile = `
-FROM onthertech/plasma-evm:alltools-latest
+FROM {{.Image}}
 
 EXPOSE 30301 30301/udp
 
@@ -85,13 +85,14 @@ func (info *bootnodeInfos) Report() map[string]string {
 // deploybootnode deploys a new bootnode container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployBootnode(client *sshClient, network string, config *bootnodeInfos, nocache bool) ([]byte, error) {
+func deployBootnode(client *sshClient, image string, network string, config *bootnodeInfos, nocache bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(bootnodeDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image":   image,
 		"NodeKey": config.nodekey,
 		"Host":    config.host,
 		"Port":    config.port,

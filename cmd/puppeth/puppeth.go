@@ -48,6 +48,11 @@ func main() {
 			Value: "puppeth/ethstats:latest",
 		},
 		cli.StringFlag{
+			Name:  "images.bootnode",
+			Usage: "name of bootnode docker image",
+			Value: "onthertech/plasma-evm:alltools-latest",
+		},
+		cli.StringFlag{
 			Name:  "images.node",
 			Usage: "name of node docker image",
 			Value: "onthertech/plasma-evm:latest",
@@ -99,6 +104,7 @@ func runWizard(c *cli.Context) error {
 	network := c.String("network")
 	images := map[string]string{
 		"ethstats":  c.String("images.ethstats"),
+		"bootnode": c.String("images.bootnode"),
 		"node":      c.String("images.node"),
 		"explorer":  c.String("images.explorer"),
 		"nginx":     c.String("images.nginx"),
