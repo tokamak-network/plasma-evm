@@ -130,6 +130,6 @@ func runWizard(c *cli.Context) error {
 		}
 	}
 
-	makeWizard(c.String("network"), images).run()
+	makeWizard(c.String("network"), images, urls).run()
 	return nil
 }

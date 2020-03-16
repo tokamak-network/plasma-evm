@@ -30,7 +30,7 @@ import (
 )
 
 // makeWizard creates and returns a new puppeth wizard.
-func makeWizard(network string, images map[string]string) *wizard {
+func makeWizard(network string, images map[string]string, bootnodes []string) *wizard {
 	return &wizard{
 		network: network,
 		conf: config{
