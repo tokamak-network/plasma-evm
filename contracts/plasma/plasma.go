@@ -324,8 +324,14 @@ func DeployPowerTON(
 	powertonAddr common.Address,
 	err error,
 ) {
+	seigManager, err := seigmanager.NewSeigManager(seigManagerAddr, backend)
+	if err != nil {
+		return
+	}
+
 	// 1. deploy PowerTON
 	powertonAddr, tx, pton, err := powerton.DeployPowerTON(opt, backend, seigManagerAddr, wtonAddr, roundDuration)
+	log.Info("1. deploy PowerTON", "address", powertonAddr, "tx", tx.Hash())
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to deploy PowerTON: %v", err))
 		return
@@ -337,8 +343,9 @@ func DeployPowerTON(
 		return
 	}
 
-	// 2. init PowerTON
+	// 2. initialize PowerTON
 	tx, err = pton.Init(opt)
+	log.Info("2. initialize PowerTON", "tx", tx.Hash())
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to initialize PowerTON: %v", err))
 		return
@@ -346,6 +353,19 @@ func DeployPowerTON(
 	err = WaitTx(backend, tx.Hash())
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to initialize PowerTON: %v", err))
+		return
+	}
+
+	// 3. set PowerTON to SeigManager
+	log.Info("3. set PowerTON to SeigManager", "SeigManager", seigManagerAddr, "PowerTON", powertonAddr, "tx", tx.Hash())
+	tx, err = seigManager.SetPowerTON(opt, powertonAddr)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to set PowerTON to SeigManager: %v", err))
+		return
+	}
+	err = WaitTx(backend, tx.Hash())
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to set PowerTON to SeigManager: %v", err))
 		return
 	}
 
