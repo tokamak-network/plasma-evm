@@ -95,6 +95,7 @@ func (e *ExecAdapter) NewNode(config *NodeConfig) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// generate the config
 	conf := &execNodeConfig{
 		Stack: node.DefaultConfig,

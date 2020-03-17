@@ -454,20 +454,6 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	})
 }
 
-func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing.T) {
-	p := PrecompiledContractsIstanbul[common.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.input)
-	contract := NewContract(AccountRef(common.HexToAddress("31337")),
-		nil, new(big.Int), p.RequiredGas(in))
-
-	t.Run(test.name, func(t *testing.T) {
-		_, err := RunPrecompiledContract(p, in, contract)
-		if !reflect.DeepEqual(err, test.expectedError) {
-			t.Errorf("Expected error [%v], got [%v]", test.expectedError, err)
-		}
-	})
-}
-
 func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 	if test.noBenchmark {
 		return

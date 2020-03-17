@@ -120,7 +120,7 @@ func (s *Plasma) SetContractBackend(backend bind.ContractBackend) {
 func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run pls.Ethereum in light sync mode, use les.LightEthereum")
+		return nil, errors.New("can't run pls.Plasma in light sync mode, use les.LightEthereum")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)

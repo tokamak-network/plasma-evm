@@ -55,7 +55,7 @@ type txSortedMap struct {
 	cache types.Transactions            // Cache of the transactions already sorted
 }
 
-// newTxSortedMap creates nonce-sorted transaction map.
+// newTxSortedMap creates a new nonce-sorted transaction map.
 func newTxSortedMap() *txSortedMap {
 	return &txSortedMap{
 		items: make(map[uint64]*types.Transaction),

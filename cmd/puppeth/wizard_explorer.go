@@ -89,15 +89,6 @@ func (w *wizard) deployExplorer() {
 		fmt.Printf("Where should postgres data be stored on the remote machine? (default = %s)\n", infos.dbdir)
 		infos.dbdir = w.readDefaultString(infos.dbdir)
 	}
-	// Figure out where the user wants to store the persistent data for backend database
-	fmt.Println()
-	if infos.dbdir == "" {
-		fmt.Printf("Where should postgres data be stored on the remote machine?\n")
-		infos.dbdir = w.readString()
-	} else {
-		fmt.Printf("Where should postgres data be stored on the remote machine? (default = %s)\n", infos.dbdir)
-		infos.dbdir = w.readDefaultString(infos.dbdir)
-	}
 	// Figure out which port to listen on
 	fmt.Println()
 	fmt.Printf("Which TCP/UDP port should the archive node listen on? (default = %d)\n", infos.node.port)

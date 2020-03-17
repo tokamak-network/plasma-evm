@@ -43,7 +43,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
-	"github.com/onther-tech/gochain/eth"
 )
 
 func main() {
@@ -179,8 +178,8 @@ func makeMiner(genesis *core.Genesis) (*node.Node, error) {
 			DatabaseCache:   256,
 			DatabaseHandles: 256,
 			TxPool:          core.DefaultTxPoolConfig,
-			GPO:             eth.DefaultConfig.GPO,
-			Ethash:          eth.DefaultConfig.Ethash,
+			GPO:             pls.DefaultConfig.GPO,
+			Ethash:          pls.DefaultConfig.Ethash,
 			Miner: miner.Config{
 				GasFloor: genesis.GasLimit * 9 / 10,
 				GasCeil:  genesis.GasLimit * 11 / 10,

@@ -24,7 +24,6 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/internal/debug"
-
 	cli "gopkg.in/urfave/cli.v1"
 )
 

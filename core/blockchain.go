@@ -1369,6 +1369,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// Make sure no inconsistent state is leaked during insertion
 	currentBlock := bc.CurrentBlock()
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	// TODO: td is just difficulty of head block
 	externTd := new(big.Int).Add(
 		new(big.Int).Mul(block.Difficulty(), new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)),
 		block.Number())

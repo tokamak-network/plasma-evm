@@ -381,6 +381,7 @@ Response
 
 #### Result
   - calculated signature [data]
+
 #### Sample call
 ```json
 {

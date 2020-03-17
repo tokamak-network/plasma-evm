@@ -73,15 +73,6 @@ func (w *wizard) makeGenesis() {
 	choice := w.read()
 	switch {
 	case choice == "1":
-		fmt.Println()
-		fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
-		if w.readDefaultYesNo(true) {
-			// Add a batch of precompile balances to avoid them getting deleted
-			for i := int64(0); i < 256; i++ {
-				genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
-			}
-		}
-
 		// In case of ethash, we're pretty much done
 		genesis.Config.Ethash = new(params.EthashConfig)
 		genesis.ExtraData = make([]byte, 20)
@@ -94,6 +85,9 @@ func (w *wizard) makeGenesis() {
 			utils.Fatalf("Failed to connect rootchain: %v", err)
 		}
 
+		// TODO: get `geth deploy` parameters and run
+
+		// TODO: deprecate below query
 		// Query for the rootchain contract
 		fmt.Println()
 		fmt.Println("What is the rootchain contract address?")
@@ -153,6 +147,8 @@ func (w *wizard) makeGenesis() {
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
+
+	// TODO: add root chain deployment parameters
 
 	var (
 		stamina             int64

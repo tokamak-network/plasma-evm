@@ -38,7 +38,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core/vm/runtime"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-
 	cli "gopkg.in/urfave/cli.v1"
 )
 

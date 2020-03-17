@@ -578,7 +578,6 @@ func (api *RetestethAPI) RewindToBlock(ctx context.Context, newHead uint64) (boo
 	if err := api.blockchain.SetHead(newHead); err != nil {
 		return false, err
 	}
-	// When we rewind, the transaction pool should be cleaned out.
 	api.blockNumber = newHead
 	return true, nil
 }

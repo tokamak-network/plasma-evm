@@ -227,8 +227,8 @@ var nodeDBSeedQueryNodes = []struct {
 		node: NewV4(
 			hexPubkey("c013a50b4d1ebce5c377d8af8cb7114fd933ffc9627f96ad56d90fef5b7253ec736fd07ef9a81dc2955a997e54b7bf50afd0aa9f110595e2bec5bb7ce1657004"),
 			net.IP{127, 0, 0, 3},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		pong: time.Now().Add(-2 * time.Second),
 	},
@@ -236,8 +236,8 @@ var nodeDBSeedQueryNodes = []struct {
 		node: NewV4(
 			hexPubkey("f141087e3e08af1aeec261ff75f48b5b1637f594ea9ad670e50051646b0416daa3b134c28788cbe98af26992a47652889cd8577ccc108ac02c6a664db2dc1283"),
 			net.IP{127, 0, 0, 3},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		pong: time.Now().Add(-2 * time.Second),
 	},
@@ -367,8 +367,8 @@ var nodeDBExpirationNodes = []struct {
 		node: NewV4(
 			hexPubkey("b56670e0b6bad2c5dab9f9fe6f061a16cf78d68b6ae2cfda3144262d08d97ce5f46fd8799b6d1f709b1abe718f2863e224488bd7518e5e3b43809ac9bd1138ca"),
 			net.IP{127, 0, 0, 3},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		storeNode: false,
 		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),
@@ -379,8 +379,8 @@ var nodeDBExpirationNodes = []struct {
 		node: NewV4(
 			hexPubkey("29f619cebfd32c9eab34aec797ed5e3fe15b9b45be95b4df3f5fe6a9ae892f433eb08d7698b2ef3621568b0fb70d57b515ab30d4e72583b798298e0f0a66b9d1"),
 			net.IP{127, 0, 0, 4},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		storeNode: true,
 		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),
@@ -390,43 +390,8 @@ var nodeDBExpirationNodes = []struct {
 		node: NewV4(
 			hexPubkey("29f619cebfd32c9eab34aec797ed5e3fe15b9b45be95b4df3f5fe6a9ae892f433eb08d7698b2ef3621568b0fb70d57b515ab30d4e72583b798298e0f0a66b9d1"),
 			net.IP{127, 0, 0, 5},
-			30303,
-			30303,
-		),
-		storeNode: true,
-		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),
-		exp:       true,
-	},
-	// Just pong time, no node stored:
-	{
-		node: NewV4(
-			hexPubkey("b56670e0b6bad2c5dab9f9fe6f061a16cf78d68b6ae2cfda3144262d08d97ce5f46fd8799b6d1f709b1abe718f2863e224488bd7518e5e3b43809ac9bd1138ca"),
-			net.IP{127, 0, 0, 3},
-			30303,
-			30303,
-		),
-		storeNode: false,
-		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),
-		exp:       true,
-	},
-	// Node with multiple pong times, all older than expiration.
-	{
-		node: NewV4(
-			hexPubkey("29f619cebfd32c9eab34aec797ed5e3fe15b9b45be95b4df3f5fe6a9ae892f433eb08d7698b2ef3621568b0fb70d57b515ab30d4e72583b798298e0f0a66b9d1"),
-			net.IP{127, 0, 0, 4},
-			30303,
-			30303,
-		),
-		storeNode: true,
-		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),
-		exp:       true,
-	},
-	{
-		node: NewV4(
-			hexPubkey("29f619cebfd32c9eab34aec797ed5e3fe15b9b45be95b4df3f5fe6a9ae892f433eb08d7698b2ef3621568b0fb70d57b515ab30d4e72583b798298e0f0a66b9d1"),
-			net.IP{127, 0, 0, 5},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		storeNode: false,
 		pong:      time.Now().Add(-dbNodeExpiration - 2*time.Minute),
@@ -437,8 +402,8 @@ var nodeDBExpirationNodes = []struct {
 		node: NewV4(
 			hexPubkey("3b73a9e5f4af6c4701c57c73cc8cfa0f4802840b24c11eba92aac3aef65644a3728b4b2aec8199f6d72bd66be2c65861c773129039bd47daa091ca90a6d4c857"),
 			net.IP{127, 0, 0, 6},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		storeNode: true,
 		pong:      time.Now().Add(-dbNodeExpiration + time.Minute),
@@ -448,8 +413,8 @@ var nodeDBExpirationNodes = []struct {
 		node: NewV4(
 			hexPubkey("3b73a9e5f4af6c4701c57c73cc8cfa0f4802840b24c11eba92aac3aef65644a3728b4b2aec8199f6d72bd66be2c65861c773129039bd47daa091ca90a6d4c857"),
 			net.IP{127, 0, 0, 7},
-			30303,
-			30303,
+			30305,
+			30305,
 		),
 		storeNode: false,
 		pong:      time.Now().Add(-dbNodeExpiration - time.Minute),

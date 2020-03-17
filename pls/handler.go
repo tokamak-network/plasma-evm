@@ -144,6 +144,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
 	}
+
 	// Construct the downloader (long sync) and its backing state bloom if fast
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
@@ -748,8 +749,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	return nil
 }
 
-// BroadcastBlock will either propagate a block to a subset of its peers, or
-// will only announce its availability (depending what's requested).
+// BroadcastBlock will either propagate a block to a subset of it's peers, or
+// will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
 	peers := pm.peers.PeersWithoutBlock(hash)
@@ -834,7 +835,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 // NodeInfo represents a short summary of the Plasma sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Plasma network ID (16=DevNet)
+	Network    uint64              `json:"network"`    // Plasma network ID (16=Faraday, ...)
 	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
 	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules
