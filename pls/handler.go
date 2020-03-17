@@ -29,6 +29,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/forkid"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/event"
@@ -63,7 +64,8 @@ func errResp(code errCode, format string, v ...interface{}) error {
 }
 
 type ProtocolManager struct {
-	networkID uint64
+	networkID  uint64
+	forkFilter forkid.Filter // Fork ID filter, constant across the lifetime of the node
 
 	fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
 	acceptTxs uint32 // Flag whether we're considered synchronised (enables transaction processing)
@@ -103,6 +105,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:   networkID,
+		forkFilter:  forkid.NewFilter(blockchain),
 		eventMux:    mux,
 		txpool:      txpool,
 		blockchain:  blockchain,
@@ -141,6 +144,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
 	}
+
 	// Construct the downloader (long sync) and its backing state bloom if fast
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
@@ -303,7 +307,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 	)
-	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash()); err != nil {
+	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain), pm.forkFilter); err != nil {
 		p.Log().Debug("Plasma handshake failed", "err", err)
 		return err
 	}
@@ -683,6 +687,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if hash := types.CalcUncleHash(request.Block.Uncles()); hash != request.Block.UncleHash() {
+			log.Warn("Propagated block has invalid uncles", "have", hash, "exp", request.Block.UncleHash())
+			break // TODO(karalabe): return error eventually, but wait a few releases
+		}
+		if hash := types.DeriveShaFromBMT(request.Block.Transactions()); hash != request.Block.TxHash() {
+			log.Warn("Propagated block has invalid body", "have", hash, "exp", request.Block.TxHash())
+			break // TODO(karalabe): return error eventually, but wait a few releases
+		}
 		if err := request.sanityCheck(); err != nil {
 			return err
 		}
@@ -823,7 +835,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 // NodeInfo represents a short summary of the Plasma sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Plasma network ID (16=DevNet)
+	Network    uint64              `json:"network"`    // Plasma network ID (16=Faraday, ...)
 	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
 	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules

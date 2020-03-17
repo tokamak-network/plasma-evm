@@ -215,7 +215,6 @@ func (tx *Transaction) Size() common.StorageSize {
 
 // AsMessage returns the transaction as a core.Message.
 //
-
 // AsMessage requires a signer to derive the sender.
 //
 // XXX Rename message to something less arbitrary?
@@ -246,6 +245,7 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	// with null address signature
 	if len(sig) == 0 {
 		cpy := &Transaction{data: tx.data}
+		// TODO: use chain id from signer
 		cpy.data.V = new(big.Int).Add(params.MainnetChainConfig.ChainID, big.NewInt(27))
 		return cpy, nil
 	}

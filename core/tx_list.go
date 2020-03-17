@@ -55,7 +55,7 @@ type txSortedMap struct {
 	cache types.Transactions            // Cache of the transactions already sorted
 }
 
-// newTxSortedMap creates nonce-sorted transaction map.
+// newTxSortedMap creates a new nonce-sorted transaction map.
 func newTxSortedMap() *txSortedMap {
 	return &txSortedMap{
 		items: make(map[uint64]*types.Transaction),
@@ -498,11 +498,11 @@ func (l *txPricedList) Underpriced(tx *types.Transaction, local *accountSet) boo
 
 // Discard finds a number of most underpriced transactions, removes them from the
 // priced list and returns them for further removal from the entire pool.
-func (l *txPricedList) Discard(count int, local *accountSet) types.Transactions {
-	drop := make(types.Transactions, 0, count) // Remote underpriced transactions to drop
+func (l *txPricedList) Discard(slots int, local *accountSet) types.Transactions {
+	drop := make(types.Transactions, 0, slots) // Remote underpriced transactions to drop
 	save := make(types.Transactions, 0, 64)    // Local underpriced transactions to keep
 
-	for len(*l.items) > 0 && count > 0 {
+	for len(*l.items) > 0 && slots > 0 {
 		// Discard stale transactions if found during cleanup
 		tx := heap.Pop(l.items).(*types.Transaction)
 		if l.all.Get(tx.Hash()) == nil {
@@ -514,7 +514,7 @@ func (l *txPricedList) Discard(count int, local *accountSet) types.Transactions 
 			save = append(save, tx)
 		} else {
 			drop = append(drop, tx)
-			count--
+			slots -= numSlots(tx)
 		}
 	}
 	for _, tx := range save {

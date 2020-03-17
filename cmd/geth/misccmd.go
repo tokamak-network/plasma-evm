@@ -25,8 +25,8 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -117,7 +117,6 @@ func version(ctx *cli.Context) error {
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
 	fmt.Println("Protocol Versions:", pls.ProtocolVersions)
-	fmt.Println("Network Id:", pls.DefaultConfig.NetworkId)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))

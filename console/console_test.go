@@ -29,10 +29,11 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/internal/jsre"
 	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
+	"github.com/Onther-Tech/plasma-evm/pls"
+	"github.com/gochain-io/gochain/eth"
 )
 
 const (

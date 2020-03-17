@@ -48,6 +48,7 @@ func DeriveShaFromBMT(list DerivableList) common.Hash {
 	return getBinaryMerkleRoot(level)
 }
 
+// TODO: improve performance
 func getBinaryMerkleRoot(level []common.Hash) common.Hash {
 	if len(level) == 0 {
 		return EmptyRootHash

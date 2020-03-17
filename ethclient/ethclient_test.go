@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
@@ -35,6 +36,18 @@ import (
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
+
+// Verify that Client implements the ethereum interfaces.
+var (
+	_ = ethereum.ChainReader(&Client{})
+	_ = ethereum.TransactionReader(&Client{})
+	_ = ethereum.ChainStateReader(&Client{})
+	_ = ethereum.ChainSyncReader(&Client{})
+	_ = ethereum.ContractCaller(&Client{})
+	_ = ethereum.GasEstimator(&Client{})
+	_ = ethereum.GasPricer(&Client{})
+	_ = ethereum.LogFilterer(&Client{})
+	_ = ethereum.PendingStateReader(&Client{})
 	// _ = ethereum.PendingStateEventer(&Client{})
 	_ = ethereum.PendingContractCaller(&Client{})
 )

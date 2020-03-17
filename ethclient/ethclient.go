@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/Onther-Tech/plasma-evm"
 	"github.com/Onther-Tech/plasma-evm/common"
@@ -61,6 +60,16 @@ func (ec *Client) Close() {
 }
 
 // Blockchain Access
+
+// ChainId retrieves the current chain ID for transaction replay protection.
+func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
+	var result hexutil.Big
+	err := ec.c.CallContext(ctx, &result, "eth_chainId")
+	if err != nil {
+		return nil, err
+	}
+	return (*big.Int)(&result), err
+}
 
 // BlockByHash returns the given full block.
 //
@@ -330,16 +339,6 @@ func (ec *Client) NetworkID(ctx context.Context) (*big.Int, error) {
 	return version, nil
 }
 
-// ChainID returns the chain ID for this chain.
-func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
-	var ver string
-	if err := ec.c.CallContext(ctx, &ver, "eth_chainId"); err != nil {
-		return nil, err
-	}
-	version, _ := strconv.ParseInt(ver, 0, 64)
-	return big.NewInt(version), nil
-}
-
 // BalanceAt returns the wei balance of the given account.
 // The block number can be nil, in which case the balance is taken from the latest known block.
 func (ec *Client) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
@@ -515,7 +514,7 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 	if err != nil {
 		return err
 	}
-	return ec.c.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(data))
+	return ec.c.CallContext(ctx, nil, "eth_sendRawTransaction", hexutil.Encode(data))
 }
 
 func toCallArg(msg ethereum.CallMsg) interface{} {

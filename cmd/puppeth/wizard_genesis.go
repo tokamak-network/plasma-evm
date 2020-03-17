@@ -59,6 +59,7 @@ func (w *wizard) makeGenesis() {
 			ByzantiumBlock:      big.NewInt(0),
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
 		},
 	}
 	var operator common.Address
@@ -72,15 +73,6 @@ func (w *wizard) makeGenesis() {
 	choice := w.read()
 	switch {
 	case choice == "1":
-		fmt.Println()
-		fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
-		if w.readDefaultYesNo(true) {
-			// Add a batch of precompile balances to avoid them getting deleted
-			for i := int64(0); i < 256; i++ {
-				genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
-			}
-		}
-
 		// In case of ethash, we're pretty much done
 		genesis.Config.Ethash = new(params.EthashConfig)
 		genesis.ExtraData = make([]byte, 20)
@@ -93,6 +85,9 @@ func (w *wizard) makeGenesis() {
 			utils.Fatalf("Failed to connect rootchain: %v", err)
 		}
 
+		// TODO: get `geth deploy` parameters and run
+
+		// TODO: deprecate below query
 		// Query for the rootchain contract
 		fmt.Println()
 		fmt.Println("What is the rootchain contract address?")
@@ -152,6 +147,8 @@ func (w *wizard) makeGenesis() {
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
+
+	// TODO: add root chain deployment parameters
 
 	var (
 		stamina             int64
@@ -316,6 +313,10 @@ func (w *wizard) manageGenesis() {
 		fmt.Printf("Which block should Petersburg come into effect? (default = %v)\n", w.conf.Genesis.Config.PetersburgBlock)
 		w.conf.Genesis.Config.PetersburgBlock = w.readDefaultBigInt(w.conf.Genesis.Config.PetersburgBlock)
 
+		fmt.Println()
+		fmt.Printf("Which block should Istanbul come into effect? (default = %v)\n", w.conf.Genesis.Config.IstanbulBlock)
+		w.conf.Genesis.Config.IstanbulBlock = w.readDefaultBigInt(w.conf.Genesis.Config.IstanbulBlock)
+
 		out, _ := json.MarshalIndent(w.conf.Genesis.Config, "", "  ")
 		fmt.Printf("Chain configuration updated:\n\n%s\n", out)
 
@@ -354,7 +355,7 @@ func (w *wizard) manageGenesis() {
 		} else {
 			saveGenesis(folder, w.network, "parity", spec)
 		}
-		// Export the genesis spec used by Harmony (formerly EthereumJ
+		// Export the genesis spec used by Harmony (formerly EthereumJ)
 		saveGenesis(folder, w.network, "harmony", w.conf.Genesis)
 
 	case "3":
@@ -377,7 +378,7 @@ func (w *wizard) manageGenesis() {
 func saveGenesis(folder, network, client string, spec interface{}) {
 	path := filepath.Join(folder, fmt.Sprintf("%s-%s.json", network, client))
 
-	out, _ := json.Marshal(spec)
+	out, _ := json.MarshalIndent(spec, "", "  ")
 	if err := ioutil.WriteFile(path, out, 0644); err != nil {
 		log.Error("Failed to save genesis file", "client", client, "err", err)
 		return

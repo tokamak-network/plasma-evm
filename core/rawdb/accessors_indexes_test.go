@@ -117,25 +117,27 @@ func TestInvalidExitReceiptsLookupStorage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			db := NewMemoryDatabase()
 
-	block := types.NewBlock(&types.Header{Number: big.NewInt(314)}, txs, nil, nil)
-	txIndices := []uint64{0, 2}
+			block := types.NewBlock(&types.Header{Number: big.NewInt(314)}, txs, nil, nil)
+			txIndices := []uint64{0, 2}
 
-	WriteInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.Hash(), block.NumberU64(), txIndices)
+			WriteInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.Hash(), block.NumberU64(), txIndices)
 
-	hash, num, indices := ReadInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
-	if hash != block.Hash() || num != block.NumberU64() || len(indices) == 0 {
-		t.Fatalf("invalid exit receipt lookup entries mismatch")
-		for i, v := range indices {
-			if txIndices[i] != v {
-				t.Fatal("invalid exit receipt index mismatch")
+			hash, num, indices := ReadInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
+			if hash != block.Hash() || num != block.NumberU64() || len(indices) == 0 {
+				t.Fatalf("invalid exit receipt lookup entries mismatch")
+				for i, v := range indices {
+					if txIndices[i] != v {
+						t.Fatal("invalid exit receipt index mismatch")
+					}
+				}
 			}
-		}
-	}
 
-	DeleteInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
-	_, _, indices = ReadInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
-	if len(indices) != 0 {
-		t.Fatalf("invalid exit receipt indices exist")
+			DeleteInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
+			_, _, indices = ReadInvalidExitReceiptsLookupEntry(db, block.CurrentFork(), block.NumberU64())
+			if len(indices) != 0 {
+				t.Fatalf("invalid exit receipt indices exist")
+			}
+		})
 	}
 }
 

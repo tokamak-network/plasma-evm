@@ -25,13 +25,14 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
-	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
+	"github.com/Onther-Tech/plasma-evm/les/checkpointoracle"
 	"github.com/Onther-Tech/plasma-evm/light"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/discv5"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
 )
 
 func errResp(code errCode, format string, v ...interface{}) error {
@@ -63,7 +64,7 @@ type lesCommons struct {
 	peers                        *peerSet
 	chainReader                  chainReader
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
-	oracle                       *checkpointOracle
+	oracle                       *checkpointoracle.CheckpointOracle
 
 	closeCh chan struct{}
 	wg      sync.WaitGroup

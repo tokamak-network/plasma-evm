@@ -60,6 +60,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// TODO: use light client, instead of full node
 var (
 	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
@@ -199,8 +200,9 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
-	client *plsclient.Client   // Client connection to the Ethereum chain
-	index  []byte              // Index page to serve up on the web
+	// pls	   *pls.plasma		   // Full Ethereum service if monitoring a full node
+	client *plsclient.Client // Client connection to the Ethereum chain
+	index  []byte            // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
 	account  accounts.Account   // Account funding user faucet requests
@@ -252,6 +254,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+			// var serv *les.LightEthereum
 			var serv *pls.Plasma
 			ctx.Service(&serv)
 			return ethstats.New(stats, serv, nil)
@@ -471,7 +474,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			username, avatar, address, err = authNoAuth(msg.URL)
 		default:
 			//lint:ignore ST1005 This error is to be displayed in the browser
-			err = errors.New("Something funky happened, please open an issue at https://github.com/ethereum/go-ethereum/issues")
+			err = errors.New("Something funky happened, please open an issue at https://github.com/Onther-Tech/plasma-evm/issues")
 		}
 		if err != nil {
 			if err = sendError(conn, err); err != nil {

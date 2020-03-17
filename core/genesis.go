@@ -155,10 +155,11 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, genesis, rootChainContract, operator, staminaConfig, instanceDir, nil)
+	return SetupGenesisBlockWithOverride(db, genesis, rootChainContract, operator, staminaConfig, instanceDir, nil, nil)
 }
 
-func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, rootChainContract common.Address, operator common.Address, staminaConfig *StaminaConfig, instanceDir string, overrideIstanbul *big.Int) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, rootChainContract common.Address,
+	operator common.Address, staminaConfig *StaminaConfig, instanceDir string, overrideIstanbul, overrideMuirGlacier *big.Int) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -235,6 +236,12 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, genesis *Genesis, rootChai
 	newcfg := genesis.configOrDefault(stored)
 	if overrideIstanbul != nil {
 		newcfg.IstanbulBlock = overrideIstanbul
+	}
+	if overrideMuirGlacier != nil {
+		newcfg.MuirGlacierBlock = overrideMuirGlacier
+	}
+	if err := newcfg.CheckConfigForkOrder(); err != nil {
+		return newcfg, common.Hash{}, err
 	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
@@ -324,6 +331,13 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+	config := g.Config
+	if config == nil {
+		config = params.AllEthashProtocolChanges
+	}
+	if err := config.CheckConfigForkOrder(); err != nil {
+		return nil, err
+	}
 	rawdb.WriteTd(db, block.Hash(), block.NumberU64(), g.Difficulty)
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
@@ -331,11 +345,6 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	rawdb.WriteHeadBlockHash(db, block.Hash())
 	rawdb.WriteHeadFastBlockHash(db, block.Hash())
 	rawdb.WriteHeadHeaderHash(db, block.Hash())
-
-	config := g.Config
-	if config == nil {
-		config = params.AllEthashProtocolChanges
-	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	return block, nil
 }

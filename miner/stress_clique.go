@@ -37,6 +37,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/miner"
 	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/p2p"
 	"github.com/Onther-Tech/plasma-evm/p2p/enode"
@@ -199,7 +200,7 @@ func makeSealer(genesis *core.Genesis) (*node.Node, error) {
 			DatabaseHandles: 256,
 			TxPool:          core.DefaultTxPoolConfig,
 			GPO:             eth.DefaultConfig.GPO,
-			Miner: Config{
+			Miner: miner.Config{
 				GasFloor: genesis.GasLimit * 9 / 10,
 				GasCeil:  genesis.GasLimit * 11 / 10,
 				GasPrice: big.NewInt(1),

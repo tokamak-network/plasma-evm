@@ -36,7 +36,7 @@ import (
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/miner/epoch"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (
@@ -133,6 +133,8 @@ type worker struct {
 
 	env *epoch.EpochEnvironment
 	db  ethdb.Database
+	// Feeds
+	pendingLogsFeed event.Feed
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -184,7 +186,7 @@ type worker struct {
 	epochLength *big.Int // NRB epoch length
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, pls Backend, env *epoch.EpochEnvironment, mux *event.TypeMux, db ethdb.Database, isLocalBlock func(*types.Block) bool) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, pls Backend, env *epoch.EpochEnvironment, mux *event.TypeMux, db ethdb.Database, isLocalBlock func(*types.Block) bool, init bool) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -229,8 +231,9 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	go worker.taskLoop()
 
 	// Submit first work to initialize pending state.
-	worker.startCh <- struct{}{}
-
+	if init {
+		worker.startCh <- struct{}{}
+	}
 	return worker
 }
 
@@ -617,7 +620,7 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// Commit block and state to database.
-			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
+			_, err := w.chain.WriteBlockWithState(block, receipts, logs, task.state, true)
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
 				continue
@@ -637,24 +640,14 @@ func (w *worker) resultLoop() {
 			rawdb.WriteEpochEnv(w.db, w.env)
 			w.env.Unlock()
 
-			// Insert the block into the set of pending ones to resultLoop for confirmations
-			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-
 			// clear pending request transactions
 			w.pls.TxPool().RemovePendingRequests()
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 
-			var events []interface{}
-			switch stat {
-			case core.CanonStatTy:
-				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				events = append(events, core.ChainHeadEvent{Block: block})
-			case core.SideStatTy:
-				events = append(events, core.ChainSideEvent{Block: block})
-			}
-			w.chain.PostChainEvents(events, logs)
+			// Insert the block into the set of pending ones to resultLoop for confirmations
+			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
 		case <-w.exitCh:
 			return
@@ -747,7 +740,7 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
+	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
@@ -861,7 +854,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 			cpy[i] = new(types.Log)
 			*cpy[i] = *l
 		}
-		go w.mux.Post(core.PendingLogsEvent{Logs: cpy})
+		w.pendingLogsFeed.Send(cpy)
 	}
 	// Notify resubmit loop to decrease resubmitting interval if current interval is larger
 	// than the user-specified one.
@@ -943,7 +936,7 @@ func (w *worker) commitRequestTransactions(rtxs types.Transactions, coinbase com
 			cpy[i] = new(types.Log)
 			*cpy[i] = *l
 		}
-		go w.mux.Post(core.PendingLogsEvent{Logs: cpy})
+		w.pendingLogsFeed.Send(cpy)
 	}
 	// Notify resubmit loop to decrease resubmitting interval if current interval is larger
 	// than the user-specified one.
@@ -985,10 +978,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			log.Error("Refusing to mine without etherbase")
 			return
 		}
-
 		header.Coinbase = w.coinbase
 	}
-
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1095,7 +1086,6 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 	// 	header.Difficulty.Add(header.Difficulty, big.NewInt(1))
 	// }
 
-	// TODO: delete because pls block is frontier spec
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
 	if daoBlock := w.chainConfig.DAOForkBlock; daoBlock != nil {
 		// Check whether the block is among the fork extra-override range
@@ -1124,6 +1114,7 @@ func (w *worker) commitNewWorkForORB(interrupt *int32, noempty bool, timestamp i
 	// moscow: disable uncle blocks
 	uncles := make([]*types.Header, 0, 2)
 
+	// Short circuit if there is no available pending request transactions
 	requestTxs, _ := w.pls.TxPool().PendingRequests()
 	if len(requestTxs) == 0 {
 		w.updateSnapshot()
@@ -1176,4 +1167,12 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		w.updateSnapshot()
 	}
 	return nil
+}
+
+// postSideBlock fires a side chain event, only use it for testing.
+func (w *worker) postSideBlock(event core.ChainSideEvent) {
+	select {
+	case w.chainSideCh <- event:
+	case <-w.exitCh:
+	}
 }

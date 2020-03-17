@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/jackpal/go-nat-pmp"
+	natpmp "github.com/jackpal/go-nat-pmp"
 )
 
 // An implementation of nat.Interface can map local ports to ports

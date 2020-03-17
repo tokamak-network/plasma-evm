@@ -45,7 +45,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
-	"github.com/Onther-Tech/plasma-evm/dashboard"
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/ethstats"
@@ -83,6 +82,17 @@ SUBCOMMANDS:
 {{range $categorized.Flags}}{{"\t"}}{{.}}
 {{end}}
 {{end}}{{end}}`
+
+	OriginCommandHelpTemplate = `{{.Name}}{{if .Subcommands}} command{{end}}{{if .Flags}} [command options]{{end}} [arguments...]
+{{if .Description}}{{.Description}}
+{{end}}{{if .Subcommands}}
+SUBCOMMANDS:
+	{{range .Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+	{{end}}{{end}}{{if .Flags}}
+OPTIONS:
+{{range $.Flags}}{{"\t"}}{{.}}
+{{end}}
+{{end}}`
 )
 
 func init() {
@@ -233,6 +243,10 @@ var (
 		Name:  "override.istanbul",
 		Usage: "Manually specify Istanbul fork-block, overriding the bundled setting",
 	}
+	OverrideMuirGlacierFlag = cli.Uint64Flag{
+		Name:  "override.muirglacier",
+		Usage: "Manually specify Muir Glacier fork-block, overriding the bundled setting",
+	}
 	// Light server and client settings
 	LightLegacyServFlag = cli.IntFlag{ // Deprecated in favor of light.serve, remove in 2021
 		Name:  "lightserv",
@@ -277,26 +291,6 @@ var (
 	UltraLightOnlyAnnounceFlag = cli.BoolFlag{
 		Name:  "ulc.onlyannounce",
 		Usage: "Ultra light server sends announcements only",
-	}
-	// Dashboard settings
-	DashboardEnabledFlag = cli.BoolFlag{
-		Name:  "dashboard",
-		Usage: "Enable the dashboard",
-	}
-	DashboardAddrFlag = cli.StringFlag{
-		Name:  "dashboard.addr",
-		Usage: "Dashboard listening interface",
-		Value: dashboard.DefaultConfig.Host,
-	}
-	DashboardPortFlag = cli.IntFlag{
-		Name:  "dashboard.host",
-		Usage: "Dashboard listening port",
-		Value: dashboard.DefaultConfig.Port,
-	}
-	DashboardRefreshFlag = cli.DurationFlag{
-		Name:  "dashboard.refresh",
-		Usage: "Dashboard metrics collection refresh rate",
-		Value: dashboard.DefaultConfig.Refresh,
 	}
 	// Ethash settings
 	EthashCacheDirFlag = DirectoryFlag{
@@ -1602,9 +1596,12 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
-	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
-	cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
-
+	if ctx.GlobalIsSet(GCModeFlag.Name) {
+		cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
+	}
+	if ctx.GlobalIsSet(CacheNoPrefetchFlag.Name) {
+		cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
@@ -1865,13 +1862,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	cfg.OperatorMinEther = big.NewInt(int64(params.Ether))
 }
 
-// SetDashboardConfig applies dashboard related command line flags to the config.
-func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
-	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
-	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
-	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
-}
-
 // RegisterPlsService adds an Plasma client to the stack.
 func RegisterPlsService(stack *node.Node, cfg *pls.Config) {
 	var err error
@@ -1892,13 +1882,6 @@ func RegisterPlsService(stack *node.Node, cfg *pls.Config) {
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
-}
-
-// RegisterDashboardService adds a dashboard to the stack.
-func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
-	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return dashboard.New(cfg, commit, ctx.ResolvePath("logs")), nil
-	})
 }
 
 // RegisterShhService configures Whisper and adds it to the given node.

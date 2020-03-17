@@ -184,7 +184,7 @@ func init() {
 
 	ethClient, err = ethclient.Dial(testPlsConfig.RootChainURL)
 	if err != nil {
-		log.Error("Failed to connect rootchian provider", "err", err)
+		log.Error("Failed to connect rootchain provider", "err", err)
 	}
 
 	networkId, err := ethClient.NetworkID(context.Background())

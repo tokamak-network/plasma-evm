@@ -172,7 +172,7 @@ func (r *ReceiptsRequest) Validate(db ethdb.Database, msg *Msg) error {
 	if r.Header == nil {
 		return errHeaderUnavailable
 	}
-	if r.Header.ReceiptHash != types.DeriveSha(receipt) {
+	if r.Header.ReceiptHash != types.DeriveShaFromBMT(receipt) {
 		return errReceiptHashMismatch
 	}
 	// Validations passed, store and return
@@ -377,14 +377,14 @@ func (r *ChtRequest) Validate(db ethdb.Database, msg *Msg) error {
 		var encNumber [8]byte
 		binary.BigEndian.PutUint64(encNumber[:], r.BlockNum)
 
-	reads := &readTraceDB{db: nodeSet}
-	value, _, err := trie.VerifyProof(r.ChtRoot, encNumber[:], reads)
-	if err != nil {
-		return fmt.Errorf("merkle proof verification failed: %v", err)
-	}
-	if len(reads.reads) != nodeSet.KeyCount() {
-		return errUselessNodes
-	}
+		reads := &readTraceDB{db: nodeSet}
+		value, _, err := trie.VerifyProof(r.ChtRoot, encNumber[:], reads)
+		if err != nil {
+			return fmt.Errorf("merkle proof verification failed: %v", err)
+		}
+		if len(reads.reads) != nodeSet.KeyCount() {
+			return errUselessNodes
+		}
 
 		if err := rlp.DecodeBytes(value, &node); err != nil {
 			return err

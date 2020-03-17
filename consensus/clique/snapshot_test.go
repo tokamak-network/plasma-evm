@@ -502,4 +502,3 @@ func TestClique(t *testing.T) {
 		}
 	}
 }
-}
