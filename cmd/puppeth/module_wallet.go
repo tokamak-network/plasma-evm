@@ -30,7 +30,7 @@ import (
 
 // walletDockerfile is the Dockerfile required to run a web wallet.
 var walletDockerfile = `
-FROM puppeth/wallet:latest
+FROM {{.Image}}
 
 ADD genesis.json /genesis.json
 
@@ -81,13 +81,14 @@ services:
 // deployWallet deploys a new web wallet container to a remote machine via SSH,
 // docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
-func deployWallet(client *sshClient, network string, bootnodes []string, config *walletInfos, nocache bool) ([]byte, error) {
+func deployWallet(client *sshClient, network string, image string, bootnodes []string, config *walletInfos, nocache bool) ([]byte, error) {
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
 
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(walletDockerfile)).Execute(dockerfile, map[string]interface{}{
+		"Image":     image,
 		"Network":   strings.ToTitle(network),
 		"Denom":     strings.ToUpper(network),
 		"NetworkID": config.network,

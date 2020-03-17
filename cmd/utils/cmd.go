@@ -337,13 +337,13 @@ func ExportGenesisFromDB(db ethdb.Reader, fn string) error {
 		return err
 	}
 
-	log.Info("Exported genesis", "file", fn)
+	log.Info("Exported genesis", "path", fn)
 	return nil
 }
 
 // ExportGenesis exports the genesis block into the specified file.
 func ExportGenesis(genesis *core.Genesis, fn string) error {
-	log.Info("Exporting genesis", "file", fn)
+	log.Info("Exporting genesis", "path", fn)
 
 	data, err := genesis.MarshalJSON()
 	if err != nil {

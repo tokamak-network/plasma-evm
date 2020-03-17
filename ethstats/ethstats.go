@@ -684,7 +684,8 @@ func (s *Service) reportStats(conn *websocket.Conn) error {
 	)
 	if s.pls != nil {
 		mining = s.pls.Miner().Mining()
-		hashrate = int(s.pls.Miner().HashRate())
+		// hashrate = int(s.pls.Miner().HashRate())
+		hashrate = 0
 
 		sync := s.pls.Downloader().Progress()
 		syncing = s.pls.BlockChain().CurrentHeader().Number.Uint64() >= sync.HighestBlock

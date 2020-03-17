@@ -60,6 +60,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// TODO: use light client, instead of full node
 var (
 	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")

@@ -175,13 +175,15 @@ var (
 		utils.OperatorMinEtherFlag,
 		utils.OperatorAddressFlag,
 		utils.OperatorKeyFlag,
+		utils.OperatorPasswordFileFlag,
 		utils.DeveloperKeyFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
 		utils.TxMinGasPriceFlag,
 		utils.TxMaxGasPriceFlag,
 		utils.TxResubmitFlag,
-		utils.PlasmaRootChainChallenger,
+		utils.ChallengerAddressFlag,
+		utils.ChallengerPasswordFileFlag,
 	}
 
 	staminaFlags = []cli.Flag{
@@ -243,6 +245,8 @@ func init() {
 		dumpConfigCommand,
 		// See retesteth.go
 		retestethCommand,
+		// See stakecmd.go
+		stakingCmd,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

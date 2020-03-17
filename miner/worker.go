@@ -305,7 +305,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   int64      // timestamp for each round of mining.
 	)
 
-	timer := time.NewTimer(recommit)
+	timer := time.NewTimer(0)
+	<-timer.C // discard the initial tick
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32) {
@@ -358,6 +359,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			timer.Reset(recommit)
+			timestamp = time.Now().Unix()
 			commit(true, commitInterruptResubmit)
 
 		// TODO: fix for rebase
@@ -365,6 +367,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
+			commit(true, commitInterruptResubmit)
 
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
@@ -440,6 +443,7 @@ func (w *worker) mainLoop() {
 			}
 
 		case <-w.chainSideCh:
+			// TODO: activate in rebase
 			// moscow: ignore chain side event
 
 			//// Short circuit for duplicate side blocks
