@@ -9291,7 +9291,7 @@ func (_CustomIncrementCoinageMock *CustomIncrementCoinageMockFilterer) ParseTran
 const DSMathABI = "[]"
 
 // DSMathBin is the compiled bytecode used for deploying new contracts.
-var DSMathBin = "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a72315820835d0f37e1207da2fc2224004e6efa210c7e8e2162ae19b8c8b7d3972779837464736f6c634300050c0032"
+var DSMathBin = "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a723158201d3383a4efea7d4c911511edcc2240f991199f32cf3b3c855dd9ffb45f3f45a164736f6c634300050c0032"
 
 // DeployDSMath deploys a new Ethereum contract, binding an instance of DSMath to it.
 func DeployDSMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *DSMath, error) {
@@ -25261,7 +25261,7 @@ func (_SafeERC20 *SafeERC20TransactorRaw) Transact(opts *bind.TransactOpts, meth
 const SafeMathABI = "[]"
 
 // SafeMathBin is the compiled bytecode used for deploying new contracts.
-var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a7231582045f810ccb41cd151344ccf006ddfbe7c3c58a867d26e345c6576ae09178171dc64736f6c634300050c0032"
+var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a7231582046dd4b6ae1e4050bcbf59878bae844150569fafeb4d7acf036f9eddaf4f8031a64736f6c634300050c0032"
 
 // DeploySafeMath deploys a new Ethereum contract, binding an instance of SafeMath to it.
 func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *SafeMath, error) {

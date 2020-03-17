@@ -805,24 +805,11 @@ func (rcm *RootChainManager) runDetector() {
 	}
 }
 
-func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (*PlasmaEpoch, error) {
-
-	b, err := rcm.rootchainContract.GetEpoch(baseCallOpt, forkNumber, epochNumber)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return newPlasmaEpoch(b), nil
+func (rcm *RootChainManager) getEpoch(forkNumber, epochNumber *big.Int) (rootchain.DataEpoch, error) {
+	return rcm.rootchainContract.GetEpoch(baseCallOpt, forkNumber, epochNumber)
 }
-func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (*PlasmaBlock, error) {
-	b, err := rcm.rootchainContract.GetBlock(baseCallOpt, forkNumber, blockNumber)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return newPlasmaBlock(b), nil
+func (rcm *RootChainManager) getBlock(forkNumber, blockNumber *big.Int) (rootchain.DataPlasmaBlock, error) {
+	return rcm.rootchainContract.GetBlock(baseCallOpt, forkNumber, blockNumber)
 }
 func (rcm *RootChainManager) lastBlock(forkNumber *big.Int, pending bool) (*big.Int, error) {
 	baseCallOpt := &bind.CallOpts{Pending: pending, Context: context.Background()}
