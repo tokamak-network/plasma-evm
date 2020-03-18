@@ -32,7 +32,7 @@ import (
 var bootnodeDockerfile = `
 FROM {{.Image}}
 
-EXPOSE 30301 30301/udp
+EXPOSE {{.Port}} {{.Port}}/udp
 
 RUN echo $'/usr/local/bin/bootnode -nodekeyhex {{.NodeKey}} -nat extip:{{.Host}} -addr :{{.Port}} -verbosity 6' > run.bootnode.sh
 
