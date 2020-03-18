@@ -47,7 +47,9 @@ services:
     build: .
     image: {{.Network}}/bootnode
     container_name: {{.Network}}_bootnode_1
-    network_mode: "host"
+    ports:
+      - "{{.Port}}:{{.Port}}"
+      - "{{.Port}}:{{.Port}}/udp"
     environment:
       - BOOTNODE_ADDR={{.Enode}}
       - BOOTNODE_PORT={{.Port}}
