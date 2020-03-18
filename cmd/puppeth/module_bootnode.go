@@ -27,7 +27,7 @@ import (
 	"strings"
 )
 
-// bootnodeDockerfile is the Dockerfile required to build a faucet container to
+// bootnodeDockerfile is the Dockerfile required to build a bootnode container to
 // grant crypto tokens based on GitHub authentications.
 var bootnodeDockerfile = `
 FROM {{.Image}}
