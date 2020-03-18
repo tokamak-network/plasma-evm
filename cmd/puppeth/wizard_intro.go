@@ -34,15 +34,15 @@ func makeWizard(network string, images map[string]string, bootnodes []string) *w
 	return &wizard{
 		network: network,
 		conf: config{
-			Servers: make(map[string][]byte),
-			bootnodes: bootnodes,
+			Servers:         make(map[string][]byte),
+			bootnodes:       bootnodes,
 			static_bootnode: len(bootnodes),
 		},
 		images:   images,
 		servers:  make(map[string]*sshClient),
 		services: make(map[string][]string),
 
-		in:       bufio.NewReader(os.Stdin),
+		in: bufio.NewReader(os.Stdin),
 	}
 }
 

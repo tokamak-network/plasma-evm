@@ -104,7 +104,7 @@ func runWizard(c *cli.Context) error {
 	network := c.String("network")
 	images := map[string]string{
 		"ethstats":  c.String("images.ethstats"),
-		"bootnode": c.String("images.bootnode"),
+		"bootnode":  c.String("images.bootnode"),
 		"node":      c.String("images.node"),
 		"explorer":  c.String("images.explorer"),
 		"nginx":     c.String("images.nginx"),

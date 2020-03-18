@@ -17,14 +17,14 @@
 package main
 
 import (
-	"encoding/hex"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 
-	"github.com/Onther-Tech/plasma-evm/log"
-	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
+	"github.com/Onther-Tech/plasma-evm/crypto"
+	"github.com/Onther-Tech/plasma-evm/log"
 )
 
 // deployBootnode queries the user for various input on deploying an bootnode
@@ -46,8 +46,8 @@ func (w *wizard) deployBootnode() {
 	}
 
 	infos := &bootnodeInfos{
-		host:   client.server,
-		port:   30301,
+		host:    client.server,
+		port:    30301,
 		nodekey: hex.EncodeToString(crypto.FromECDSA(nodeKeyHex)),
 	}
 

@@ -148,8 +148,8 @@ func checkBootnode(client *sshClient, network string) (*bootnodeInfos, error) {
 	}
 	// Container available, assemble and return the useful infos
 	return &bootnodeInfos{
-		host: host,
-		port: port,
+		host:  host,
+		port:  port,
 		enode: enode,
 	}, nil
 }
