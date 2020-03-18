@@ -34,8 +34,7 @@ FROM {{.Image}}
 
 EXPOSE 30301 30301/udp
 
-WORKDIR /usr/local/bin
-RUN echo $'bootnode -nodekeyhex {{.NodeKey}} -nat extip:{{.Host}} -addr :{{.Port}} -verbosity 6' > run.bootnode.sh
+RUN echo $'/usr/local/bin/bootnode -nodekeyhex {{.NodeKey}} -nat extip:{{.Host}} -addr :{{.Port}} -verbosity 6' > run.bootnode.sh
 
 ENTRYPOINT ["/bin/sh", "run.bootnode.sh"]
 `
