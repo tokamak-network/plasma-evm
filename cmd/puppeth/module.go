@@ -150,3 +150,13 @@ func checkPort(host string, port int) error {
 	conn.Close()
 	return nil
 }
+
+func checkUDPPort(host string, port int) error {
+	log.Trace("Verifying remote UDP connectivity", "server", host, "port", port)
+	conn, err := net.DialTimeout("udp", fmt.Sprintf("%s:%d", host, port), time.Second)
+	if err != nil {
+		return err
+	}
+	conn.Close()
+	return nil
+}

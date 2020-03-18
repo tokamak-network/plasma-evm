@@ -174,25 +174,28 @@ func (w *wizard) deployComponent() {
 	fmt.Println(" 1. Ethstats  - Network monitoring tool")
 	fmt.Println(" 2. Bootnode  - Entry point of the network")
 	fmt.Println(" 3. Sealer    - Full node minting new blocks")
-	fmt.Println(" 4. Explorer  - Chain analysis webservice")
-	fmt.Println(" 5. Wallet    - Browser wallet for quick sends")
-	fmt.Println(" 6. Faucet    - Crypto faucet to give away funds")
-	fmt.Println(" 7. Dashboard - Website listing above web-services")
+	fmt.Println(" 4. Usernode  - Full node for user, not mining")
+	fmt.Println(" 5. Explorer  - Chain analysis webservice")
+	fmt.Println(" 6. Wallet    - Browser wallet for quick sends")
+	fmt.Println(" 7. Faucet    - Crypto faucet to give away funds")
+	fmt.Println(" 8. Dashboard - Website listing above web-services")
 
 	switch w.read() {
 	case "1":
 		w.deployEthstats()
 	case "2":
-		w.deployNode(true)
+		w.deployBootnode()
 	case "3":
 		w.deployNode(false)
 	case "4":
-		w.deployExplorer()
+		w.deployNode(true)
 	case "5":
-		w.deployWallet()
+		w.deployExplorer()
 	case "6":
-		w.deployFaucet()
+		w.deployWallet()
 	case "7":
+		w.deployFaucet()
+	case "8":
 		w.deployDashboard()
 	default:
 		log.Error("That's not something I can do")
