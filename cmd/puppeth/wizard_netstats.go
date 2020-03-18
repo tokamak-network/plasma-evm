@@ -37,7 +37,7 @@ func (w *wizard) networkStats() {
 	}
 	// Clear out some previous configs to refill from current scan
 	w.conf.ethstats = ""
-	w.conf.bootnodes = w.conf.bootnodes[:w.conf.static_bootnode]
+	w.conf.bootnodes = w.conf.bootnodes[:w.conf.numBootNodes]
 
 	// Iterate over all the specified hosts and check their status
 	var pend sync.WaitGroup

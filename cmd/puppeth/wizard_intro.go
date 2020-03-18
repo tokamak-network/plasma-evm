@@ -34,9 +34,9 @@ func makeWizard(network string, images map[string]string, bootnodes []string) *w
 	return &wizard{
 		network: network,
 		conf: config{
-			Servers:         make(map[string][]byte),
-			bootnodes:       bootnodes,
-			static_bootnode: len(bootnodes),
+			Servers:      make(map[string][]byte),
+			bootnodes:    bootnodes,
+			numBootNodes: len(bootnodes),
 		},
 		images:   images,
 		servers:  make(map[string]*sshClient),
