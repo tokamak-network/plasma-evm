@@ -70,7 +70,7 @@ Manage staking-related actions in the root chain.
 		Subcommands: []cli.Command{
 			{
 				Name:      "deployManagers",
-				Usage:     "Deploy staking manager contract (except PowerTON)",
+				Usage:     "Deploy staking manager contracts (except PowerTON)",
 				ArgsUsage: "<withdrawalDelay> <seigPerBlock>",
 				Action:    utils.MigrateFlags(deployManagers),
 				Category:  "TON STAKING COMMANDS",
@@ -120,7 +120,7 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 			},
 			{
 				Name:     "startPowerTON",
-				Usage:    "Start PowerTON round",
+				Usage:    "Start PowerTON first round",
 				Action:   utils.MigrateFlags(startPowerTON),
 				Category: "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -145,21 +145,21 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 				Name:      "getManagers",
 				Usage:     "Get staking managers addresses in database",
 				Action:    utils.MigrateFlags(getManagers),
-				ArgsUsage: " <configURL?>",
+				ArgsUsage: "<uri?>",
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
 				Description: `
-    geth staking getManagers
+    geth staking getManagers <uri?>
 
-Get staking contract addresses
+Get staking contracts addresses
 `,
 			},
 			{
 				Name:      "setManagers",
 				Usage:     "Set staking managers addresses in database",
-				ArgsUsage: " <configURL?>",
+				ArgsUsage: "<uri>",
 				Action:    utils.MigrateFlags(setManagers),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -174,9 +174,9 @@ Get staking contract addresses
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-    geth staking deployManagers <withdrawalDelay> <seigPerBlock>
+    geth staking setManagers <uri>
 
-Deploy new manager contracts.
+Set staking contracts addresses
 
 NOTE:
 use --rootchain.ton, --rootchain.wton flags to use already deployed token contracts
@@ -195,12 +195,15 @@ use --rootchain.ton, --rootchain.wton flags to use already deployed token contra
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Register RootChain contract to RootChainRegistry`,
+				geth staking register
+
+Register RootChain contract to RootChainRegistry
+`,
 			},
 			{
 				Name:      "balances",
 				Usage:     "Print balances of token and stake",
-				ArgsUsage: " <to>",
+				ArgsUsage: "<address>",
 				Action:    utils.MigrateFlags(getBalances),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -212,12 +215,15 @@ Register RootChain contract to RootChainRegistry`,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Mint TON to account`,
+				geth staking balances <address>
+
+Mint TON to account
+`,
 			},
 			{
 				Name:      "mintTON",
-				Usage:     "Mint TON to account",
-				ArgsUsage: " <to> <amount>",
+				Usage:     "Mint TON to account (for dev)",
+				ArgsUsage: "<to> <amount>",
 				Action:    utils.MigrateFlags(mintTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -229,7 +235,10 @@ Mint TON to account`,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Mint TON to account`,
+				geth staking mintTON <to> <amount>
+
+Mint TON to account
+`,
 			},
 			{
 				Name:      "swapFromTON",
@@ -245,6 +254,8 @@ Mint TON to account`,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
+				geth staking swapFromTON <tonAmount>
+
 Change TON to WTON
 
 NOTE: <tonAmount> is in WAD, (decialms 18)
@@ -264,6 +275,8 @@ NOTE: <tonAmount> is in WAD, (decialms 18)
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
+				geth staking swapToTON <wtonAmount>
+
 Change WTON to TON
 
 NOTE: <wtonAmount> is in RAY, (decialms 27)
@@ -283,7 +296,10 @@ NOTE: <wtonAmount> is in RAY, (decialms 27)
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-Stake WTON`,
+				geth staking stake <amount>
+
+Stake WTON
+`,
 			},
 			{
 				Name:      "requestWithdrawal",
@@ -299,7 +315,10 @@ Stake WTON`,
 					utils.RootChainTONFlag,
 				},
 				Description: `
-Make an unstaking request`,
+				geth staking requestWithdrawal <amount?>
+
+Make an unstaking request. If amount is not given, make a request with all staked amount.
+`,
 			},
 			{
 				Name:      "processWithdrawal",
@@ -315,7 +334,10 @@ Make an unstaking request`,
 					utils.RootChainTONFlag,
 				},
 				Description: `
-Process unstaking requests`,
+				geth staking processWithdrawal <numRequests?>
+
+Process unstaking requests
+`,
 			},
 		},
 	}
