@@ -33,20 +33,19 @@ import (
 
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
-	"github.com/Onther-Tech/plasma-evm/ethclient"
-	"github.com/Onther-Tech/plasma-evm/params"
-
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma"
+	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/state"
 	"github.com/Onther-Tech/plasma-evm/core/types"
+	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/trie"
 	"gopkg.in/urfave/cli.v1"
@@ -82,6 +81,7 @@ It expects the genesis file as argument.`,
 			utils.OperatorKeyFlag,
 			utils.OperatorPasswordFileFlag,
 			utils.DeveloperKeyFlag,
+			utils.StaminaOperatorAmountFlag,
 			utils.StaminaMinDepositFlag,
 			utils.StaminaRecoverEpochLengthFlag,
 			utils.StaminaWithdrawalDelayFlag,
@@ -89,6 +89,14 @@ It expects the genesis file as argument.`,
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The deploy command deploy RootChain contract and make new genesis file.
+
+To set TON address, use 'geth staking setManagers <uri>' or use --rootchain.ton flag.
+
+To configure stamina, use below flags
+	--stamina.operatoramount
+	--stamina.mindeposit
+	--stamina.recoverepochlength
+	--stamina.withdrawaldelay
 
 It expects arguments as below:
  - genesisPath: path to write genesis.json
@@ -300,15 +308,15 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("Failed to get operator address: %v", err)
 	}
 
-	var staminaConfig *core.StaminaConfig
+	var staminaConfig *params.StaminaConfig
 
 	for address, account := range genesis.Alloc {
-		if address == core.StaminaContractAddress {
-			staminaConfig = &core.StaminaConfig{
+		if address == params.StaminaAddress {
+			staminaConfig = &params.StaminaConfig{
 				Initialized:        true,
-				MinDeposit:         account.Storage[core.MinDepositKey].Big(),
-				RecoverEpochLength: account.Storage[core.RecoverEpochLengthKey].Big(),
-				WithdrawalDelay:    account.Storage[core.WithdrawalDelayKey].Big(),
+				MinDeposit:         account.Storage[params.StaminaMinDepositKey].Big(),
+				RecoverEpochLength: account.Storage[params.StaminaRecoverEpochLengthKey].Big(),
+				WithdrawalDelay:    account.Storage[params.StaminaWithdrawalDelayKey].Big(),
 			}
 			break
 		}
@@ -358,6 +366,10 @@ func deployRootChain(ctx *cli.Context) error {
 		return err
 	}
 
+	if chainId == 0 {
+		utils.Fatalf("Chain ID cannot be zero")
+	}
+
 	if ctx.Args().Get(2) == "true" {
 		withPETH = true
 	}
@@ -372,6 +384,21 @@ func deployRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
+	staminaConfig := &params.StaminaConfig{
+		Initialized:        true,
+		OperatorAmount:     params.ToEtherBigInt(ctx.GlobalFloat64(utils.StaminaOperatorAmountFlag.Name)),
+		MinDeposit:         params.ToEtherBigInt(ctx.GlobalFloat64(utils.StaminaMinDepositFlag.Name)),
+		RecoverEpochLength: utils.GlobalBig(ctx, utils.StaminaRecoverEpochLengthFlag.Name),
+		WithdrawalDelay:    utils.GlobalBig(ctx, utils.StaminaWithdrawalDelayFlag.Name),
+	}
+
+	withdrawalDelay := staminaConfig.WithdrawalDelay
+	recoverEpochLength := staminaConfig.RecoverEpochLength
+
+	if new(big.Int).Mul(recoverEpochLength, big.NewInt(2)).Cmp(withdrawalDelay) >= 0 {
+		utils.Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", recoverEpochLength, withdrawalDelay)
+	}
+
 	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
 	opt.GasLimit = 7500000
 	opt.GasPrice = big.NewInt(10 * params.GWei)
@@ -381,18 +408,25 @@ func deployRootChain(ctx *cli.Context) error {
 		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
-	rootchainContract, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, withPETH, development, NRELength)
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+
+	tonAddr := rawdb.ReadTON(stakedb)
+	if ctx.GlobalIsSet(utils.RootChainTONFlag.Name) {
+		_tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
+
+		if (tonAddr != common.Address{}) && tonAddr != _tonAddr {
+			log.Warn("Override TON address", "previous", tonAddr, "new", _tonAddr)
+		}
+		tonAddr = _tonAddr
+	}
+
+	_, genesis, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, staminaConfig, tonAddr, withPETH, development, NRELength)
 	if err != nil {
 		utils.Fatalf("Failed to deploy contracts %v", err)
 	}
-
-	var genesis *core.Genesis
-	if withPETH {
-		genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(utils.DeveloperPeriodFlag.Name)), rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
-	} else {
-		genesis = core.DefaultGenesisBlock(rootchainContract, cfg.Pls.Operator.Address, cfg.Pls.StaminaConfig)
-	}
-
 	genesis.Config.ChainID = big.NewInt(int64(chainId))
 
 	utils.ExportGenesis(genesis, genesisPath)

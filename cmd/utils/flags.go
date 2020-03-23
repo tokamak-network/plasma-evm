@@ -843,20 +843,25 @@ var (
 	}
 
 	// Stamina Flags
-	StaminaMinDepositFlag = BigFlag{
+	StaminaOperatorAmountFlag = cli.Float64Flag{
+		Name:  "stamina.operatoramount",
+		Usage: fmt.Sprintf("Operator stamina amount at genesis block in ETH (default=%0.2f)", params.ToEtherFloat64(params.DefaultOperatorStamina)),
+		Value: params.ToEtherFloat64(params.DefaultOperatorStamina),
+	}
+	StaminaMinDepositFlag = cli.Float64Flag{
 		Name:  "stamina.mindeposit",
-		Usage: "MinDeposit variable state of stamina contract",
-		Value: pls.DefaultConfig.StaminaConfig.MinDeposit,
+		Usage: fmt.Sprintf("Minimum deposit amount in ETH (default=%0.2f)", params.ToEtherFloat64(params.DefaultMinDeposit)),
+		Value: params.ToEtherFloat64(params.DefaultMinDeposit),
 	}
 	StaminaRecoverEpochLengthFlag = BigFlag{
 		Name:  "stamina.recoverepochlength",
-		Usage: "RecoverEpochLength variable state of stamina contract",
-		Value: pls.DefaultConfig.StaminaConfig.RecoverEpochLength,
+		Usage: fmt.Sprintf("The length of recovery epoch in block (default=%d)", params.DefaultRecoverEpochLength.Uint64()),
+		Value: params.DefaultRecoverEpochLength,
 	}
 	StaminaWithdrawalDelayFlag = BigFlag{
 		Name:  "stamina.withdrawaldelay",
-		Usage: "WithdrawalDelay variable state of stamina contract",
-		Value: pls.DefaultConfig.StaminaConfig.WithdrawalDelay,
+		Usage: fmt.Sprintf("Withdrawal delay in block (default=%d)", params.DefaultWithdrawalDelay.Uint64()),
+		Value: params.DefaultWithdrawalDelay,
 	}
 
 	EWASMInterpreterFlag = cli.StringFlag{
@@ -1682,8 +1687,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 	}
 
 	if ctx.GlobalIsSet(OperatorAddressFlag.Name) {
-		hex := ctx.GlobalString(OperatorAddressFlag.Name)
-		operatorAddr = common.HexToAddress(hex)
+		operatorAddr = common.HexToAddress(ctx.GlobalString(OperatorAddressFlag.Name))
 		account, err := ks.Find(accounts.Account{Address: operatorAddr})
 
 		if err != nil {
@@ -1772,20 +1776,6 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 		cfg.RootChainContract = common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
 	}
 
-	if ctx.GlobalIsSet(StaminaMinDepositFlag.Name) {
-		cfg.StaminaConfig.MinDeposit = GlobalBig(ctx, StaminaMinDepositFlag.Name)
-	}
-	if ctx.GlobalIsSet(StaminaRecoverEpochLengthFlag.Name) {
-		cfg.StaminaConfig.RecoverEpochLength = GlobalBig(ctx, StaminaRecoverEpochLengthFlag.Name)
-	}
-	if ctx.GlobalIsSet(StaminaWithdrawalDelayFlag.Name) {
-		cfg.StaminaConfig.WithdrawalDelay = GlobalBig(ctx, StaminaWithdrawalDelayFlag.Name)
-	}
-	if new(big.Int).Mul(cfg.StaminaConfig.RecoverEpochLength, big.NewInt(2)).Cmp(cfg.StaminaConfig.WithdrawalDelay) >= 0 {
-		Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", cfg.StaminaConfig.RecoverEpochLength, cfg.StaminaConfig.WithdrawalDelay)
-	}
-	cfg.StaminaConfig.Initialized = true
-
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
 		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
 	}
@@ -1817,16 +1807,24 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 			log.Info("Deploying contracts for development mode")
 
+			staminaConfig := &params.StaminaConfig{
+				Initialized:        true,
+				OperatorAmount:     params.ToEtherBigInt(ctx.GlobalFloat64(StaminaOperatorAmountFlag.Name)),
+				MinDeposit:         params.ToEtherBigInt(ctx.GlobalFloat64(StaminaMinDepositFlag.Name)),
+				RecoverEpochLength: GlobalBig(ctx, StaminaRecoverEpochLengthFlag.Name),
+				WithdrawalDelay:    GlobalBig(ctx, StaminaWithdrawalDelayFlag.Name),
+			}
+
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
 			opt.GasLimit = 7500000
 			opt.GasPrice = big.NewInt(10 * params.GWei)
 
-			rootchainContract, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, cfg, withPETH, development, NRELength)
+			// TODO: accept TON address in dev mode?
+			rootchainContract, _, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, cfg, staminaConfig, common.Address{}, withPETH, development, NRELength)
 			if err != nil {
 				Fatalf("Failed to deploy contracts %v", err)
 			}
 
-			cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), rootchainContract, operatorAddr, cfg.StaminaConfig)
 			if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
 				cfg.Miner.GasPrice = big.NewInt(1)
 			}
@@ -2006,7 +2004,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	operator := common.Address{1}
 	chainDb = MakeChainDatabase(ctx, stack)
 	rootChainContract := common.HexToAddress(ctx.GlobalString(RootChainContractFlag.Name))
-	staminaConfig := core.DefaultStaminaConfig
+	staminaConfig := params.DefaultStaminaConfig
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx), rootChainContract, operator, staminaConfig, stack.InstanceDir())
 	if err != nil {
 		Fatalf("%v", err)

@@ -187,6 +187,7 @@ var (
 	}
 
 	staminaFlags = []cli.Flag{
+		utils.StaminaOperatorAmountFlag,
 		utils.StaminaMinDepositFlag,
 		utils.StaminaRecoverEpochLengthFlag,
 		utils.StaminaWithdrawalDelayFlag,

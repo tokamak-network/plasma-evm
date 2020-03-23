@@ -280,6 +280,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "PLASMA EVM - STAMINA",
 		Flags: []cli.Flag{
+			utils.StaminaOperatorAmountFlag,
 			utils.StaminaMinDepositFlag,
 			utils.StaminaRecoverEpochLengthFlag,
 			utils.StaminaWithdrawalDelayFlag,
