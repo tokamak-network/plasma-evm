@@ -352,8 +352,8 @@ type ManagerConfig struct {
 	PowerTON          common.Address `json:PowerTON`
 }
 
-func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
-	return &ManagerConfig{
+func getManagerConfig(reader ethdb.Reader, ctx *cli.Context, override bool) *ManagerConfig {
+	managers := &ManagerConfig{
 		TON:               rawdb.ReadTON(reader),
 		WTON:              rawdb.ReadWTON(reader),
 		DepositManager:    rawdb.ReadDepositManager(reader),
@@ -361,6 +361,47 @@ func getManagerConfig(reader ethdb.Reader) *ManagerConfig {
 		SeigManager:       rawdb.ReadSeigManager(reader),
 		PowerTON:          rawdb.ReadPowerTON(reader),
 	}
+
+	if override {
+		tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
+		wtonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainWTONFlag.Name))
+		depositManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainDepositManagerFlag.Name))
+		registryAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainRegistryFlag.Name))
+		seigManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
+		powertonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainPowerTONFlag.Name))
+
+		if (managers.TON != common.Address{}) && managers.TON != tonAddr {
+			log.Warn("Override TON address", "previous", managers.TON, "new", tonAddr)
+		}
+		managers.TON = tonAddr
+
+		if (managers.WTON != common.Address{}) && managers.WTON != wtonAddr {
+			log.Warn("Override WTON address", "previous", managers.WTON, "new", wtonAddr)
+		}
+		managers.WTON = wtonAddr
+
+		if (managers.DepositManager != common.Address{}) && managers.DepositManager != depositManagerAddr {
+			log.Warn("Override DepositManager address", "previous", managers.DepositManager, "new", depositManagerAddr)
+		}
+		managers.DepositManager = depositManagerAddr
+
+		if (managers.RootChainRegistry != common.Address{}) && managers.RootChainRegistry != registryAddr {
+			log.Warn("Override RootChainRegistry address", "previous", managers.RootChainRegistry, "new", registryAddr)
+		}
+		managers.RootChainRegistry = registryAddr
+
+		if (managers.SeigManager != common.Address{}) && managers.SeigManager != seigManagerAddr {
+			log.Warn("Override SeigManager address", "previous", managers.SeigManager, "new", seigManagerAddr)
+		}
+		managers.SeigManager = seigManagerAddr
+
+		if (managers.PowerTON != common.Address{}) && managers.PowerTON != powertonAddr {
+			log.Warn("Override WTON address", "previous", managers.PowerTON, "new", powertonAddr)
+		}
+		managers.PowerTON = powertonAddr
+	}
+
+	return managers
 }
 
 func parseIntString(str string, decimals int) string {
@@ -419,7 +460,7 @@ func deployManagers(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -470,11 +511,11 @@ func deployManagers(ctx *cli.Context) error {
 
 	log.Info("Staking manager contract deployed", "TON", tonAddr, "WTON", wtonAddr, "RootChainRegistry", registryAddr, "DepositManager", depositManagerAddr, "SeigManager", seigManagerAddr)
 
-	rawdb.WriteTON(chaindb, tonAddr)
-	rawdb.WriteWTON(chaindb, wtonAddr)
-	rawdb.WriteRegistry(chaindb, registryAddr)
-	rawdb.WriteDepositManager(chaindb, depositManagerAddr)
-	rawdb.WriteSeigManager(chaindb, seigManagerAddr)
+	rawdb.WriteTON(stakedb, tonAddr)
+	rawdb.WriteWTON(stakedb, wtonAddr)
+	rawdb.WriteRegistry(stakedb, registryAddr)
+	rawdb.WriteDepositManager(stakedb, depositManagerAddr)
+	rawdb.WriteSeigManager(stakedb, seigManagerAddr)
 
 	return nil
 }
@@ -494,13 +535,14 @@ func deployPowerTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	wtonAddr := managers.WTON
 	seigManagerAddr := managers.SeigManager
@@ -543,7 +585,7 @@ func deployPowerTON(ctx *cli.Context) error {
 
 	log.Info("PowerTON deployed", "PowerTON", powertonAddr, "WTON", wtonAddr, "SeigManager", seigManagerAddr)
 
-	rawdb.WritePowerTON(chaindb, powertonAddr)
+	rawdb.WritePowerTON(stakedb, powertonAddr)
 
 	return nil
 }
@@ -551,13 +593,13 @@ func deployPowerTON(ctx *cli.Context) error {
 func startPowerTON(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	powertonAddr := managers.PowerTON
 
@@ -606,13 +648,15 @@ func getManagers(ctx *cli.Context) error {
 
 	stack, _ := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	b, err := json.MarshalIndent(managers, "", "  ")
 	data := string(b)
@@ -716,7 +760,7 @@ func setManagers(ctx *cli.Context) error {
 
 	stack, _ := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 		return err
@@ -774,12 +818,12 @@ func setManagers(ctx *cli.Context) error {
 			continue
 		}
 
-		addr := target.read(chaindb)
+		addr := target.read(stakedb)
 
 		switch addr {
 		case common.Address{}:
 			log.Info("Set address", "name", target.name, "addr", target.addr)
-			target.write(chaindb, target.addr)
+			target.write(stakedb, target.addr)
 		case target.addr:
 			log.Info("Address is already set", "name", target.name, "addr", target.addr)
 		default:
@@ -812,12 +856,12 @@ func getRootChainAddr(datadir string) (rootchainAddr common.Address, err error) 
 func registerRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -939,12 +983,12 @@ func getBalances(ctx *cli.Context) error {
 
 	log.Info("cfg.Node.DataDir", "v", filepath.Join(cfg.Node.DataDir, "geth", "genesis.json"))
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1103,12 +1147,12 @@ func mintTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1203,12 +1247,12 @@ func swapFromTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1283,12 +1327,12 @@ func swapToTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
@@ -1359,7 +1403,7 @@ func stakeWTON(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
@@ -1369,7 +1413,7 @@ func stakeWTON(ctx *cli.Context) error {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1455,7 +1499,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
@@ -1465,7 +1509,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1551,7 +1595,7 @@ func processWithdrawal(ctx *cli.Context) error {
 
 	stack, cfg := makeConfigNode(ctx)
 
-	chaindb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
@@ -1561,7 +1605,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		return err
 	}
 
-	managers := getManagerConfig(chaindb)
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||

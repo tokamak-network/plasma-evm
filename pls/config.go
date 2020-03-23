@@ -70,8 +70,6 @@ var DefaultConfig = Config{
 
 	OperatorMinEther: big.NewInt(0.5 * params.Ether),
 
-	StaminaConfig: core.DefaultStaminaConfig,
-
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
 		Blocks:     20,
@@ -106,9 +104,6 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
-
-	// Stamina config
-	StaminaConfig *core.StaminaConfig
 
 	TxConfig tx.Config
 
@@ -191,5 +186,4 @@ type Config struct {
 
 	// MuirGlacier block override (TODO: remove after the fork)
 	OverrideMuirGlacier *big.Int
-
 }
