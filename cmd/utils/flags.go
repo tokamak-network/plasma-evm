@@ -845,22 +845,22 @@ var (
 	// Stamina Flags
 	StaminaOperatorAmountFlag = cli.Float64Flag{
 		Name:  "stamina.operatoramount",
-		Usage: fmt.Sprintf("Operator stamina amount at genesis block in ETH (default=%0.2f)", params.ToEtherFloat64(params.DefaultOperatorStamina)),
+		Usage: "Operator stamina amount at genesis block in ETH",
 		Value: params.ToEtherFloat64(params.DefaultOperatorStamina),
 	}
 	StaminaMinDepositFlag = cli.Float64Flag{
 		Name:  "stamina.mindeposit",
-		Usage: fmt.Sprintf("Minimum deposit amount in ETH (default=%0.2f)", params.ToEtherFloat64(params.DefaultMinDeposit)),
+		Usage: "Minimum deposit amount in ETH",
 		Value: params.ToEtherFloat64(params.DefaultMinDeposit),
 	}
 	StaminaRecoverEpochLengthFlag = BigFlag{
 		Name:  "stamina.recoverepochlength",
-		Usage: fmt.Sprintf("The length of recovery epoch in block (default=%d)", params.DefaultRecoverEpochLength.Uint64()),
+		Usage: "The length of recovery epoch in block",
 		Value: params.DefaultRecoverEpochLength,
 	}
 	StaminaWithdrawalDelayFlag = BigFlag{
 		Name:  "stamina.withdrawaldelay",
-		Usage: fmt.Sprintf("Withdrawal delay in block (default=%d)", params.DefaultWithdrawalDelay.Uint64()),
+		Usage: "Withdrawal delay in block",
 		Value: params.DefaultWithdrawalDelay,
 	}
 
