@@ -1460,8 +1460,8 @@ func (pool *TxPool) truncateQueue() {
 // moscow - arbitrary msg & header & author
 func (pool *TxPool) newStaticEVM() *vm.EVM {
 	msg := types.NewMessage(
-		blockchainAccount.Address(),
-		&StaminaContractAddress,
+		params.NullAddress,
+		&params.StaminaAddress,
 		0,
 		big.NewInt(0),
 		1000000,

@@ -12,10 +12,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/consensus/ethash"
 	"github.com/Onther-Tech/plasma-evm/core"
+	"github.com/Onther-Tech/plasma-evm/core/rawdb"
 	"github.com/Onther-Tech/plasma-evm/core/types"
 	"github.com/Onther-Tech/plasma-evm/core/vm"
 	"github.com/Onther-Tech/plasma-evm/crypto"
-	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
 )
 
@@ -42,7 +42,7 @@ var (
 )
 
 func TestStamina(t *testing.T) {
-	staminaBinBytes, err := hex.DecodeString(core.StaminaContractDeployedBin[2:])
+	staminaBinBytes, err := hex.DecodeString(params.StaminaContractDeployedBin[2:])
 	if err != nil {
 		panic(err)
 	}
@@ -51,13 +51,13 @@ func TestStamina(t *testing.T) {
 		delegateeAddr: {Balance: big.NewInt(10000000000)},
 		addr1:         {Balance: big.NewInt(0)},
 		addr2:         {Balance: big.NewInt(10000000000)},
-		core.StaminaContractAddress: {
+		params.StaminaAddress: {
 			Code:    staminaBinBytes,
 			Balance: big.NewInt(0),
 		},
 	}, 10000000000)
 
-	staminaContract, err := NewStamina(delegateeOpt, core.StaminaContractAddress, contractBackend)
+	staminaContract, err := NewStamina(delegateeOpt, params.StaminaAddress, contractBackend)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -191,30 +191,30 @@ func TestStamina(t *testing.T) {
 
 func TestGetDefaultStaminaFromStorageKey(t *testing.T) {
 	var (
-		defaultStaminaConfig = core.DefaultStaminaConfig
+		defaultStaminaConfig = params.DefaultStaminaConfig
 		operator             = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 	)
 
 	gspec := core.DefaultGenesisBlock(common.Address{}, operator, defaultStaminaConfig)
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 	gspec.MustCommit(db)
 	blockchain, _ := core.NewBlockChain(db, nil, params.MainnetChainConfig, ethash.NewFaker(), vm.Config{EnablePreimageRecording: true}, nil)
 
 	statedb, _ := blockchain.State()
-	stamina := statedb.GetState(core.StaminaContractAddress, core.GetStaminaKey(operator))
-	if common.BytesToHash(core.DefaultStamina.Bytes()) != common.BytesToHash(stamina.Bytes()) {
-		t.Fatalf("unexpected value: want %x, got %x", core.DefaultStamina, stamina)
+	stamina := statedb.GetState(params.StaminaAddress, params.GetStaminaKey(operator))
+	if common.BytesToHash(params.DefaultOperatorStamina.Bytes()) != common.BytesToHash(stamina.Bytes()) {
+		t.Fatalf("unexpected value: want %x, got %x", params.DefaultOperatorStamina, stamina)
 	}
 }
 
 func TestStaminaGenesisConfig(t *testing.T) {
-	defaultStaminaConfig := core.DefaultStaminaConfig
+	defaultStaminaConfig := params.DefaultStaminaConfig
 	g := core.DefaultGenesisBlock(common.Address{}, common.Address{1}, defaultStaminaConfig)
 	gNumber := big.NewInt(0)
 	ctx := context.Background()
 	contractBackend := backends.NewSimulatedBackend(g.Alloc, 10000000000)
 
-	initialized, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.InitializedKey, gNumber)
+	initialized, err := contractBackend.StorageAt(ctx, params.StaminaAddress, params.StaminaInitializedKey, gNumber)
 	if !common.ByteToBool(initialized[31]) {
 		t.Errorf("unexpected value: want %t, got %t", true, common.ByteToBool(initialized[31]))
 	}
@@ -222,7 +222,7 @@ func TestStaminaGenesisConfig(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	minDeposit, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.MinDepositKey, gNumber)
+	minDeposit, err := contractBackend.StorageAt(ctx, params.StaminaAddress, params.StaminaMinDepositKey, gNumber)
 	if common.BytesToHash(minDeposit) != common.BytesToHash(defaultStaminaConfig.MinDeposit.Bytes()) {
 		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.MinDeposit.Bytes()), common.ToHex(minDeposit))
 	}
@@ -230,7 +230,7 @@ func TestStaminaGenesisConfig(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	recoverEpochLength, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.RecoverEpochLengthKey, gNumber)
+	recoverEpochLength, err := contractBackend.StorageAt(ctx, params.StaminaAddress, params.StaminaRecoverEpochLengthKey, gNumber)
 	if common.BytesToHash(recoverEpochLength) != common.BytesToHash(defaultStaminaConfig.RecoverEpochLength.Bytes()) {
 		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.RecoverEpochLength.Bytes()), common.ToHex(recoverEpochLength))
 	}
@@ -238,7 +238,7 @@ func TestStaminaGenesisConfig(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	withdrawalDelay, err := contractBackend.StorageAt(ctx, core.StaminaContractAddress, core.WithdrawalDelayKey, gNumber)
+	withdrawalDelay, err := contractBackend.StorageAt(ctx, params.StaminaAddress, params.StaminaWithdrawalDelayKey, gNumber)
 	if common.BytesToHash(withdrawalDelay) != common.BytesToHash(defaultStaminaConfig.WithdrawalDelay.Bytes()) {
 		t.Errorf("unexpected value: want %x, got %x", common.ToHex(defaultStaminaConfig.WithdrawalDelay.Bytes()), common.ToHex(withdrawalDelay))
 	}

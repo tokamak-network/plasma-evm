@@ -16,6 +16,8 @@
 
 package params
 
+import "math/big"
+
 // These are the multipliers for ether denominations.
 // Example: To get the wei value of an amount in 'gwei', use
 //
@@ -26,3 +28,20 @@ const (
 	GWei  = 1e9
 	Ether = 1e18
 )
+
+func ToEtherBigInt(v float64) *big.Int {
+	return new(big.Int).Mul(big.NewInt(int64(v*GWei)), big.NewInt(GWei))
+}
+
+func ToGWeiBigInt(v float64) *big.Int {
+	return big.NewInt(int64(v * GWei))
+}
+
+func ToEtherFloat64(v *big.Int) float64 {
+	b := new(big.Int).Div(v, big.NewInt(GWei))
+	return float64(b.Uint64()) / GWei
+}
+
+func ToGWeiFloat64(v *big.Int) float64 {
+	return float64(v.Uint64()) / GWei
+}

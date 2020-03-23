@@ -8,8 +8,10 @@ import (
 )
 
 var (
-	NullAddress = common.Address{0x0000000000000000000000000000000000000000}
+	NullAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 	NullKey, _  = crypto.HexToECDSA("00")
+
+	StaminaAddress = common.HexToAddress("0x000000000000000000000000000000000000dead")
 
 	SubmitBlockGasPrice        = big.NewInt(1e9)
 	SubmitBlockGasLimit uint64 = 4000000
