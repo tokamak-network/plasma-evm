@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
-	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
@@ -77,9 +76,9 @@ It expects the genesis file as argument.`,
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.RootChainUrlFlag,
-			utils.OperatorAddressFlag,
-			utils.OperatorKeyFlag,
-			utils.OperatorPasswordFileFlag,
+			utils.UnlockedAccountFlag,
+			utils.PasswordFileFlag,
+			utils.RootChainSenderFlag,
 			utils.DeveloperKeyFlag,
 			utils.StaminaOperatorAmountFlag,
 			utils.StaminaMinDepositFlag,
@@ -347,6 +346,16 @@ func deployRootChain(ctx *cli.Context) error {
 		utils.Fatalf("Expected 4 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
 	// Make sure we have a valid genesis JSON
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
@@ -361,7 +370,7 @@ func deployRootChain(ctx *cli.Context) error {
 		development = false
 	)
 
-	chainId, err := strconv.Atoi(ctx.Args().Get(1))
+	chainId, err = strconv.Atoi(ctx.Args().Get(1))
 	if err != nil {
 		return err
 	}
@@ -381,9 +390,6 @@ func deployRootChain(ctx *cli.Context) error {
 
 	NRELength = new(big.Int).SetInt64(int64(NRELengthInt))
 
-	stack, cfg := makeConfigNode(ctx)
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
 	staminaConfig := &params.StaminaConfig{
 		Initialized:        true,
 		OperatorAmount:     params.ToEtherBigInt(ctx.GlobalFloat64(utils.StaminaOperatorAmountFlag.Name)),
@@ -399,31 +405,7 @@ func deployRootChain(ctx *cli.Context) error {
 		utils.Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", recoverEpochLength, withdrawalDelay)
 	}
 
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7500000
-	opt.GasPrice = big.NewInt(10 * params.GWei)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
-	}
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	tonAddr := rawdb.ReadTON(stakedb)
-	if ctx.GlobalIsSet(utils.RootChainTONFlag.Name) {
-		_tonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainTONFlag.Name))
-
-		if (tonAddr != common.Address{}) && tonAddr != _tonAddr {
-			log.Warn("Override TON address", "previous", tonAddr, "new", _tonAddr)
-		}
-		tonAddr = _tonAddr
-	}
-
-	_, genesis, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, staminaConfig, tonAddr, withPETH, development, NRELength)
+	_, genesis, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, staminaConfig, managers.TON, withPETH, development, NRELength)
 	if err != nil {
 		utils.Fatalf("Failed to deploy contracts %v", err)
 	}
