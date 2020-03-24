@@ -761,7 +761,7 @@ var (
 	}
 	OperatorPasswordFileFlag = cli.StringFlag{
 		Name:  "operator.password",
-		Usage: "Plasma operator key as hex(for dev)",
+		Usage: "Operator password file to use for non-interactive password input",
 		Value: "",
 	}
 	OperatorMinEtherFlag = cli.StringFlag{
@@ -777,15 +777,26 @@ var (
 	}
 	ChallengerPasswordFileFlag = cli.StringFlag{
 		Name:  "challenger.password",
-		Usage: "Plasma operator key as hex(for dev)",
+		Usage: "Challenger password file to use for non-interactive password input",
 		Value: "",
 	}
 
-	// Rootchain Flags
+	// root chain client flags
 	RootChainUrlFlag = cli.StringFlag{
 		Name:  "rootchain.url",
 		Usage: "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.",
 	}
+	RootChainGasPriceFlag = BigFlag{
+		Name:  "rootchain.gasPrice",
+		Usage: "Transaction gas price to root chain in GWei",
+		Value: big.NewInt(10 * params.GWei),
+	}
+	RootChainSenderFlag = cli.StringFlag{
+		Name:  "rootchain.sender",
+		Usage: "Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)",
+	}
+
+	// Tokamak Network contracts flags
 	RootChainContractFlag = cli.StringFlag{
 		Name:  "rootchain.contract",
 		Usage: "Address of the RootChain contract",
@@ -813,11 +824,6 @@ var (
 	RootChainPowerTONFlag = cli.StringFlag{
 		Name:  "rootchain.powerton",
 		Usage: "Address of PowerTON contract",
-	}
-	RootChainGasPriceFlag = BigFlag{
-		Name:  "rootchain.gasPrice",
-		Usage: "Transaction gas price to root chain",
-		Value: big.NewInt(10 * params.GWei),
 	}
 
 	// Transaction Flags

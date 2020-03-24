@@ -179,6 +179,7 @@ var (
 		utils.DeveloperKeyFlag,
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
+		utils.RootChainGasPriceFlag,
 		utils.TxMinGasPriceFlag,
 		utils.TxMaxGasPriceFlag,
 		utils.TxResubmitFlag,
@@ -209,6 +210,16 @@ var (
 		utils.MetricsInfluxDBUsernameFlag,
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
+	}
+
+	stakingFlags = []cli.Flag{
+		utils.RootChainTONFlag,
+		utils.RootChainWTONFlag,
+		utils.RootChainRegistryFlag,
+		utils.RootChainDepositManagerFlag,
+		utils.RootChainSeigManagerFlag,
+		utils.RootChainPowerTONFlag,
+		utils.RootChainSenderFlag,
 	}
 )
 
@@ -247,6 +258,7 @@ func init() {
 		// See retesteth.go
 		retestethCommand,
 		// See stakecmd.go
+		manageStakingCmd,
 		stakingCmd,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
@@ -259,6 +271,7 @@ func init() {
 	app.Flags = append(app.Flags, staminaFlags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+	app.Flags = append(app.Flags, stakingFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		return debug.Setup(ctx, "")

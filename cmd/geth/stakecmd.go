@@ -31,6 +31,7 @@ import (
 
 	"strings"
 
+	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
@@ -49,7 +50,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -59,13 +62,13 @@ import (
 // TODO: return error -> utils.Fatalf
 // TODO: refactor (init, ...)
 var (
-	stakingCmd = cli.Command{
-		Name:     "staking",
-		Usage:    "Stake TON",
-		Category: "TON STAKING COMMANDS",
+	manageStakingCmd = cli.Command{
+		Name:     "manage-staking",
+		Usage:    "Manage Staking Contracts",
+		Category: "TON STAKING MANAGE COMMANDS",
 		Description: `
 
-Manage staking-related actions in the root chain.
+The manage-staking command deploys and set up contracts in TON ecosystem.
 `,
 		Subcommands: []cli.Command{
 			{
@@ -77,8 +80,9 @@ Manage staking-related actions in the root chain.
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
 					utils.RootChainTONFlag,
 					utils.RootChainWTONFlag,
 					utils.DeveloperKeyFlag,
@@ -102,9 +106,9 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
-					utils.DeveloperKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
 					utils.RootChainGasPriceFlag,
 					utils.RootChainWTONFlag,
 					utils.RootChainSeigManagerFlag,
@@ -126,8 +130,9 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
 					utils.RootChainPowerTONFlag,
 					utils.DeveloperKeyFlag,
 					utils.RootChainGasPriceFlag,
@@ -142,18 +147,39 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 `,
 			},
 			{
+				Name:     "register",
+				Usage:    "Register RootChain contract",
+				Action:   utils.MigrateFlags(registerRootChain),
+				Category: "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.DeveloperKeyFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+				geth staking register
+
+Register RootChain contract to RootChainRegistry
+`,
+			},
+
+			{
 				Name:      "getManagers",
 				Usage:     "Get staking managers addresses in database",
 				Action:    utils.MigrateFlags(getManagers),
-				ArgsUsage: "<uri?>",
+				ArgsUsage: "<path?>",
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
 				Description: `
-    geth staking getManagers <uri?>
+    geth staking getManagers <path?>
 
-Get staking contracts addresses
+Get staking contracts addresses. If path is given, contracts are stored in the path as JSON.
 `,
 			},
 			{
@@ -171,7 +197,6 @@ Get staking contracts addresses
 					utils.RootChainRegistryFlag,
 					utils.RootChainSeigManagerFlag,
 					utils.RootChainPowerTONFlag,
-					utils.RootChainGasPriceFlag,
 				},
 				Description: `
     geth staking setManagers <uri>
@@ -179,45 +204,7 @@ Get staking contracts addresses
 Set staking contracts addresses
 
 NOTE:
-use --rootchain.ton, --rootchain.wton flags to use already deployed token contracts
-`,
-			},
-			{
-				Name:     "register",
-				Usage:    "Register RootChain contract",
-				Action:   utils.MigrateFlags(registerRootChain),
-				Category: "TON STAKING COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
-					utils.RootChainGasPriceFlag,
-				},
-				Description: `
-				geth staking register
-
-Register RootChain contract to RootChainRegistry
-`,
-			},
-			{
-				Name:      "balances",
-				Usage:     "Print balances of token and stake",
-				ArgsUsage: "<address>",
-				Action:    utils.MigrateFlags(getBalances),
-				Category:  "TON STAKING COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
-					utils.RootChainGasPriceFlag,
-				},
-				Description: `
-				geth staking balances <address>
-
-Mint TON to account
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.registry, --rootchain.seigmanager, --rootchain.powerton flags to use already deployed token contracts
 `,
 			},
 			{
@@ -229,8 +216,9 @@ Mint TON to account
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
 					utils.RootChainTONFlag,
 					utils.RootChainGasPriceFlag,
 				},
@@ -238,19 +226,66 @@ Mint TON to account
 				geth staking mintTON <to> <amount>
 
 Mint TON to account
+
+NOTE:
+use --rootchain.ton flags to use already deployed token contracts
+`,
+			},
+		},
+	}
+
+	stakingCmd = cli.Command{
+		Name:     "staking",
+		Usage:    "Stake TON",
+		Category: "TON STAKING COMMANDS",
+		Description: `
+
+The staking command
+`,
+		Subcommands: []cli.Command{
+
+			{
+				Name:      "balances",
+				Usage:     "Print balances of token and stake",
+				ArgsUsage: "<address>",
+				Action:    utils.MigrateFlags(getBalances),
+				Category:  "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
+				},
+				Description: `
+				geth staking balances <address>
+
+Mint TON to account
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
 `,
 			},
 			{
 				Name:      "swapFromTON",
-				Usage:     "Swap TON with WTON",
+				Usage:     "Swap TON to WTON",
 				ArgsUsage: "<tonAmount>",
 				Action:    utils.MigrateFlags(swapFromTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
@@ -258,20 +293,28 @@ Mint TON to account
 
 Change TON to WTON
 
-NOTE: <tonAmount> is in WAD, (decialms 18)
+CAVEAT: <tonAmount> should be a float
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
 `,
 			},
 			{
 				Name:      "swapToTON",
-				Usage:     "Swap WTON with TON",
+				Usage:     "Swap WTON to TON",
 				ArgsUsage: "<wtonAmount>",
 				Action:    utils.MigrateFlags(swapToTON),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
@@ -279,7 +322,10 @@ NOTE: <tonAmount> is in WAD, (decialms 18)
 
 Change WTON to TON
 
-NOTE: <wtonAmount> is in RAY, (decialms 27)
+CAVEAT: <wtonAmount> should be a float
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
 `,
 			},
 			{
@@ -291,14 +337,24 @@ NOTE: <wtonAmount> is in RAY, (decialms 27)
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
 				geth staking stake <amount>
 
 Stake WTON
+
+CAVEAT: <amount> should be a float
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
 `,
 			},
 			{
@@ -310,14 +366,20 @@ Stake WTON
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainDepositManagerFlag,
 				},
 				Description: `
 				geth staking requestWithdrawal <amount?>
 
 Make an unstaking request. If amount is not given, make a request with all staked amount.
+
+CAVEAT: <amount> should be a float
+
+NOTE:
+use --rootchain.depositmanager flags to use already deployed token contracts
 `,
 			},
 			{
@@ -329,14 +391,20 @@ Make an unstaking request. If amount is not given, make a request with all stake
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.OperatorAddressFlag,
-					utils.OperatorKeyFlag,
-					utils.RootChainTONFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainDepositManagerFlag,
 				},
 				Description: `
 				geth staking processWithdrawal <numRequests?>
 
 Process unstaking requests
+
+CAVEAT: <amount> should be a float
+
+NOTE:
+use --rootchain.depositmanager flags to use already deployed token contracts
 `,
 			},
 		},
@@ -370,38 +438,57 @@ func getManagerConfig(reader ethdb.Reader, ctx *cli.Context, override bool) *Man
 		seigManagerAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainSeigManagerFlag.Name))
 		powertonAddr := common.HexToAddress(ctx.GlobalString(utils.RootChainPowerTONFlag.Name))
 
-		if (managers.TON != common.Address{}) && managers.TON != tonAddr {
+		if (managers.TON != common.Address{} && tonAddr != common.Address{}) && managers.TON != tonAddr {
 			log.Warn("Override TON address", "previous", managers.TON, "new", tonAddr)
+			managers.TON = tonAddr
 		}
-		managers.TON = tonAddr
 
-		if (managers.WTON != common.Address{}) && managers.WTON != wtonAddr {
+		if (managers.WTON != common.Address{} && wtonAddr != common.Address{}) && managers.WTON != wtonAddr {
 			log.Warn("Override WTON address", "previous", managers.WTON, "new", wtonAddr)
+			managers.WTON = wtonAddr
 		}
-		managers.WTON = wtonAddr
 
-		if (managers.DepositManager != common.Address{}) && managers.DepositManager != depositManagerAddr {
+		if (managers.DepositManager != common.Address{} && depositManagerAddr != common.Address{}) && managers.DepositManager != depositManagerAddr {
 			log.Warn("Override DepositManager address", "previous", managers.DepositManager, "new", depositManagerAddr)
+			managers.DepositManager = depositManagerAddr
 		}
-		managers.DepositManager = depositManagerAddr
 
-		if (managers.RootChainRegistry != common.Address{}) && managers.RootChainRegistry != registryAddr {
+		if (managers.RootChainRegistry != common.Address{} && registryAddr != common.Address{}) && managers.RootChainRegistry != registryAddr {
 			log.Warn("Override RootChainRegistry address", "previous", managers.RootChainRegistry, "new", registryAddr)
+			managers.RootChainRegistry = registryAddr
 		}
-		managers.RootChainRegistry = registryAddr
 
-		if (managers.SeigManager != common.Address{}) && managers.SeigManager != seigManagerAddr {
+		if (managers.SeigManager != common.Address{} && seigManagerAddr != common.Address{}) && managers.SeigManager != seigManagerAddr {
 			log.Warn("Override SeigManager address", "previous", managers.SeigManager, "new", seigManagerAddr)
+			managers.SeigManager = seigManagerAddr
 		}
-		managers.SeigManager = seigManagerAddr
 
-		if (managers.PowerTON != common.Address{}) && managers.PowerTON != powertonAddr {
+		if (managers.PowerTON != common.Address{} && powertonAddr != common.Address{}) && managers.PowerTON != powertonAddr {
 			log.Warn("Override WTON address", "previous", managers.PowerTON, "new", powertonAddr)
+			managers.PowerTON = powertonAddr
 		}
-		managers.PowerTON = powertonAddr
 	}
 
 	return managers
+}
+
+func getRootChainAddr(datadir string) (rootchainAddr common.Address) {
+	path := filepath.Join(datadir, "geth", "genesis.json")
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+
+	genesis := new(core.Genesis)
+	if err = json.Unmarshal(data, genesis); err != nil {
+		utils.Fatalf("Failed to parse genesis file: %v", err)
+	}
+
+	rootchainAddr = common.BytesToAddress(genesis.ExtraData)
+	if (rootchainAddr == common.Address{}) {
+		utils.Fatalf("RootChain is not set in genesis")
+	}
+	return
 }
 
 func parseIntString(str string, decimals int) string {
@@ -453,18 +540,48 @@ func toRAY(v *big.Int) *big.Int {
 	return new(big.Int).Mul(v, p)
 }
 
+func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.TransactOpts, *ethclient.Client) {
+	unlockAccounts(ctx, stack)
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	sender := common.HexToAddress(ctx.GlobalString(utils.RootChainSenderFlag.Name))
+
+	if !ks.HasAddress(sender) {
+		utils.Fatalf("Unknown sender account: %s", sender)
+	}
+
+	log.Info("Root chain transaction sender found", "address", sender)
+
+	senderAccount := accounts.Account{Address: sender}
+
+	opt := bind.NewAccountTransactor(ks, senderAccount)
+	opt.GasLimit = 7500000
+	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+
+	backend, err := ethclient.Dial(cfg.RootChainURL)
+	if err != nil {
+		utils.Fatalf("Failed to connect root chain: %v", err)
+	}
+
+	return opt, backend
+}
+
 func deployManagers(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
 		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
 
 	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
+
+	decimals := params.WTONDecimals
 
 	var (
 		withdrawalDelay *big.Int
@@ -481,7 +598,7 @@ func deployManagers(ctx *cli.Context) error {
 	}
 
 	// parse float string e.g., 12.4 to RAY value
-	seigPerBlockStr = parseIntString(seigPerBlockStr, 27)
+	seigPerBlockStr = parseIntString(seigPerBlockStr, decimals)
 
 	seigPerBlock, ok = big.NewInt(0).SetString(seigPerBlockStr, 10)
 	if !ok {
@@ -490,18 +607,6 @@ func deployManagers(ctx *cli.Context) error {
 
 	_tonAddr := common.HexToAddress(ctx.String(utils.RootChainTONFlag.Name))
 	_wtonAddr := common.HexToAddress(ctx.String(utils.RootChainWTONFlag.Name))
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7500000
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
-	}
 
 	tonAddr, wtonAddr, registryAddr, depositManagerAddr, seigManagerAddr, err := plasma.DeployManagers(opt, backend, withdrawalDelay, seigPerBlock, _tonAddr, _wtonAddr)
 
@@ -525,6 +630,16 @@ func deployPowerTON(ctx *cli.Context) error {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
 	// parse duration
 	roundDurationTime, err := time.ParseDuration(ctx.Args().Get(0))
 	if err != nil {
@@ -532,17 +647,6 @@ func deployPowerTON(ctx *cli.Context) error {
 	}
 
 	roundDuration := big.NewInt(int64(roundDurationTime.Seconds()))
-
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	defer stakedb.Close()
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-		return err
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
 
 	wtonAddr := managers.WTON
 	seigManagerAddr := managers.SeigManager
@@ -565,18 +669,6 @@ func deployPowerTON(ctx *cli.Context) error {
 
 	log.Info("Deploy PowerTON", "TON", wtonAddr, "SeigManager", seigManagerAddr, "roundDuration", roundDuration.String())
 
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7500000
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
-	}
-
 	powertonAddr, err := plasma.DeployPowerTON(opt, backend, wtonAddr, seigManagerAddr, roundDuration)
 
 	if err != nil {
@@ -592,13 +684,13 @@ func deployPowerTON(ctx *cli.Context) error {
 
 func startPowerTON(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
 
 	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-
+	defer stakedb.Close()
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
-
 	managers := getManagerConfig(stakedb, ctx, true)
 
 	powertonAddr := managers.PowerTON
@@ -609,18 +701,6 @@ func startPowerTON(ctx *cli.Context) error {
 			log.Warn("Override WTON address", "previous", powertonAddr, "current", addr)
 		}
 		powertonAddr = addr
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7500000
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	pton, err := powerton.NewPowerTON(powertonAddr, backend)
@@ -650,19 +730,16 @@ func getManagers(ctx *cli.Context) error {
 
 	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	defer stakedb.Close()
-
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
+	managers := getManagerConfig(stakedb, ctx, false)
 
 	b, err := json.MarshalIndent(managers, "", "  ")
 	data := string(b)
 
 	if err != nil {
-		return nil
+		utils.Fatalf("Failed to parse manager data: %v", err)
 	}
 
 	if len(configPath) != 0 {
@@ -691,6 +768,14 @@ func getManagers(ctx *cli.Context) error {
 func setManagers(ctx *cli.Context) error {
 	configPath := ctx.Args().First()
 	managers := new(ManagerConfig)
+
+	stack, _ := makeConfigNode(ctx)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
 
 	if len(configPath) != 0 {
 		var r io.Reader
@@ -756,14 +841,6 @@ func setManagers(ctx *cli.Context) error {
 			log.Warn("Override PowerTON address", "previous", managers.PowerTON, "current", powertonAddr)
 		}
 		managers.PowerTON = powertonAddr
-	}
-
-	stack, _ := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-		return err
 	}
 
 	type w struct {
@@ -834,55 +911,22 @@ func setManagers(ctx *cli.Context) error {
 	return nil
 }
 
-func getRootChainAddr(datadir string) (rootchainAddr common.Address, err error) {
-	path := filepath.Join(datadir, "geth", "genesis.json")
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return
-	}
-
-	genesis := new(core.Genesis)
-	if err = json.Unmarshal(data, genesis); err != nil {
-		return
-	}
-
-	rootchainAddr = common.BytesToAddress(genesis.ExtraData)
-	if (rootchainAddr == common.Address{}) {
-		utils.Fatalf("RootChain address is NULL ADDRESS")
-	}
-	return
-}
-
 func registerRootChain(ctx *cli.Context) error {
 	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
 
 	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
-
 	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
-	if err != nil {
-		return err
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasLimit = 7500000
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
-	}
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
 
@@ -973,22 +1017,23 @@ func getBalances(ctx *cli.Context) error {
 		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	_, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	opt := &bind.CallOpts{Pending: false}
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
 	var (
 		depositor common.Address
 	)
 
 	depositor = common.HexToAddress(ctx.Args().Get(0))
-
-	stack, cfg := makeConfigNode(ctx)
-
-	log.Info("cfg.Node.DataDir", "v", filepath.Join(cfg.Node.DataDir, "geth", "genesis.json"))
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -998,20 +1043,7 @@ func getBalances(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed depositor connect rootchain: %v", err)
-	}
-
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
-
-	opt := &bind.CallOpts{Pending: false}
-
-	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
-	if err != nil {
-		return err
-	}
 
 	var (
 		TON            *ton.TON
@@ -1130,6 +1162,16 @@ func mintTON(ctx *cli.Context) error {
 		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
 	decimals := params.TONDecimals
 
 	var (
@@ -1145,28 +1187,8 @@ func mintTON(ctx *cli.Context) error {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
@@ -1202,7 +1224,6 @@ func approveToken(
 	spender common.Address, target *big.Int,
 	decimals int,
 ) {
-
 	current, err := contract.Allowance(&bind.CallOpts{Pending: false}, opts.From, spender)
 
 	if current.Cmp(target) >= 0 {
@@ -1224,13 +1245,22 @@ func approveToken(
 	}
 
 	log.Warn(fmt.Sprintf("Approved to deposit %s", name), "amount", bigIntToString(target, decimals), "tx", tx.Hash())
-
 }
 
 func swapFromTON(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
+
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
 
 	decimals := params.TONDecimals
 
@@ -1245,28 +1275,8 @@ func swapFromTON(ctx *cli.Context) error {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
@@ -1312,6 +1322,16 @@ func swapToTON(ctx *cli.Context) error {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
 	decimals := params.WTONDecimals
 
 	var (
@@ -1325,28 +1345,8 @@ func swapToTON(ctx *cli.Context) error {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
@@ -1386,6 +1386,17 @@ func stakeWTON(ctx *cli.Context) error {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
 	decimals := params.WTONDecimals
 
 	var (
@@ -1401,37 +1412,12 @@ func stakeWTON(ctx *cli.Context) error {
 		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
-	if err != nil {
-		return err
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
@@ -1480,6 +1466,17 @@ func requestWithdrawal(ctx *cli.Context) error {
 		utils.Fatalf("Expected 1 or 0 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
 	decimals := params.WTONDecimals
 
 	var (
@@ -1497,39 +1494,12 @@ func requestWithdrawal(ctx *cli.Context) error {
 		}
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
-	if err != nil {
-		return err
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	from := opt.From
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
@@ -1548,7 +1518,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 	}
 
 	// check staked WTON balance
-	staked, err := seigManager.StakeOf(&bind.CallOpts{Pending: false}, rootchainAddr, from)
+	staked, err := seigManager.StakeOf(&bind.CallOpts{Pending: false}, rootchainAddr, opt.From)
 	if err != nil {
 		utils.Fatalf("Failed to read stake amount: %v", err)
 	}
@@ -1580,11 +1550,21 @@ func processWithdrawal(ctx *cli.Context) error {
 		utils.Fatalf("Expected 1 or 0 parameters, not %d", len(ctx.Args()))
 	}
 
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
 	var (
 		n int
 
-		tx  *types.Transaction
-		err error
+		tx *types.Transaction
 	)
 
 	if len(ctx.Args()) == 1 {
@@ -1593,37 +1573,12 @@ func processWithdrawal(ctx *cli.Context) error {
 		}
 	}
 
-	stack, cfg := makeConfigNode(ctx)
-
-	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
-	if err != nil {
-		utils.Fatalf("Failed to open database: %v", err)
-	}
-
-	rootchainAddr, err := getRootChainAddr(cfg.Node.DataDir)
-	if err != nil {
-		return err
-	}
-
-	managers := getManagerConfig(stakedb, ctx, true)
-
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
 		(managers.DepositManager == common.Address{}) ||
 		(managers.RootChainRegistry == common.Address{}) ||
 		(managers.SeigManager == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
-	}
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-
-	opt := bind.NewAccountTransactor(ks, cfg.Pls.Operator)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
-
-	backend, err := ethclient.Dial(cfg.Pls.RootChainURL)
-
-	if err != nil {
-		utils.Fatalf("Failed to connect rootchain: %v", err)
 	}
 
 	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
