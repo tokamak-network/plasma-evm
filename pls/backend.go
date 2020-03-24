@@ -140,7 +140,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, config.Genesis.Config.Stamina, ctx.ResolvePath(""), config.OverrideIstanbul, config.OverrideMuirGlacier)
+	staminaConfig := params.DefaultStaminaConfig
+	if config.Genesis != nil {
+		staminaConfig = config.Genesis.Stamina
+	}
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, staminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul, config.OverrideMuirGlacier)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
