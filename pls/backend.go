@@ -142,7 +142,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Plasma, error) {
 	}
 	staminaConfig := params.DefaultStaminaConfig
 	if config.Genesis != nil {
-		staminaConfig = config.Genesis.Stamina
+		staminaConfig = config.Genesis.Config.Stamina
 	}
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.RootChainContract, config.Operator.Address, staminaConfig, ctx.ResolvePath(""), config.OverrideIstanbul, config.OverrideMuirGlacier)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
