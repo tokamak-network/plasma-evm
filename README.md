@@ -1,6 +1,6 @@
 # Plasma EVM Implementation
 
-Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX) You can check the RootChain smart contract [here](https://github.com/Onther-Tech/plasma-evm-contracts).
+Implementation of [Plasma EVM](https://tokamak.network). You can check smart contracts [here](https://github.com/Onther-Tech/plasma-evm-contracts). For more information, see [documentations](http://docs.tokamak.network/).
 
 - [Plasma EVM Implementation](#plasma-evm-implementation)
   - [Development Status](#development-status)
@@ -8,11 +8,6 @@ Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX) You can check the 
   - [Public Testnet](#public-testnet)
   - [Build](#build)
   - [Run](#run)
-    - [Development Network](#development-network)
-    - [Custom network](#custom-network)
-      - [1. Deploy RootChain contract and make genesis file.](#1-deploy-rootchain-contract-and-make-genesis-file)
-      - [2. Run Plasma EVM client as operator mode.](#2-run-plasma-evm-client-as-operator-mode)
-      - [3. (Optional) Run another node as user mode.](#3-optional-run-another-node-as-user-mode)
   - [Test](#test)
   - [Command-line Options](#command-line-options)
   - [Additional Commands](#additional-commands)
@@ -61,56 +56,6 @@ $ git clone https://github.con/Onther-Tech/plasma-evm.git && cd plasma-evm
 $ bash run.pls.sh
 ```
 
-### Development Network
-
-### Custom network
-
-#### 1. Deploy RootChain contract and make genesis file.
-All paramaeters are based on ethereum test network run by `run.rootchain.sh`.
-
-```bash
-$ rm -rf ~/.plasma-evm
-
-$ geth deploy ./genesis.json 1019 true 1024 \
-  --datadir ~/.plasma-evm \
-  --rootchain.url ws://127.0.0.1:8546 \
-  --operator.key b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291
-```
-
-#### 2. Run Plasma EVM client as operator mode.
-```bash
-$ geth \
-  --datadir ~/.plasma-evm \
-  --rpc \
-  --rpcport 8547 \
-  --miner.etherbase 0x71562b71999873DB5b286dF957af199Ec94617F7 \
-  --operator 0x71562b71999873DB5b286dF957af199Ec94617F7 \
-  --nodekeyhex b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f49b\
-  --dev \
-  --dev.key 78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114 \
-  --rootchain.challenger 0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8 \
-  --rootchain.url ws://127.0.0.1:8546 \
-  --tx.interval "300ms"
-```
-This is based on [`run.pls.sh`](./run.pls.sh)
-
-> CAVEAT: Challenger key is in step 2. So when restart node, you should not use `--dev.key` flag in step 2 not to import key again.
-
-#### 3. (Optional) Run another node as user mode.
-```bash
-$ geth init genesis.json \
-  --datadir ~/.plasma-evm-user
-
-$ geth \
-  --datadir ~/.plasma-evm-user \
-  --rpc \
-  --rpcport 8548 \
-  --rootchain.url ws://127.0.0.1:8546 \
-  --bootnodes enode://a8d63d4760dbcd8656b8a61f28eb246c2f990949cd7a5d2efe483caa05a5381a61cfb30eb8622f4cb0909a6e94a82b7505fb5b2cd737398860f9369b3a8522ca@127.0.0.1:30305?discport=30305
-```
-
-Then use JSONRPC console to connect two nodes.
-
 ## Test
 
 Some original go-ethereum tests may fail.
@@ -136,7 +81,7 @@ PLASMA EVM - DEVELOPMENT MODE OPTIONS:
 PLASMA EVM - OPERATOR OPTIONS:
   --operator value                    Plasma operator address as hex.
   --operator.key value                Plasma operator key as hex(for dev)
-  --operator.password value           Plasma operator key as hex(for dev)
+  --operator.password value           Operator password file to use for non-interactive password input
   --operator.minether value           Plasma operator minimum balance (default = 0.5 ether) (default: "0.5")
   --miner.recommit value              Time interval to recreate the block being mined (default: 3s)
 
@@ -147,19 +92,24 @@ PLASMA EVM - ROOTCHAIN TRANSACTION MANAGER OPTIONS:
   --tx.interval value                 Pending interval time after submitting a block (default = 10s). If block submit transaction is not mined in 2 intervals, gas price will be adjusted. See https://golang.org/pkg/time/#ParseDuration (default: 10s)
 
 PLASMA EVM - STAMINA OPTIONS:
-  --stamina.mindeposit value          MinDeposit variable state of stamina contract (default: 500000000000000000)
-  --stamina.recoverepochlength value  RecoverEpochLength variable state of stamina contract (default: 10080)
-  --stamina.withdrawaldelay value     WithdrawalDelay variable state of stamina contract (default: 30240)
+  --stamina.operatoramount value      Operator stamina amount at genesis block in ETH (default: 1)
+  --stamina.mindeposit value          Minimum deposit amount in ETH (default: 0.5)
+  --stamina.recoverepochlength value  The length of recovery epoch in block (default: 120960)
+  --stamina.withdrawaldelay value     Withdrawal delay in block (default: 362880)
 
 PLASMA EVM - CHALLENGER OPTIONS:
   --rootchain.challenger value        Address of challenger account
-  --challenger.password value         Plasma operator key as hex(for dev)
+  --challenger.password value         Challenger password file to use for non-interactive password input
 
 PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
   --rootchain.contract value          Address of the RootChain contract
 
 PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.gasPrice value          Transaction gas price to root chain in GWei (default: 10000000000)
   --rootchain.ton value               Address of TON token contract
   --rootchain.wton value              Address of WTON token contract
   --rootchain.registry value          Address of RootChainRegistry contract
