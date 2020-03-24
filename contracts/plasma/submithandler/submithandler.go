@@ -24155,7 +24155,7 @@ func (_RequestableI *RequestableITransactorSession) ApplyRequestInRootChain(isEx
 const RolesABI = "[]"
 
 // RolesBin is the compiled bytecode used for deploying new contracts.
-var RolesBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a723158208b71254ffd63ec0cdf069ebd57900b2eed3f2d5481f989be20e2f19c163e323b64736f6c634300050c0032"
+var RolesBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a72315820451a2112c879141f72bbe0ec00d853511a9d98646af7e3081d90a3d70270eb1564736f6c634300050c0032"
 
 // DeployRoles deploys a new Ethereum contract, binding an instance of Roles to it.
 func DeployRoles(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Roles, error) {
@@ -32224,7 +32224,7 @@ func (_SafeERC20 *SafeERC20TransactorRaw) Transact(opts *bind.TransactOpts, meth
 const SafeMathABI = "[]"
 
 // SafeMathBin is the compiled bytecode used for deploying new contracts.
-var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a7231582045f810ccb41cd151344ccf006ddfbe7c3c58a867d26e345c6576ae09178171dc64736f6c634300050c0032"
+var SafeMathBin = "0x60556023600b82828239805160001a607314601657fe5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea265627a7a7231582081abea5b57eb862cc535e559557e86893bc93410acfd1b3122d48a2c0cdee52a64736f6c634300050c0032"
 
 // DeploySafeMath deploys a new Ethereum contract, binding an instance of SafeMath to it.
 func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *SafeMath, error) {
