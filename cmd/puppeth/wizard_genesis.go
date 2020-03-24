@@ -197,17 +197,17 @@ func (w *wizard) makeGenesis() {
 		break
 	}
 
-	staminaKey := core.GetStaminaKey(operator)
-	staminaBinBytes, _ := hex.DecodeString(core.StaminaContractDeployedBin[2:])
-	genesis.Alloc[core.StaminaContractAddress] = core.GenesisAccount{
+	staminaKey := params.GetStaminaKey(operator)
+	staminaBinBytes, _ := hex.DecodeString(params.StaminaContractDeployedBin[2:])
+	genesis.Alloc[params.StaminaAddress] = core.GenesisAccount{
 		Code:    staminaBinBytes,
 		Balance: big.NewInt(0),
 		Storage: map[common.Hash]common.Hash{
-			core.InitializedKey:        common.BytesToHash([]byte{1}),
-			core.MinDepositKey:         common.HexToHash(hexutil.EncodeBig(big.NewInt(minDeposit))),
-			core.RecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(big.NewInt(recoveryEpochLength))),
-			core.WithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(big.NewInt(withdrawalDelay))),
-			staminaKey:                 common.HexToHash(hexutil.EncodeBig(big.NewInt(stamina))),
+			params.StaminaInitializedKey:        common.BytesToHash([]byte{1}),
+			params.StaminaMinDepositKey:         common.HexToHash(hexutil.EncodeBig(big.NewInt(minDeposit))),
+			params.StaminaRecoverEpochLengthKey: common.HexToHash(hexutil.EncodeBig(big.NewInt(recoveryEpochLength))),
+			params.StaminaWithdrawalDelayKey:    common.HexToHash(hexutil.EncodeBig(big.NewInt(withdrawalDelay))),
+			staminaKey:                          common.HexToHash(hexutil.EncodeBig(big.NewInt(stamina))),
 		},
 	}
 
