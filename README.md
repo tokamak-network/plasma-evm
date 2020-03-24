@@ -16,8 +16,9 @@ Implementation of [Plasma EVM](https://hackmd.io/s/HyZ2ms8EX) You can check the 
   - [Test](#test)
   - [Command-line Options](#command-line-options)
   - [Additional Commands](#additional-commands)
-    - [Account](#account)
-    - [Deploy](#deploy)
+    - [account](#account)
+    - [deploy](#deploy)
+    - [manage-staking](#manage-staking)
     - [Staking](#staking)
 
 ## Development Status
@@ -170,31 +171,36 @@ PLASMA EVM - STAKING OPTIONS OPTIONS:
 ## Additional Commands
 For more information, run below command (and sub-command) with `--help` flag.
 
-### Account
+### account
 
 ```bash
 $ geth account importKey <privateKey>            # Import a private key from hex key into a new account
 $ geth account importHDwallet <mnemonic> <path>  # Import a mnemonic into a new account
 ```
 
-### Deploy
+### deploy
 ```bash
 $ geth deploy <genesisPath> <chainId> <withPETH> <NRELength>  # Deploy RootChain contract and make genesis file
+```
+
+### manage-staking
+
+```bash
+$ geth manage-staking deployManagers <withdrawalDelay> <seigPerBlock>  # Deploy staking manager contracts (except PowerTON)
+$ geth manage-staking deployPowerTON <roundDuration>                   # Deploy PowerTON contract
+$ geth manage-staking startPowerTON                                    # Start PowerTON first round
+$ geth manage-staking register                                         # Register RootChain contract
+$ geth manage-staking getManagers <path?>                              # Get staking managers addresses in database
+$ geth manage-staking setManagers <uri>                                # Set staking managers addresses in database
+$ geth manage-staking mintTON <to> <amount>                            # Mint TON to account (for dev)
 ```
 
 ### Staking
 
 ```bash
-$ geth staking deployManagers <withdrawalDelay> <seigPerBlock>  # Deploy staking manager contracts (except PowerTON)
-$ geth staking deployPowerTON <roundDuration>                   # Deploy PowerTON contract
-$ geth staking startPowerTON                                    # Start PowerTON first round
-$ geth staking getManagers <uri?>                               # Get staking managers addresses in database
-$ geth staking setManagers <uri>                                # Set staking managers addresses in database
-$ geth staking register                                         # Register RootChain contract
 $ geth staking balances <address>                               # Print balances of token and stake
-$ geth staking mintTON <to> <amount>                            # Mint TON to account (for dev)
-$ geth staking swapFromTON <tonAmount>                          # Swap TON with WTON
-$ geth staking swapToTON <wtonAmount>                           # Swap WTON with TON
+$ geth staking swapFromTON <tonAmount>                          # Swap TON to WTON
+$ geth staking swapToTON <wtonAmount>                           # Swap WTON to TON
 $ geth staking stake <amount>                                   # Stake WTON
 $ geth staking requestWithdrawal <amount?>                      # Make a withdrawal request
 $ geth staking processWithdrawal <numRequests?>                 # Process pending withdrawals
