@@ -1142,7 +1142,7 @@ func getBalances(ctx *cli.Context) error {
 
 	// print balances
 	log.Info("TON Balance", "amount", bigIntToString(tonBalance, params.TONDecimals)+" TON", "depositor", depositor)
-	log.Info("WON Balance", "amount", bigIntToString(wtonBalance, params.WTONDecimals)+" WTON", "depositor", depositor)
+	log.Info("WTON Balance", "amount", bigIntToString(wtonBalance, params.WTONDecimals)+" WTON", "depositor", depositor)
 	log.Info("Deposit", "amount", bigIntToString(deposit, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 
 	log.Info("Pending withdrawal requests", "num", numPendingRequests)
