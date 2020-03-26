@@ -329,7 +329,36 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "stake",
+				Name:      "stakeTON",
+				Usage:     "Stake TON",
+				ArgsUsage: "<amount>",
+				Action:    utils.MigrateFlags(stakeTON),
+				Category:  "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+				geth staking stakeTON <amount>
+
+Stake WTON
+
+CAVEAT: <amount> should be a float
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
+`,
+			},
+			{
+				Name:      "stakeWTON",
 				Usage:     "Stake WTON",
 				ArgsUsage: "<amount>",
 				Action:    utils.MigrateFlags(stakeWTON),
@@ -347,7 +376,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking stake <amount>
+				geth staking stakeWTON <amount>
 
 Stake WTON
 
@@ -1381,6 +1410,84 @@ func swapToTON(ctx *cli.Context) error {
 	return nil
 }
 
+func stakeTON(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
+	decimals := params.TONDecimals
+
+	var (
+		amount *big.Int
+
+		ok bool
+
+		tx *types.Transaction
+	)
+
+	amountStr := parseIntString(ctx.Args().Get(0), decimals)
+	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
+		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
+	}
+
+	if (managers.TON == common.Address{}) ||
+		(managers.WTON == common.Address{}) ||
+		(managers.DepositManager == common.Address{}) ||
+		(managers.RootChainRegistry == common.Address{}) ||
+		(managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
+	}
+
+	log.Info("Using manager contracts", "TON", managers.TON, "TON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+
+	var (
+		TON *ton.TON
+	)
+
+	// load contract instances
+	if TON, err = ton.NewTON(managers.TON, backend); err != nil {
+		utils.Fatalf("Failed to load TON contract: %v", err)
+	}
+
+	// check TON balance
+	tonBalance, err := TON.BalanceOf(&bind.CallOpts{Pending: false}, opt.From)
+	if err != nil {
+		utils.Fatalf("Failed to read TON balance: %v", err)
+	}
+
+	if tonBalance.Cmp(amount) < 0 {
+		utils.Fatalf("Insufficient TON Balance (%s)", bigIntToString(tonBalance, decimals))
+	}
+
+	// send transaction
+	pad := make([]byte, 12)
+	approveData := append(append(pad, managers.DepositManager.Bytes()...), append(pad, rootchainAddr.Bytes()...)...)
+	tx, err = TON.ApproveAndCall(opt, managers.WTON, amount, approveData)
+
+	if err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	log.Info("Deposit TON to RootChain", "rootchain", rootchainAddr, "amount", bigIntToString(amount, decimals)+" TON", "tx", tx.Hash())
+
+	return nil
+}
+
 func stakeWTON(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
@@ -1442,11 +1549,11 @@ func stakeWTON(ctx *cli.Context) error {
 	}
 
 	if wtonBalance.Cmp(amount) < 0 {
-		utils.Fatalf("Insufficient WTON Balance (%s)", bigIntToString(wtonBalance, params.WTONDecimals))
+		utils.Fatalf("Insufficient WTON Balance (%s)", bigIntToString(wtonBalance, decimals))
 	}
 
 	// send transaction(s)
-	approveToken("WTON", WTON, backend, opt, managers.DepositManager, amount, params.WTONDecimals)
+	approveToken("WTON", WTON, backend, opt, managers.DepositManager, amount, decimals)
 
 	if tx, err = depositManager.Deposit(opt, rootchainAddr, amount); err != nil {
 		return err
