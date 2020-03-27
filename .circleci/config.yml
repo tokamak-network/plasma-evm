@@ -17,8 +17,6 @@ jobs:
       CHALLENGER="0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
 
     steps:
-      - checkout
-
       - run:
           name: Run rootchain
           command: |
