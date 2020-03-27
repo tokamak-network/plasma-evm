@@ -2,8 +2,7 @@ version: 2
 jobs:
   build:
     machine:
-      enabled: true
-      image: ubuntu-1604:201903-01
+      image: cimg/go:1.13
 
     working_directory: /home/circleci
     environment:
