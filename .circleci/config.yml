@@ -22,7 +22,7 @@ jobs:
           command: |
             set -x
             git clone https://github.com/Onther-Tech/go-ethereum
-            cd go-ethreum
+            cd go-ethereum
             nohup bash run.rootchain.sh &
 
       - run:
