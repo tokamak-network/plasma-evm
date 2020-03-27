@@ -1,22 +1,30 @@
 version: 2
 jobs:
   build:
+
+  test:
     machine:
-      enabled: true
-      image: ubuntu-1604:201903-01
+      - enabled: true
+      - image: ubuntu-1604:201903-01
+      - image: cimg/go:1.13
 
     working_directory: /home/circleci
     environment:
       OPERATOR_KEY="b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
-      KEY2="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a115"
-      KEY3="067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc"
-      KEY4="ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66"
-      KEY5="eda4515e1bc6c08e8606b51ffb6ffe70b3fe76781ed49872285e484064e3b634"
       CHALLENGER_KEY="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
       OPERATOR="0x71562b71999873DB5b286dF957af199Ec94617F7"
       CHALLENGER="0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
 
     steps:
+      - run:
+          name: Print environment
+          command: |
+            set -x
+            ls -all
+            docker images
+            docker ps -a
+            which go
+
       - run:
           name: Run rootchain
           command: |
@@ -24,6 +32,7 @@ jobs:
             git clone https://github.com/Onther-Tech/go-ethereum
             cd go-ethereum
             nohup bash run.rootchain.sh &
+            tail -n 100 nohup.out
 
       - run:
           name: Run Operator Node
@@ -32,4 +41,4 @@ jobs:
             git clone -b circleci https://github.com/sifnoc/plasma-evm
             cd plasma-evm
             make geth && build/bin/geth --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
-            build/bin/geth init --nousb --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
+            build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
