@@ -4,7 +4,6 @@ jobs:
     machine:
       - enabled: true
       - image: ubuntu-1604:201903-01
-      - image: cimg/go:1.13
 
     working_directory: /home/circleci
     environment:
@@ -12,15 +11,18 @@ jobs:
       CHALLENGER_KEY="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
       OPERATOR="0x71562b71999873DB5b286dF957af199Ec94617F7"
       CHALLENGER="0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
+      GOROOT=/home/circleci/go
+      GOPATH=/home/circleci/plasma
+      PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
     steps:
       - run:
-          name: Print environment
+          name: Setup environment
           command: |
             set -x
-            ls -all
-            docker images
-            docker ps -a
+            env
+            wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
+            tar -xvf go1.13.4.linux-amd64.tar.gz
             which go
 
       - run:
