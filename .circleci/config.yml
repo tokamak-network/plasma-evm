@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    machine:
+    docker:
       image: cimg/go:1.13
 
     working_directory: /home/circleci
@@ -16,6 +16,9 @@ jobs:
           name: Check environment
           command: |
             set -x
+            pwd
+            ls -all
+            users
             which go
             go version
 
@@ -36,6 +39,12 @@ jobs:
             make geth && build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             echo "" > signer.pass
-            build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --nousb --password signer.pass --datadir ./pls.oper
+            build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --password signer.pass --datadir ./pls.oper
             cd pls.oper
             nohup  ../build/bin/geth --rootchain.url "ws://localhost:8546" --datadir ./ --operator 0x71562b71999873db5b286df957af199ec94617f7 --port 30306 &
+            echo "while :" >> sendTx.operator1.sh
+            echo "do" >> sendTx.operator1.sh
+            echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
+            echo "  sleep 500" >> sendTx.operator1.sh
+            echo "done" >> sendTx.operator1.sh
+            cat sendTx.operator1.sh
