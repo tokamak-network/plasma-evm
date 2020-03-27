@@ -32,15 +32,16 @@ jobs:
             git clone https://github.com/Onther-Tech/go-ethereum
             cd go-ethereum
             nohup bash run.rootchain.sh &
-            tail -n 100 nohup.out
 
       - run:
           name: Run Operator Node
           command: |
             set -x
-            git clone -b circleci https://github.com/sifnoc/plasma-evm
+            git clone https://github.com/sifnoc/plasma-evm
             cd plasma-evm
             make geth && build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             echo "" > signer.pass
             build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --nousb --password signer.pass --datadir ./pls.oper
+            cd pls.oper
+            nohup  ../build/bin/geth --rootchain.url "ws://localhost:8546" --datadir ./ --operator 0x71562b71999873db5b286df957af199ec94617f7 --port 30306 &
