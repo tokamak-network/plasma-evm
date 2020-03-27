@@ -2,6 +2,7 @@ version: 2
 jobs:
   build:
     machine:
+      enabled: true
       image: ubuntu-1604:201903-01
 
     working_directory: /home/circleci
@@ -32,3 +33,4 @@ jobs:
             git clone -b feature/circleci https://github.com/Onther-Tech/plasma-evm
             cd plasma-evm
             make geth && build/bin/geth --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
+            build/bin/geth init --nousb --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
