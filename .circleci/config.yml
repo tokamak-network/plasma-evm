@@ -1,7 +1,5 @@
 version: 2
 jobs:
-  build:
-
   test:
     machine:
       - enabled: true
