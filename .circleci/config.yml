@@ -2,9 +2,9 @@ version: 2
 jobs:
   build:
     docker:
-      image: cimg/go:1.13
+     - image: cimg/go:1.13
 
-    working_directory: /home/circleci
+    working_directory: ~/
     environment:
       OPERATOR_KEY="b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
       CHALLENGER_KEY="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
@@ -45,6 +45,6 @@ jobs:
             echo "while :" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
-            echo "  sleep 500" >> sendTx.operator1.sh
+            echo "  sleep 30" >> sendTx.operator1.sh
             echo "done" >> sendTx.operator1.sh
             cat sendTx.operator1.sh
