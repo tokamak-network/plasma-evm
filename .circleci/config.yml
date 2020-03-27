@@ -11,19 +11,14 @@ jobs:
       CHALLENGER_KEY="78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
       OPERATOR="0x71562b71999873DB5b286dF957af199Ec94617F7"
       CHALLENGER="0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
-      GOROOT=/home/circleci/go
-      GOPATH=/home/circleci/plasma
-      PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
     steps:
       - run:
-          name: Setup environment
+          name: Check environment
           command: |
             set -x
-            env
-            wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
-            tar -xvf go1.13.4.linux-amd64.tar.gz
             which go
+            go version
 
       - run:
           name: Run rootchain
@@ -37,7 +32,7 @@ jobs:
           name: Run Operator Node
           command: |
             set -x
-            git clone https://github.com/sifnoc/plasma-evm
+            git clone https://github.com/Onther-Tech/plasma-evm
             cd plasma-evm
             make geth && build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
