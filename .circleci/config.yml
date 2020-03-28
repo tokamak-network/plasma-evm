@@ -27,6 +27,8 @@ jobs:
             set -x
             git clone https://github.com/Onther-Tech/plasma-evm
             cd plasma-evm
+            make geth
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://localhost:8545
             build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             echo "" > signer.pass
