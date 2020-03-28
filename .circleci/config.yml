@@ -55,7 +55,7 @@ jobs:
             build/bin/geth \
             --dev \
             --dev.period 1 \
-            --dev.faucetkey "$OPERATOR_KEY,CHALLENGER_KEY,$KEY0,$KEY1,$KEY2,$KEY3" \
+            --dev.faucetkey "$OPERATOR_KEY,$CHALLENGER_KEY,$KEY0,$KEY1,$KEY2,$KEY3" \
             --datadir $DATADIR_ROOTCHAIN \
             --rpc \
             --rpcport 8545 \
@@ -139,7 +139,7 @@ jobs:
             go-ethereum/build/bin/geth \
             --dev \
             --dev.period 1 \
-            --dev.faucetkey "$OPERATOR_KEY,CHALLENGER_KEY,$KEY0,$KEY1,$KEY2,$KEY3" \
+            --dev.faucetkey "$OPERATOR_KEY,$CHALLENGER_KEY,$KEY0,$KEY1,$KEY2,$KEY3" \
             --datadir $DATADIR_ROOTCHAIN \
             --rpc \
             --rpcport 8545 \
