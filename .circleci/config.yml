@@ -135,7 +135,7 @@ jobs:
           background: true
           command: |
             set -x
-            rm -rf DATADIR_ROOTCHAIN/keystore
+            rm -rf $DATADIR_ROOTCHAIN/keystore
             go-ethereum/build/bin/geth \
             --dev \
             --dev.period 1 \
