@@ -69,7 +69,8 @@ jobs:
           background: true
           command: |
             set -x
-            plasma-evm/build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --operator $OPERATOR --port 30306
+            cd plasma-evm
+            build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --operator $OPERATOR --port 30306
 
       - run:
           name: Send Tx & Check blocknumber in childchain
