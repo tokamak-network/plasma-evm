@@ -14,8 +14,8 @@ jobs:
     steps:
       - run:
           name: Run rootchain
-          command: |
           background: true
+          command: |
             set -x
             git clone https://github.com/Onther-Tech/go-ethereum
             cd go-ethereum
