@@ -84,7 +84,7 @@ jobs:
             build/bin/geth --exec "web3.eth.blockNumber" attach --datadir ./pls.oper
 
       - save_cache:
-          key: plasma-evm-private-network
+          key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/
             - /tmp
@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - restore_cache:
-          key: plasma-evm-private-network
+          key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/
             - /tmp
