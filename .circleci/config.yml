@@ -39,9 +39,9 @@ jobs:
             cd plasma-evm
             make geth
             echo "" > signer.pass
-            build/bin/geth --nousb account importKey $ADDR0 --password signer.pass --datadir $DATADIR_MANAGERS
-            build/bin/geth --nousb account importKey $ADDR1 --password signer.pass --datadir $DATADIR_OPERATOR1
-            build/bin/geth --nousb account importKey $ADDR2 --password signer.pass --datadir $DATADIR_OPERATOR2
+            build/bin/geth --nousb account importKey $KEY0 --password signer.pass --datadir $DATADIR_MANAGERS
+            build/bin/geth --nousb account importKey $KEY1 --password signer.pass --datadir $DATADIR_OPERATOR1
+            build/bin/geth --nousb account importKey $KEY2 --password signer.pass --datadir $DATADIR_OPERATOR2
             echo "while :" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
