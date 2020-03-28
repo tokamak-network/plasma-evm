@@ -80,8 +80,8 @@ jobs:
             build/bin/geth \
               --nousb \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --operator.key $KEY0 \
-              --rootchain.sender $ADDR0 \
+              --operator.key $KEY1 \
+              --rootchain.sender $ADDR1 \
               --datadir $DATADIR_OPERATOR1 \
               deploy "./genesis.json" 16 true 2
             build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
