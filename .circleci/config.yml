@@ -95,9 +95,7 @@ jobs:
             build/bin/geth \
               --rootchain.url "ws://127.0.0.1:8546" \
               --datadir $DATADIR_OPERATOR1 \
-              --operator $ADDR0 \
-              --password pwd.pass \
-              --unlock $ADDR0 \
+              --operator $ADDR1 \
               --rpc \
               --rpcport 8547 \
               --port 30306 \
@@ -108,8 +106,6 @@ jobs:
           command: |
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
-            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_OPERATOR1
-            sleep 10
             build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_OPERATOR1
             sleep 10
             build/bin/geth --exec "web3.eth.blockNumber" attach --datadir $DATADIR_OPERATOR1
@@ -236,9 +232,9 @@ jobs:
             build/bin/geth manage-staking register \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Test staking command(1/5) - swapFromTON
@@ -247,9 +243,9 @@ jobs:
             build/bin/geth staking swapFromTON 1000.0 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Test staking command(2/5) - swapToTON
@@ -258,9 +254,9 @@ jobs:
             build/bin/geth staking swapToTON 500.0 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Test staking command(3/5) - stakeWTON
@@ -269,9 +265,9 @@ jobs:
             build/bin/geth staking stakeWTON 250.0 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Test staking command(4/5) - stakeTON
@@ -280,9 +276,9 @@ jobs:
             build/bin/geth staking stakeTON 250.0 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Test staking command(5/5) - balances
@@ -291,9 +287,9 @@ jobs:
             build/bin/geth staking balances $ADDR0 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR0 \
+              --unlock $ADDR1 \
               --password pwd.pass \
-              --rootchain.sender $ADDR0
+              --rootchain.sender $ADDR1
 
       - run:
           name: Run childchain, Operator1
@@ -304,9 +300,7 @@ jobs:
             build/bin/geth \
               --rootchain.url "ws://127.0.0.1:8546" \
               --datadir $DATADIR_OPERATOR1 \
-              --operator $ADDR0 \
-              --password pwd.pass \
-              --unlock $ADDR0 \
+              --operator $ADDR1 \
               --rpc \
               --rpcport 8547 \
               --port 30306 \
