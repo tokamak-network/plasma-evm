@@ -152,3 +152,12 @@ jobs:
               --unlock $ADDR0 \
               --password pwd.pass \
               --rootchain.sender $ADDR0
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
