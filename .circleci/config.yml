@@ -70,12 +70,13 @@ jobs:
           command: |
             set -x
             cd plasma-evm
-            build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --operator $OPERATOR --port 30306
+            build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --rpc --rpcport 8547 --operator $OPERATOR --port 30306
 
       - run:
           name: Send Tx & Check blocknumber in childchain
           command: |
             cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
             build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir ./pls.oper
             sleep 10
             build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir ./pls.oper
