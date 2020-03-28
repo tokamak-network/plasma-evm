@@ -8,6 +8,8 @@ jobs:
     environment:
       OPERATOR_KEY: "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
       OPERATOR: "0x71562b71999873DB5b286dF957af199Ec94617F7"
+      DATADIR_ROOTCHAIN: "/home/circleci/go-ethereum/chaindata"
+      DATADIR_OPERATOR1: "/home/circleci/plasma-evm/pls.oper1"
 
     steps:
       - run:
@@ -26,7 +28,7 @@ jobs:
             cd plasma-evm
             make geth
             echo "" > signer.pass
-            build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --password signer.pass --datadir ./pls.oper
+            build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --password signer.pass --datadir $DATADIR_OPERATOR1
             echo "while :" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
@@ -44,7 +46,7 @@ jobs:
             --dev \
             --dev.period 1 \
             --dev.faucetkey "$OPERATOR_KEY" \
-            --datadir ./chaindata \
+            --datadir $DATADIR_ROOTCHAIN \
             --rpc \
             --rpcport 8545 \
             --rpcapi eth,debug,net \
@@ -62,8 +64,8 @@ jobs:
             set -x
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            build/bin/geth --nousb --rootchain.url "ws://127.0.0.1:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
-            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir pls.oper genesis.json
+            build/bin/geth --nousb --rootchain.url "ws://127.0.0.1:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir $DATADIR_OPERATOR1 deploy "./genesis.json" 16 true 4096
+            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
 
       - run:
           name: Run childchain
@@ -71,18 +73,18 @@ jobs:
           command: |
             set -x
             cd plasma-evm
-            build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --rpc --rpcport 8547 --operator $OPERATOR --port 30306
+            build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 --rpc --rpcport 8547 --operator $OPERATOR --port 30306
 
       - run:
           name: Send Tx & Check blocknumber in childchain
           command: |
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
-            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir ./pls.oper
+            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_OPERATOR1
             sleep 10
-            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir ./pls.oper
+            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_OPERATOR1
             sleep 10
-            build/bin/geth --exec "web3.eth.blockNumber" attach --datadir ./pls.oper
+            build/bin/geth --exec "web3.eth.blockNumber" attach --datadir $DATADIR_OPERATOR1
 
       - save_cache:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
@@ -107,6 +109,10 @@ jobs:
       KEY1: "bfaa65473b85b3c33b2f5ddb511f0f4ef8459213ada2920765aaac25b4fe38c5"
       KEY2: "067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc"
       KEY3: "ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66"
+      DATADIR_ROOTCHAIN: "/home/circleci/go-ethereum/chaindata"
+      DATADIR_MANAGERS: "/home/circleci/plasma-evm/pls.manager"
+      DATADIR_OPERATOR1: "/home/circleci/plasma-evm/pls.oper1"
+      DATADIR_OPERATOR2: "/home/circleci/plasma-evm/pls.oper2"
 
     steps:
       - restore_cache:
@@ -123,7 +129,7 @@ jobs:
             --dev \
             --dev.period 1 \
             --dev.faucetkey "$OPERATOR_KEY" \
-            --datadir ./chaindata \
+            --datadir $DATADIR_ROOTCHAIN \
             --rpc \
             --rpcport 8545 \
             --rpcapi eth,debug,net \
@@ -136,12 +142,64 @@ jobs:
             --miner.gasprice "10"
 
       - run:
-          name: Test staking command - deployManagers
+          name: Test manage-staking command - deployManagers
           command: |
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8546
             cd plasma-evm
             build/bin/geth manage-staking deployManagers 10 1.5 \
-              --datadir ./pls.manager \
+              --datadir $DATADIR_MANAGERS \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR0 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR0
+
+      - run:
+          name: Test manage-staking command(1/5) - deployManagers
+          command: |
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8546
+            cd plasma-evm
+            build/bin/geth manage-staking deployManagers 10 1.5 \
+              --datadir $DATADIR_MANAGERS \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR0 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR0
+
+      - run:
+          name: Test manage-staking command(2/5) - mintTON
+          command: |
+            cd plasma-evm
+            build/bin/geth manage-staking mintTON $ADDR1 10000.0 \
+              --datadir $DATADIR_MANAGERS \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR0 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR0
+
+      - run:
+          name: Test manage-staking command(3/5) - deployPowerTON
+          command: |
+            cd plasma-evm
+            build/bin/geth manage-staking deployPowerTON 30s \
+              --datadir $DATADIR_MANAGERS \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR0 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR0
+
+      - run:
+          name: Test manage-staking command(4/5) - getManagers
+          command: |
+            cd plasma-evm
+            build/bin/geth manage-staking getManagers managers.json \
+              --datadir $DATADIR_MANAGERS
+
+      - run:
+          name: Test manage-staking command(5/5) - startPowerTON
+          command: |
+            cd plasma-evm
+            build/bin/geth manage-staking startPowerTON \
+              --datadir $DATADIR_MANAGERS \
               --rootchain.url "ws://127.0.0.1:8546" \
               --unlock $ADDR0 \
               --password pwd.pass \
