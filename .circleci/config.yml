@@ -29,7 +29,7 @@ jobs:
             make geth
 
       - run:
-          name: Compile & Setup childchain as operator
+          name: Compile childchain as operator
           command: |
             set -x
             git clone https://github.com/Onther-Tech/plasma-evm
@@ -52,7 +52,7 @@ jobs:
             build/bin/geth \
             --dev \
             --dev.period 1 \
-            --dev.faucetkey "$OPERATOR_PRIV_KEY,$KEY0,$KEY1,$KEY2,$KEY3,$CHALLENGER_KEY" \
+            --dev.faucetkey "$OPERATOR_KEY,$KEY0,$KEY1,$KEY2,$KEY3,$CHALLENGER_KEY" \
             --rpc \
             --rpcport 8545 \
             --rpcapi eth,debug,net \
@@ -65,13 +65,18 @@ jobs:
             --miner.gasprice "10"
 
       - run:
-          name: Run childchain as operator
-          background: true
+          name: Setup childchain as operator
           command: |
             set -x
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
-            build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
-            cd pls.oper
-            nohup  ../build/bin/geth --rootchain.url "ws://localhost:8546" --datadir ./ --operator $OPERATOR --port 30306 &
+            build/bin/geth --nousb --rootchain.url "ws://127.0.0.1:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
+            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir pls.oper genesis.json
+
+      - run:
+          name: Run childchain
+          background: true
+          command: |
+            set -x
+            cd plasma-evm/pls.oper
+            ../build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./ --operator $OPERATOR --port 30306
