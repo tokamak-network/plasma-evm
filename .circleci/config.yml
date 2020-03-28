@@ -70,16 +70,17 @@ jobs:
           command: |
             set -x
             cd plasma-evm/pls.oper
-            ../build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./ --operator $OPERATOR --port 30306
+            ../build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./pls.oper --operator $OPERATOR --port 30306
 
       - run:
           name: Send Tx & Check blocknumber in childchain
           command: |
-            plasma-evm/build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" --datadir plasma-evm/pls.oper
+            cd plasma-evm
+            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" --datadir pls.oper
             sleep 10
-            plasma-evm/build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" --datadir plasma-evm/pls.oper
+            build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" --datadir pls.oper
             sleep 10
-            plasma-evm/build/bin/geth --exec "web3.eth.blockNumber" --datadir plasma-evm/pls.oper
+            build/bin/geth --exec "web3.eth.blockNumber" --datadir pls.oper
 
       - save_cache:
           key: plasma-evm-private-network
