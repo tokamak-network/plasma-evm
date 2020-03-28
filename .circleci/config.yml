@@ -136,22 +136,26 @@ jobs:
             --miner.gasprice "10"
 
       - run:
-          name: Run childchain
-          background: true
-          command: |
-            set -x
-            cd plasma-evm/pls.oper
-            ../build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./ --operator $OPERATOR --port 30306
-
-      - run:
           name: Test staking command - deployManagers
           command: |
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8546
+            cd plasma-evm
             build/bin/geth manage-staking deployManagers 10 1.5 \
-              --datadir $DATADIR_MANAGERS \
+              --datadir ./pls.manager \
               --rootchain.url "ws://127.0.0.1:8546" \
               --unlock $ADDR0 \
               --password pwd.pass \
               --rootchain.sender $ADDR0
+
+      - run:
+          name: Run childchain
+          background: true
+          command: |
+            set -x
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            cd plasma-evm/pls.oper
+            ../build/bin/geth --rootchain.url "ws://127.0.0.1:8546" --datadir ./ --operator $OPERATOR --port 30306
+
 
 workflows:
   version: 2
