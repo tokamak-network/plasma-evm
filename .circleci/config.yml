@@ -34,7 +34,6 @@ jobs:
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
             echo "  sleep 30" >> sendTx.operator1.sh
             echo "done" >> sendTx.operator1.sh
-            cat sendTx.operator1.sh
 
       - run:
           name: Run rootchain
@@ -50,7 +49,7 @@ jobs:
           command: |
             set -x
             cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://localhost:8545
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
             build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             cd pls.oper
