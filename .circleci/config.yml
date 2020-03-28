@@ -44,6 +44,7 @@ jobs:
             --dev \
             --dev.period 1 \
             --dev.faucetkey "$OPERATOR_KEY" \
+            --datadir ./chaindata \
             --rpc \
             --rpcport 8545 \
             --rpcapi eth,debug,net \
@@ -87,7 +88,6 @@ jobs:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/
-            - /tmp
 
   test:
     docker:
@@ -113,7 +113,6 @@ jobs:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/
-            - /tmp
 
       - run:
           name: Run rootchain
@@ -124,6 +123,7 @@ jobs:
             --dev \
             --dev.period 1 \
             --dev.faucetkey "$OPERATOR_KEY" \
+            --datadir ./chaindata \
             --rpc \
             --rpcport 8545 \
             --rpcapi eth,debug,net \
