@@ -7,8 +7,8 @@ jobs:
     working_directory: ~/
     environment:
       OPERATOR_KEY: "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"
-      OPERATOR: "0x71562b71999873DB5b286dF957af199Ec94617F7"
       CHALLENGER_KEY: "78ae75d1cd5960d87e76a69760cb451a58928eee7890780c352186d23094a114"
+      OPERATOR: "0x71562b71999873DB5b286dF957af199Ec94617F7"
       CHALLENGER: "0x3616BE06D68dD22886505e9c2CaAa9EcA84564b8"
       ADDR0: "0x5df7107c960320b90a3d7ed9a83203d1f98a811d"
       ADDR1: "0x3cd9f729c8d882b851f8c70fb36d22b391a288cd"
@@ -19,8 +19,9 @@ jobs:
       KEY2: "067394195895a82e685b000e592f771f7899d77e87cc8c79110e53a2f0b0b8fc"
       KEY3: "ae03e057a5b117295db86079ba4c8505df6074cdc54eec62f2050e677e5d4e66"
       DATADIR_ROOTCHAIN: "/home/circleci/go-ethereum/chaindata"
+      DATADIR_MANAGERS: "/home/circleci/plasma-evm/pls.manager"
       DATADIR_OPERATOR1: "/home/circleci/plasma-evm/pls.oper1"
-
+      DATADIR_OPERATOR2: "/home/circleci/plasma-evm/pls.oper2"
     steps:
       - run:
           name: Compile rootchain
@@ -38,7 +39,9 @@ jobs:
             cd plasma-evm
             make geth
             echo "" > signer.pass
-            build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --password signer.pass --datadir $DATADIR_OPERATOR1
+            build/bin/geth --nousb account importKey $ADDR0 --password signer.pass --datadir $DATADIR_MANAGERS
+            build/bin/geth --nousb account importKey $ADDR1 --password signer.pass --datadir $DATADIR_OPERATOR1
+            build/bin/geth --nousb account importKey $ADDR2 --password signer.pass --datadir $DATADIR_OPERATOR2
             echo "while :" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
