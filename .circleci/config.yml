@@ -96,7 +96,7 @@ jobs:
               --rootchain.url "ws://127.0.0.1:8546" \
               --datadir $DATADIR_OPERATOR1 \
               --operator $ADDR0 \
-              --operator.password pwd.pass \
+              --password pwd.pass \
               --unlock $ADDR0 \
               --rpc \
               --rpcport 8547 \
@@ -305,13 +305,15 @@ jobs:
               --rootchain.url "ws://127.0.0.1:8546" \
               --datadir $DATADIR_OPERATOR1 \
               --operator $ADDR0 \
+              --password pwd.pass \
+              --unlock $ADDR0 \
               --rpc \
               --rpcport 8547 \
               --port 30306 \
               --allow-insecure-unlock
 
       - run:
-          name: Proceed operator1 node with send Tx
+          name: Proceed operator1 blocks by send dummy tx
           command: |
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
