@@ -13,16 +13,15 @@ jobs:
 
     steps:
       - run:
-          name: Run rootchain
-          background: true
+          name: Compile rootchain
           command: |
             set -x
             git clone https://github.com/Onther-Tech/go-ethereum
             cd go-ethereum
-            bash run.rootchain.sh
+            make geth
 
       - run:
-          name: Run Operator Node
+          name: Compile & Setup childchain as operator
           command: |
             set -x
             git clone https://github.com/Onther-Tech/plasma-evm
@@ -41,3 +40,19 @@ jobs:
             echo "  sleep 30" >> sendTx.operator1.sh
             echo "done" >> sendTx.operator1.sh
             cat sendTx.operator1.sh
+
+      - run:
+          name: Run rootchain
+          background: true
+          command: |
+            set -x
+            cd go-ethereum
+            bash run.rootchain.sh
+
+      - run:
+          name: Run childchain as operator
+          background: true
+          command: |
+            set -x
+            cd go-ethereum
+            bash run.rootchain.sh
