@@ -27,13 +27,8 @@ jobs:
             git clone https://github.com/Onther-Tech/plasma-evm
             cd plasma-evm
             make geth
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://localhost:8545
-            build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
-            build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             echo "" > signer.pass
             build/bin/geth --nousb account importKey b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291 --password signer.pass --datadir ./pls.oper
-            cd pls.oper
-            nohup  ../build/bin/geth --rootchain.url "ws://localhost:8546" --datadir ./ --operator 0x71562b71999873db5b286df957af199ec94617f7 --port 30306 &
             echo "while :" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
             echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
@@ -54,5 +49,9 @@ jobs:
           background: true
           command: |
             set -x
-            cd go-ethereum
-            bash run.rootchain.sh
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://localhost:8545
+            build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
+            build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
+            cd pls.oper
+            nohup  ../build/bin/geth --rootchain.url "ws://localhost:8546" --datadir ./ --operator $OPERATOR --port 30306 &
