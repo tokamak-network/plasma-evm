@@ -13,22 +13,13 @@ jobs:
 
     steps:
       - run:
-          name: Check environment
-          command: |
-            set -x
-            pwd
-            ls -all
-            users
-            which go
-            go version
-
-      - run:
           name: Run rootchain
           command: |
+          background: true
             set -x
             git clone https://github.com/Onther-Tech/go-ethereum
             cd go-ethereum
-            nohup bash run.rootchain.sh &
+            bash run.rootchain.sh
 
       - run:
           name: Run Operator Node
@@ -36,9 +27,6 @@ jobs:
             set -x
             git clone https://github.com/Onther-Tech/plasma-evm
             cd plasma-evm
-            make geth && ls -all
-            ps ax | grep geth
-            tail -n 100 ~/go-ethereum/nohup.out
             build/bin/geth --nousb --rootchain.url "ws://localhost:8546" --operator.key $OPERATOR_KEY --rootchain.sender $OPERATOR --datadir pls.oper deploy "./genesis.json" 16 true 4096
             build/bin/geth --nousb init --rootchain.url "ws://localhost:8546" --datadir pls.oper genesis.json
             echo "" > signer.pass
