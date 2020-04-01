@@ -166,7 +166,30 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 Register RootChain contract to RootChainRegistry
 `,
 			},
+			{
+				Name:      "setCommissionRate",
+				Usage:     "Set commission rate",
+				Action:    utils.MigrateFlags(setCommissionRate),
+				ArgsUsage: "<rate>",
+				Category:  "TON STAKING MANAGE COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.DeveloperKeyFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+				geth staking setCommissionRate <rate>
 
+Set commission rate of the root chain (operator only)
+
+NOTE:
+rate should be 0 or between 0.01 and 1.00
+`,
+			},
 			{
 				Name:      "getManagers",
 				Usage:     "Get staking managers addresses in database",
@@ -1045,6 +1068,68 @@ func registerRootChain(ctx *cli.Context) error {
 	}
 	if err = f2(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func setCommissionRate(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
+	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
+	}
+
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
+	decimals := params.TONDecimals
+
+	rate := parseFloatString(ctx.Args().Get(1), decimals)
+
+	logManagers(managers)
+
+	// load contract instances
+	rootchainCtr, err := rootchain.NewRootChain(rootchainAddr, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load RootChain contract: %v", err)
+	}
+	seigManager, err := seigmanager.NewSeigManager(managers.SeigManager, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load SeigManager contract: %v", err)
+	}
+
+	operator, err := rootchainCtr.Operator(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to read operator: %v", err)
+	}
+
+	if operator != opt.From {
+		utils.Fatalf("Transaction sender is not the operator: %s", opt.From)
+	}
+
+	// send transaction
+
+	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", bigIntToString(rate, decimals))
+
+	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, rate)
+	if err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
 	}
 
 	return nil
