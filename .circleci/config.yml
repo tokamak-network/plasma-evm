@@ -177,8 +177,8 @@ jobs:
           command: |
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
+            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to: "0x71562b71999873DB5b286dF957af199Ec94617F7", value: 1e20})' attach --datadir $DATADIR_OPERATOR1
             build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to: "0x5df7107c960320b90a3d7ed9a83203d1f98a811d", value: 1e20})' attach --datadir $DATADIR_OPERATOR1
-            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to: "0x3cd9f729c8d882b851f8c70fb36d22b391a288cd", value: 1e20})' attach --datadir $DATADIR_OPERATOR1
             build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to: "0x57ab89f4eabdffce316809d790d5c93a49908510", value: 1e20})' attach --datadir $DATADIR_OPERATOR1
             build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to: "0x6c278df36922fea54cf6f65f725267e271f60dd9", value: 1e20})' attach --datadir $DATADIR_OPERATOR1
 
@@ -187,8 +187,8 @@ jobs:
           command: |
             set -x
             cd plasma-evm
-            go test 7200s ./pls
-            go test 7200s ./tx
+            go test --timeout 7200s ./pls
+            go test --timeout 7200s ./tx
 
   test-staking:
     docker:
