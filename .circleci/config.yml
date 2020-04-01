@@ -44,7 +44,7 @@ jobs:
             build/bin/geth --nousb account importKey $KEY2 --password signer.pass --datadir $DATADIR_OPERATOR2
             echo "for i in {1..5}" >> sendTx.operator1.sh
             echo "do" >> sendTx.operator1.sh
-            echo "  ./build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
+            echo "  ../build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})' attach --datadir ./" >> sendTx.operator1.sh
             echo "  sleep 30" >> sendTx.operator1.sh
             echo "done" >> sendTx.operator1.sh
             echo "" > pwd.pass
@@ -147,6 +147,10 @@ jobs:
             set -x
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], $ADDR0, value: 1e20})' attach --datadir ./pls.oper
+            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], $ADDR1, value: 1e20})' attach --datadir ./pls.oper
+            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], $ADDR2, value: 1e20})' attach --datadir ./pls.oper
+            build/bin/geth --exec 'web3.eth.sendTransaction({from: eth.accounts[0], $ADDR3, value: 1e20})' attach --datadir ./pls.oper
             build/bin/geth \
               --nousb \
               --datadir $DATADIR_OPERATOR1 \
@@ -373,6 +377,7 @@ jobs:
           command: |
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
+            cp sendTx.operator1.sh ./pls.oper1 && cd pls.oper1
             bash sendTx.operator1.sh
 
       - run:
