@@ -1118,6 +1118,19 @@ func setCommissionRate(ctx *cli.Context) error {
 		utils.Fatalf("Transaction sender is not the operator: %s", opt.From)
 	}
 
+	minRate, err := seigManager.MINVALIDCOMMISSION(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to MIN_VALID_COMMISSION_RATE: %v", err)
+	}
+	maxRate, err := seigManager.MAXVALIDCOMMISSION(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to MAX_VALID_COMMISSION_RATE: %v", err)
+	}
+
+	if rate.Cmp(big.NewInt(0)) != 0 && (minRate.Cmp(rate) > 0 || maxRate.Cmp(rate) < 0) {
+		utils.Fatalf("Commission rate should be 0 or between %.2f and %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
+	}
+
 	// send transaction
 
 	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
