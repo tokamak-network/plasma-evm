@@ -188,6 +188,7 @@ jobs:
             set -x
             cd plasma-evm
             go test 7200s ./pls
+            go test 7200s ./tx
 
   test-staking:
     docker:
