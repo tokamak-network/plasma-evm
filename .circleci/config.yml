@@ -118,7 +118,7 @@ jobs:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/
-            -
+
       - run:
           name: Run rootchain
           background: true
