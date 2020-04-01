@@ -1093,9 +1093,9 @@ func setCommissionRate(ctx *cli.Context) error {
 
 	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
 
-	decimals := params.TONDecimals
+	decimals := params.WTONDecimals
 
-	rate := parseFloatString(ctx.Args().Get(1), decimals)
+	rate := parseFloatString(ctx.Args().Get(0), decimals)
 
 	logManagers(managers)
 
@@ -1120,7 +1120,7 @@ func setCommissionRate(ctx *cli.Context) error {
 
 	// send transaction
 
-	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", bigIntToString(rate, decimals))
+	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
 
 	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, rate)
 	if err != nil {
