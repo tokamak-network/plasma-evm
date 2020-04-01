@@ -394,3 +394,6 @@ workflows:
       - test:
           requires:
             - build
+      - test-staking:
+          requires:
+            - build
