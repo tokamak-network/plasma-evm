@@ -151,7 +151,7 @@ jobs:
               --nousb \
               --datadir $DATADIR_OPERATOR1 \
               --syncmode='full' \
-              --networkid 102 \
+              --networkid 16 \
               --rootchain.url ws://127.0.0.1:8546 \
               --rpc \
               --rpcaddr '0.0.0.0' \
