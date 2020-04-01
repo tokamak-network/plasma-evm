@@ -161,8 +161,6 @@ func DeployManagers(
 	seigManagerAddr common.Address,
 	err error,
 ) {
-	opt.GasLimit = 7500000
-
 	var (
 		TON  *ton.TON
 		WTON *wton.WTON

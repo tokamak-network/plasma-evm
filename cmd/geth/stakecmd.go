@@ -623,7 +623,6 @@ func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.Transa
 	senderAccount := accounts.Account{Address: sender}
 
 	opt := bind.NewAccountTransactor(ks, senderAccount)
-	opt.GasLimit = 7500000
 	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 
 	backend, err := ethclient.Dial(cfg.RootChainURL)
