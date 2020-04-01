@@ -76,7 +76,7 @@ The manage-staking command deploys and set up contracts in TON ecosystem.
 				Usage:     "Deploy staking manager contracts (except PowerTON)",
 				ArgsUsage: "<withdrawalDelay> <seigPerBlock>",
 				Action:    utils.MigrateFlags(deployManagers),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -102,7 +102,7 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 				Usage:     "Deploy PowerTON contract",
 				ArgsUsage: "<roundDuration>",
 				Action:    utils.MigrateFlags(deployPowerTON),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -126,7 +126,7 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 				Name:     "startPowerTON",
 				Usage:    "Start PowerTON first round",
 				Action:   utils.MigrateFlags(startPowerTON),
-				Category: "TON STAKING COMMANDS",
+				Category: "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -150,7 +150,7 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 				Name:     "register",
 				Usage:    "Register RootChain contract",
 				Action:   utils.MigrateFlags(registerRootChain),
-				Category: "TON STAKING COMMANDS",
+				Category: "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -172,7 +172,7 @@ Register RootChain contract to RootChainRegistry
 				Usage:     "Get staking managers addresses in database",
 				Action:    utils.MigrateFlags(getManagers),
 				ArgsUsage: "<path?>",
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
@@ -187,7 +187,7 @@ Get staking contracts addresses. If path is given, contracts are stored in the p
 				Usage:     "Set staking managers addresses in database",
 				ArgsUsage: "<uri>",
 				Action:    utils.MigrateFlags(setManagers),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -212,7 +212,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.r
 				Usage:     "Mint TON to account (for dev)",
 				ArgsUsage: "<to> <amount>",
 				Action:    utils.MigrateFlags(mintTON),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -520,26 +520,37 @@ func getRootChainAddr(datadir string) (rootchainAddr common.Address) {
 	return
 }
 
-func parseIntString(str string, decimals int) string {
+func parseFloatString(str string, decimals int) *big.Int {
 	if decimals != 18 && decimals != 27 {
 		utils.Fatalf("decimals should be 18 or 27, not %d", decimals)
 	}
+
 	i := strings.Index(str, ".")
-	if i < 0 {
-		return str
+
+	v := str
+	n := decimals
+
+	// split string with "."
+	if i >= 0 {
+		a := str[:i]
+		b := str[i+1:]
+		n = n - len(b)
+
+		if n < 0 {
+			utils.Fatalf("out of decimals precision: %d", decimals)
+		}
+
+		v = a + b
 	}
 
-	a := str[:i]
-	b := str[i+1:]
-	n := decimals - len(b)
+	v = v + strings.Repeat("0", n)
 
-	if n < 0 {
-		utils.Fatalf("decimals out of precision: %d", decimals)
+	bi, ok := big.NewInt(0).SetString(v, 10)
+	if !ok {
+		utils.Fatalf(fmt.Sprintf("Failed to parse integer: %s", str))
 	}
 
-	r := strings.Repeat("0", n)
-
-	return a + b + r
+	return bi
 }
 
 func bigIntToString(v *big.Int, decimals int) string {
@@ -567,6 +578,10 @@ func toWAD(v *big.Int) *big.Int {
 func toRAY(v *big.Int) *big.Int {
 	p := new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
 	return new(big.Int).Mul(v, p)
+}
+
+func logManagers(managers *ManagerConfig) {
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager, "PowerTON", managers.PowerTON)
 }
 
 func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.TransactOpts, *ethclient.Client) {
@@ -627,12 +642,7 @@ func deployManagers(ctx *cli.Context) error {
 	}
 
 	// parse float string e.g., 12.4 to RAY value
-	seigPerBlockStr = parseIntString(seigPerBlockStr, decimals)
-
-	seigPerBlock, ok = big.NewInt(0).SetString(seigPerBlockStr, 10)
-	if !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", seigPerBlockStr))
-	}
+	seigPerBlock = parseFloatString(seigPerBlockStr, decimals)
 
 	_tonAddr := common.HexToAddress(ctx.String(utils.RootChainTONFlag.Name))
 	_wtonAddr := common.HexToAddress(ctx.String(utils.RootChainWTONFlag.Name))
@@ -957,7 +967,7 @@ func registerRootChain(ctx *cli.Context) error {
 
 	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instances
 	registry, err := rootchainregistry.NewRootChainRegistry(managers.RootChainRegistry, backend)
@@ -1043,7 +1053,7 @@ func registerRootChain(ctx *cli.Context) error {
 // TODO: pending withdrawal amount
 func getBalances(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
@@ -1072,7 +1082,7 @@ func getBalances(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		TON            *ton.TON
@@ -1206,21 +1216,16 @@ func mintTON(ctx *cli.Context) error {
 	var (
 		to     common.Address
 		amount *big.Int
-
-		ok bool
 	)
 
 	to = common.HexToAddress(ctx.Args().Get(0))
-	amountStr := parseIntString(ctx.Args().Get(1), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(1), decimals)
 
 	if (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	TON, err := ton.NewTON(managers.TON, backend)
 	if err != nil {
@@ -1295,20 +1300,15 @@ func swapFromTON(ctx *cli.Context) error {
 
 	var (
 		amount *big.Int
-
-		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instances
 	TON, err := ton.NewTON(managers.TON, backend)
@@ -1365,20 +1365,15 @@ func swapToTON(ctx *cli.Context) error {
 
 	var (
 		amount *big.Int
-
-		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instance
 	WTON, err := wton.NewWTON(managers.WTON, backend)
@@ -1431,15 +1426,10 @@ func stakeTON(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1449,7 +1439,7 @@ func stakeTON(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "TON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		TON *ton.TON
@@ -1509,15 +1499,10 @@ func stakeWTON(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1527,7 +1512,7 @@ func stakeWTON(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		WTON           *wton.WTON
@@ -1589,16 +1574,11 @@ func requestWithdrawal(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
 	if len(ctx.Args()) == 1 {
-		amountStr := parseIntString(ctx.Args().Get(0), decimals)
-		if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-			return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-		}
+		amount = parseFloatString(ctx.Args().Get(0), decimals)
 	}
 
 	if (managers.TON == common.Address{}) ||
@@ -1609,7 +1589,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		depositManager *depositmanager.DepositManager
@@ -1688,7 +1668,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		numPendingRequests *big.Int
