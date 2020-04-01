@@ -276,8 +276,6 @@ The staking command
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.UnlockedAccountFlag,
-					utils.PasswordFileFlag,
 					utils.RootChainSenderFlag,
 					utils.RootChainTONFlag,
 					utils.RootChainWTONFlag,
@@ -614,16 +612,19 @@ func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.Transa
 
 	sender := common.HexToAddress(ctx.GlobalString(utils.RootChainSenderFlag.Name))
 
-	if !ks.HasAddress(sender) {
-		utils.Fatalf("Unknown sender account: %s", sender)
+	var opt *bind.TransactOpts
+	if (sender != common.Address{}) {
+		if !ks.HasAddress(sender) {
+			utils.Fatalf("Unknown sender account: %s", sender)
+		}
+
+		log.Info("Root chain transaction sender found", "address", sender)
+
+		senderAccount := accounts.Account{Address: sender}
+
+		opt = bind.NewAccountTransactor(ks, senderAccount)
+		opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 	}
-
-	log.Info("Root chain transaction sender found", "address", sender)
-
-	senderAccount := accounts.Account{Address: sender}
-
-	opt := bind.NewAccountTransactor(ks, senderAccount)
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 
 	backend, err := ethclient.Dial(cfg.RootChainURL)
 	if err != nil {
@@ -1205,73 +1206,80 @@ func getBalances(ctx *cli.Context) error {
 
 		uncomittedStakeOf *big.Int
 		stakeOf           *big.Int
+
+		commissionRate *big.Int
 	)
 
 	// load contract instances
 	if TON, err = ton.NewTON(managers.TON, backend); err != nil {
-		utils.Fatalf("Failed depositor load TON contract: %v", err)
+		utils.Fatalf("Failed to load TON contract: %v", err)
 	}
 	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
-		utils.Fatalf("Failed depositor load WTON contract: %v", err)
+		utils.Fatalf("Failed to load WTON contract: %v", err)
 	}
 	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
-		utils.Fatalf("Failed depositor load DepositManager contract: %v", err)
+		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
 	if seigManager, err = seigmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
-		utils.Fatalf("Failed depositor load SeigManager contract: %v", err)
+		utils.Fatalf("Failed to load SeigManager contract: %v", err)
 	}
 
 	totAddr, err := seigManager.Tot(opt)
 	if err != nil {
-		utils.Fatalf("Failed depositor load tot address: %v", err)
+		utils.Fatalf("Failed to load tot address: %v", err)
 	}
 	coinageAddr, err := seigManager.Coinages(opt, rootchainAddr)
 	if err != nil {
-		utils.Fatalf("Failed depositor load coinage address: %v", err)
+		utils.Fatalf("Failed to load coinage address: %v", err)
 	}
 
 	if tot, err = seigmanager.NewERC20(totAddr, backend); err != nil {
-		utils.Fatalf("Failed depositor load tot contract: %v", err)
+		utils.Fatalf("Failed to load tot contract: %v", err)
 	}
 	if coinage, err = seigmanager.NewERC20(coinageAddr, backend); err != nil {
-		utils.Fatalf("Failed depositor load tot contract: %v", err)
+		utils.Fatalf("Failed to load tot contract: %v", err)
 	}
 
 	// read balances
 	if tonBalance, err = TON.BalanceOf(opt, depositor); err != nil {
-		utils.Fatalf("Failed depositor read TON balance: %v", err)
+		utils.Fatalf("Failed to read TON balance: %v", err)
 	}
 	if wtonBalance, err = WTON.BalanceOf(opt, depositor); err != nil {
-		utils.Fatalf("Failed depositor read WTON balance: %v", err)
+		utils.Fatalf("Failed to read WTON balance: %v", err)
 	}
 	if accStaked, err = depositManager.AccStaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read accumulated stake: %v", err)
+		utils.Fatalf("Failed to read accumulated stake: %v", err)
 	}
 	if accUnstaked, err = depositManager.AccUnstaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read accumulated unstake: %v", err)
+		utils.Fatalf("Failed to read accumulated unstake: %v", err)
 	}
 	if numPendingRequests, err = depositManager.NumPendingRequests(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+		utils.Fatalf("Failed to read num pending requests: %v", err)
 	}
 	if pendingUnstaked, err = depositManager.PendingUnstaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read pending withdrawal amount: %v", err)
+		utils.Fatalf("Failed to read pending withdrawal amount: %v", err)
 	}
 
 	if totalStake, err = tot.TotalSupply(opt); err != nil {
-		log.Warn("Failed depositor read total stake", "err", err)
+		log.Warn("Failed to read total stake", "err", err)
 		totalStake = big.NewInt(0)
 	}
 	if totalStakeRootChain, err = coinage.TotalSupply(opt); err != nil {
-		log.Warn("Failed depositor read total stake of root chain", "err", err)
+		log.Warn("Failed to read total stake of root chain", "err", err)
 		totalStakeRootChain = big.NewInt(0)
 	}
+
 	if uncomittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
-		log.Warn("Failed depositor read uncomitted stake", "err", err)
+		log.Warn("Failed to read uncomitted stake", "err", err)
 		uncomittedStakeOf = big.NewInt(0)
 	}
 	if stakeOf, err = seigManager.StakeOf(opt, rootchainAddr, depositor); err != nil {
-		log.Warn("Failed depositor read stake", "err", err)
+		log.Warn("Failed to read stake", "err", err)
 		stakeOf = big.NewInt(0)
+	}
+	if commissionRate, err = seigManager.CommissionRates(opt, rootchainAddr); err != nil {
+		log.Warn("Failed to read commission rate stake", "err", err)
+		commissionRate = big.NewInt(0)
 	}
 
 	deposit = new(big.Int).Sub(accStaked, accUnstaked)
@@ -1289,6 +1297,8 @@ func getBalances(ctx *cli.Context) error {
 
 	log.Info("Uncomitted Stake", "amount", bigIntToString(uncomittedStakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 	log.Info("Comitted Stake", "amount", bigIntToString(stakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+
+	log.Info("Commission Rate", "rate", params.ToRayFloat64(commissionRate))
 
 	return nil
 }
@@ -1779,7 +1789,7 @@ func processWithdrawal(ctx *cli.Context) error {
 	}
 
 	if numPendingRequests, err = depositManager.NumPendingRequests(&bind.CallOpts{Pending: false}, rootchainAddr, opt.From); err != nil {
-		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+		utils.Fatalf("Failed to read num pending requests: %v", err)
 	}
 
 	// check num pending requests
