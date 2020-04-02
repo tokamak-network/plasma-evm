@@ -1822,11 +1822,11 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			}
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
-			opt.GasLimit = 7500000
-			opt.GasPrice = big.NewInt(10 * params.GWei)
+			opt.GasPrice = GlobalBig(ctx, RootChainGasPriceFlag.Name)
 
 			// TODO: accept TON address in dev mode?
-			rootchainContract, _, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, cfg, staminaConfig, common.Address{}, withPETH, development, NRELength)
+			rootchainContract, genesis, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, staminaConfig, common.Address{}, withPETH, development, NRELength)
+			cfg.Genesis = genesis
 			if err != nil {
 				Fatalf("Failed to deploy contracts %v", err)
 			}

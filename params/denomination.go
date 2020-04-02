@@ -29,12 +29,22 @@ const (
 	Ether = 1e18
 )
 
+func ToRayBigInt(v float64) *big.Int {
+	return new(big.Int).Mul(big.NewInt(int64(v*GWei)), big.NewInt(Ether))
+}
+
 func ToEtherBigInt(v float64) *big.Int {
 	return new(big.Int).Mul(big.NewInt(int64(v*GWei)), big.NewInt(GWei))
 }
 
 func ToGWeiBigInt(v float64) *big.Int {
 	return big.NewInt(int64(v * GWei))
+}
+
+func ToRayFloat64(v *big.Int) float64 {
+	b := new(big.Int).Div(v, big.NewInt(GWei))
+	b = new(big.Int).Div(b, big.NewInt(GWei))
+	return float64(b.Uint64()) / GWei
 }
 
 func ToEtherFloat64(v *big.Int) float64 {

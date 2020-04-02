@@ -76,7 +76,7 @@ The manage-staking command deploys and set up contracts in TON ecosystem.
 				Usage:     "Deploy staking manager contracts (except PowerTON)",
 				ArgsUsage: "<withdrawalDelay> <seigPerBlock>",
 				Action:    utils.MigrateFlags(deployManagers),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -102,7 +102,7 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 				Usage:     "Deploy PowerTON contract",
 				ArgsUsage: "<roundDuration>",
 				Action:    utils.MigrateFlags(deployPowerTON),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -126,7 +126,7 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 				Name:     "startPowerTON",
 				Usage:    "Start PowerTON first round",
 				Action:   utils.MigrateFlags(startPowerTON),
-				Category: "TON STAKING COMMANDS",
+				Category: "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -150,7 +150,7 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 				Name:     "register",
 				Usage:    "Register RootChain contract",
 				Action:   utils.MigrateFlags(registerRootChain),
-				Category: "TON STAKING COMMANDS",
+				Category: "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -166,13 +166,36 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 Register RootChain contract to RootChainRegistry
 `,
 			},
+			{
+				Name:      "setCommissionRate",
+				Usage:     "Set commission rate",
+				Action:    utils.MigrateFlags(setCommissionRate),
+				ArgsUsage: "<rate>",
+				Category:  "TON STAKING MANAGE COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.DeveloperKeyFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+				geth staking setCommissionRate <rate>
 
+Set commission rate of the root chain (operator only)
+
+NOTE:
+rate should be 0 or between 0.01 and 1.00
+`,
+			},
 			{
 				Name:      "getManagers",
 				Usage:     "Get staking managers addresses in database",
 				Action:    utils.MigrateFlags(getManagers),
 				ArgsUsage: "<path?>",
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
@@ -187,7 +210,7 @@ Get staking contracts addresses. If path is given, contracts are stored in the p
 				Usage:     "Set staking managers addresses in database",
 				ArgsUsage: "<uri>",
 				Action:    utils.MigrateFlags(setManagers),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -212,7 +235,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.r
 				Usage:     "Mint TON to account (for dev)",
 				ArgsUsage: "<to> <amount>",
 				Action:    utils.MigrateFlags(mintTON),
-				Category:  "TON STAKING COMMANDS",
+				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
@@ -253,8 +276,6 @@ The staking command
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					utils.RootChainUrlFlag,
-					utils.UnlockedAccountFlag,
-					utils.PasswordFileFlag,
 					utils.RootChainSenderFlag,
 					utils.RootChainTONFlag,
 					utils.RootChainWTONFlag,
@@ -520,26 +541,37 @@ func getRootChainAddr(datadir string) (rootchainAddr common.Address) {
 	return
 }
 
-func parseIntString(str string, decimals int) string {
+func parseFloatString(str string, decimals int) *big.Int {
 	if decimals != 18 && decimals != 27 {
 		utils.Fatalf("decimals should be 18 or 27, not %d", decimals)
 	}
+
 	i := strings.Index(str, ".")
-	if i < 0 {
-		return str
+
+	v := str
+	n := decimals
+
+	// split string with "."
+	if i >= 0 {
+		a := str[:i]
+		b := str[i+1:]
+		n = n - len(b)
+
+		if n < 0 {
+			utils.Fatalf("out of decimals precision: %d", decimals)
+		}
+
+		v = a + b
 	}
 
-	a := str[:i]
-	b := str[i+1:]
-	n := decimals - len(b)
+	v = v + strings.Repeat("0", n)
 
-	if n < 0 {
-		utils.Fatalf("decimals out of precision: %d", decimals)
+	bi, ok := big.NewInt(0).SetString(v, 10)
+	if !ok {
+		utils.Fatalf(fmt.Sprintf("Failed to parse integer: %s", str))
 	}
 
-	r := strings.Repeat("0", n)
-
-	return a + b + r
+	return bi
 }
 
 func bigIntToString(v *big.Int, decimals int) string {
@@ -569,6 +601,10 @@ func toRAY(v *big.Int) *big.Int {
 	return new(big.Int).Mul(v, p)
 }
 
+func logManagers(managers *ManagerConfig) {
+	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager, "PowerTON", managers.PowerTON)
+}
+
 func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.TransactOpts, *ethclient.Client) {
 	unlockAccounts(ctx, stack)
 
@@ -576,17 +612,19 @@ func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.Transa
 
 	sender := common.HexToAddress(ctx.GlobalString(utils.RootChainSenderFlag.Name))
 
-	if !ks.HasAddress(sender) {
-		utils.Fatalf("Unknown sender account: %s", sender)
+	var opt *bind.TransactOpts
+	if (sender != common.Address{}) {
+		if !ks.HasAddress(sender) {
+			utils.Fatalf("Unknown sender account: %s", sender)
+		}
+
+		log.Info("Root chain transaction sender found", "address", sender)
+
+		senderAccount := accounts.Account{Address: sender}
+
+		opt = bind.NewAccountTransactor(ks, senderAccount)
+		opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 	}
-
-	log.Info("Root chain transaction sender found", "address", sender)
-
-	senderAccount := accounts.Account{Address: sender}
-
-	opt := bind.NewAccountTransactor(ks, senderAccount)
-	opt.GasLimit = 7500000
-	opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
 
 	backend, err := ethclient.Dial(cfg.RootChainURL)
 	if err != nil {
@@ -627,12 +665,7 @@ func deployManagers(ctx *cli.Context) error {
 	}
 
 	// parse float string e.g., 12.4 to RAY value
-	seigPerBlockStr = parseIntString(seigPerBlockStr, decimals)
-
-	seigPerBlock, ok = big.NewInt(0).SetString(seigPerBlockStr, 10)
-	if !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", seigPerBlockStr))
-	}
+	seigPerBlock = parseFloatString(seigPerBlockStr, decimals)
 
 	_tonAddr := common.HexToAddress(ctx.String(utils.RootChainTONFlag.Name))
 	_wtonAddr := common.HexToAddress(ctx.String(utils.RootChainWTONFlag.Name))
@@ -957,7 +990,7 @@ func registerRootChain(ctx *cli.Context) error {
 
 	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instances
 	registry, err := rootchainregistry.NewRootChainRegistry(managers.RootChainRegistry, backend)
@@ -1040,10 +1073,85 @@ func registerRootChain(ctx *cli.Context) error {
 	return nil
 }
 
+func setCommissionRate(ctx *cli.Context) error {
+	if len(ctx.Args()) != 1 {
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+
+	if (managers.RootChainRegistry == common.Address{}) || (managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
+	}
+
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
+	decimals := params.WTONDecimals
+
+	rate := parseFloatString(ctx.Args().Get(0), decimals)
+
+	logManagers(managers)
+
+	// load contract instances
+	rootchainCtr, err := rootchain.NewRootChain(rootchainAddr, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load RootChain contract: %v", err)
+	}
+	seigManager, err := seigmanager.NewSeigManager(managers.SeigManager, backend)
+	if err != nil {
+		utils.Fatalf("Failed to load SeigManager contract: %v", err)
+	}
+
+	operator, err := rootchainCtr.Operator(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to read operator: %v", err)
+	}
+
+	if operator != opt.From {
+		utils.Fatalf("Transaction sender is not the operator: %s", opt.From)
+	}
+
+	minRate, err := seigManager.MINVALIDCOMMISSION(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to MIN_VALID_COMMISSION_RATE: %v", err)
+	}
+	maxRate, err := seigManager.MAXVALIDCOMMISSION(&bind.CallOpts{Pending: false})
+	if err != nil {
+		utils.Fatalf("Failed to MAX_VALID_COMMISSION_RATE: %v", err)
+	}
+
+	if rate.Cmp(big.NewInt(0)) != 0 && (minRate.Cmp(rate) > 0 || maxRate.Cmp(rate) < 0) {
+		utils.Fatalf("Commission rate should be 0 or between %.2f and %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
+	}
+
+	// send transaction
+
+	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
+
+	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, rate)
+	if err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		utils.Fatalf("Failed to send transaction: %v", err)
+	}
+
+	return nil
+}
+
 // TODO: pending withdrawal amount
 func getBalances(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		utils.Fatalf("Expected 2 parameters, not %d", len(ctx.Args()))
+		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
@@ -1072,7 +1180,7 @@ func getBalances(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		TON            *ton.TON
@@ -1098,73 +1206,80 @@ func getBalances(ctx *cli.Context) error {
 
 		uncomittedStakeOf *big.Int
 		stakeOf           *big.Int
+
+		commissionRate *big.Int
 	)
 
 	// load contract instances
 	if TON, err = ton.NewTON(managers.TON, backend); err != nil {
-		utils.Fatalf("Failed depositor load TON contract: %v", err)
+		utils.Fatalf("Failed to load TON contract: %v", err)
 	}
 	if WTON, err = wton.NewWTON(managers.WTON, backend); err != nil {
-		utils.Fatalf("Failed depositor load WTON contract: %v", err)
+		utils.Fatalf("Failed to load WTON contract: %v", err)
 	}
 	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
-		utils.Fatalf("Failed depositor load DepositManager contract: %v", err)
+		utils.Fatalf("Failed to load DepositManager contract: %v", err)
 	}
 	if seigManager, err = seigmanager.NewSeigManager(managers.SeigManager, backend); err != nil {
-		utils.Fatalf("Failed depositor load SeigManager contract: %v", err)
+		utils.Fatalf("Failed to load SeigManager contract: %v", err)
 	}
 
 	totAddr, err := seigManager.Tot(opt)
 	if err != nil {
-		utils.Fatalf("Failed depositor load tot address: %v", err)
+		utils.Fatalf("Failed to load tot address: %v", err)
 	}
 	coinageAddr, err := seigManager.Coinages(opt, rootchainAddr)
 	if err != nil {
-		utils.Fatalf("Failed depositor load coinage address: %v", err)
+		utils.Fatalf("Failed to load coinage address: %v", err)
 	}
 
 	if tot, err = seigmanager.NewERC20(totAddr, backend); err != nil {
-		utils.Fatalf("Failed depositor load tot contract: %v", err)
+		utils.Fatalf("Failed to load tot contract: %v", err)
 	}
 	if coinage, err = seigmanager.NewERC20(coinageAddr, backend); err != nil {
-		utils.Fatalf("Failed depositor load tot contract: %v", err)
+		utils.Fatalf("Failed to load tot contract: %v", err)
 	}
 
 	// read balances
 	if tonBalance, err = TON.BalanceOf(opt, depositor); err != nil {
-		utils.Fatalf("Failed depositor read TON balance: %v", err)
+		utils.Fatalf("Failed to read TON balance: %v", err)
 	}
 	if wtonBalance, err = WTON.BalanceOf(opt, depositor); err != nil {
-		utils.Fatalf("Failed depositor read WTON balance: %v", err)
+		utils.Fatalf("Failed to read WTON balance: %v", err)
 	}
 	if accStaked, err = depositManager.AccStaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read accumulated stake: %v", err)
+		utils.Fatalf("Failed to read accumulated stake: %v", err)
 	}
 	if accUnstaked, err = depositManager.AccUnstaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read accumulated unstake: %v", err)
+		utils.Fatalf("Failed to read accumulated unstake: %v", err)
 	}
 	if numPendingRequests, err = depositManager.NumPendingRequests(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+		utils.Fatalf("Failed to read num pending requests: %v", err)
 	}
 	if pendingUnstaked, err = depositManager.PendingUnstaked(opt, rootchainAddr, depositor); err != nil {
-		utils.Fatalf("Failed depositor read pending withdrawal amount: %v", err)
+		utils.Fatalf("Failed to read pending withdrawal amount: %v", err)
 	}
 
 	if totalStake, err = tot.TotalSupply(opt); err != nil {
-		log.Warn("Failed depositor read total stake", "err", err)
+		log.Warn("Failed to read total stake", "err", err)
 		totalStake = big.NewInt(0)
 	}
 	if totalStakeRootChain, err = coinage.TotalSupply(opt); err != nil {
-		log.Warn("Failed depositor read total stake of root chain", "err", err)
+		log.Warn("Failed to read total stake of root chain", "err", err)
 		totalStakeRootChain = big.NewInt(0)
 	}
+
 	if uncomittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
-		log.Warn("Failed depositor read uncomitted stake", "err", err)
+		log.Warn("Failed to read uncomitted stake", "err", err)
 		uncomittedStakeOf = big.NewInt(0)
 	}
 	if stakeOf, err = seigManager.StakeOf(opt, rootchainAddr, depositor); err != nil {
-		log.Warn("Failed depositor read stake", "err", err)
+		log.Warn("Failed to read stake", "err", err)
 		stakeOf = big.NewInt(0)
+	}
+	if commissionRate, err = seigManager.CommissionRates(opt, rootchainAddr); err != nil {
+		log.Warn("Failed to read commission rate stake", "err", err)
+		commissionRate = big.NewInt(0)
 	}
 
 	deposit = new(big.Int).Sub(accStaked, accUnstaked)
@@ -1182,6 +1297,8 @@ func getBalances(ctx *cli.Context) error {
 
 	log.Info("Uncomitted Stake", "amount", bigIntToString(uncomittedStakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 	log.Info("Comitted Stake", "amount", bigIntToString(stakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+
+	log.Info("Commission Rate", "rate", params.ToRayFloat64(commissionRate))
 
 	return nil
 }
@@ -1206,21 +1323,16 @@ func mintTON(ctx *cli.Context) error {
 	var (
 		to     common.Address
 		amount *big.Int
-
-		ok bool
 	)
 
 	to = common.HexToAddress(ctx.Args().Get(0))
-	amountStr := parseIntString(ctx.Args().Get(1), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(1), decimals)
 
 	if (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	TON, err := ton.NewTON(managers.TON, backend)
 	if err != nil {
@@ -1295,20 +1407,15 @@ func swapFromTON(ctx *cli.Context) error {
 
 	var (
 		amount *big.Int
-
-		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instances
 	TON, err := ton.NewTON(managers.TON, backend)
@@ -1365,20 +1472,15 @@ func swapToTON(ctx *cli.Context) error {
 
 	var (
 		amount *big.Int
-
-		ok bool
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.WTON == common.Address{}) || (managers.TON == common.Address{}) {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	// load contract instance
 	WTON, err := wton.NewWTON(managers.WTON, backend)
@@ -1431,15 +1533,10 @@ func stakeTON(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1449,7 +1546,7 @@ func stakeTON(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "TON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		TON *ton.TON
@@ -1509,15 +1606,10 @@ func stakeWTON(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
-	amountStr := parseIntString(ctx.Args().Get(0), decimals)
-	if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-		return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-	}
+	amount = parseFloatString(ctx.Args().Get(0), decimals)
 
 	if (managers.TON == common.Address{}) ||
 		(managers.WTON == common.Address{}) ||
@@ -1527,7 +1619,7 @@ func stakeWTON(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		WTON           *wton.WTON
@@ -1589,16 +1681,11 @@ func requestWithdrawal(ctx *cli.Context) error {
 	var (
 		amount *big.Int
 
-		ok bool
-
 		tx *types.Transaction
 	)
 
 	if len(ctx.Args()) == 1 {
-		amountStr := parseIntString(ctx.Args().Get(0), decimals)
-		if amount, ok = big.NewInt(0).SetString(amountStr, 10); !ok {
-			return errors.New(fmt.Sprintf("Failed to parse integer: %s", amountStr))
-		}
+		amount = parseFloatString(ctx.Args().Get(0), decimals)
 	}
 
 	if (managers.TON == common.Address{}) ||
@@ -1609,7 +1696,7 @@ func requestWithdrawal(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		depositManager *depositmanager.DepositManager
@@ -1688,7 +1775,7 @@ func processWithdrawal(ctx *cli.Context) error {
 		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
 	}
 
-	log.Info("Using manager contracts", "TON", managers.TON, "WTON", managers.WTON, "DepositManager", managers.DepositManager, "RootChainRegistry", managers.RootChainRegistry, "SeigManager", managers.SeigManager)
+	logManagers(managers)
 
 	var (
 		numPendingRequests *big.Int
@@ -1702,7 +1789,7 @@ func processWithdrawal(ctx *cli.Context) error {
 	}
 
 	if numPendingRequests, err = depositManager.NumPendingRequests(&bind.CallOpts{Pending: false}, rootchainAddr, opt.From); err != nil {
-		utils.Fatalf("Failed depositor read num pending requests: %v", err)
+		utils.Fatalf("Failed to read num pending requests: %v", err)
 	}
 
 	// check num pending requests

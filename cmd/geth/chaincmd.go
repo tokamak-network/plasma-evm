@@ -405,7 +405,8 @@ func deployRootChain(ctx *cli.Context) error {
 		utils.Fatalf("Expected withdrawal delay to be more than %v recovery epoch length by two times, but is %v", recoverEpochLength, withdrawalDelay)
 	}
 
-	_, genesis, err := plasma.DeployPlasmaContracts(opt, backend, &cfg.Pls, staminaConfig, managers.TON, withPETH, development, NRELength)
+	_, genesis, err := plasma.DeployPlasmaContracts(opt, backend, staminaConfig, managers.TON, withPETH, development, NRELength)
+	cfg.Pls.Genesis = genesis
 	if err != nil {
 		utils.Fatalf("Failed to deploy contracts %v", err)
 	}
