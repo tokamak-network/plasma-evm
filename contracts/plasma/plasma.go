@@ -43,10 +43,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls"
 )
 
-func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, plsConfig *pls.Config, staminaConfig *params.StaminaConfig, tonAddress common.Address, withPETH bool, development bool, NRELength *big.Int) (common.Address, *core.Genesis, error) {
+func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, staminaConfig *params.StaminaConfig, tonAddress common.Address, withPETH bool, development bool, NRELength *big.Int) (common.Address, *core.Genesis, error) {
+	operator := opt.From
 	var (
 		tx  *types.Transaction
 		err error
@@ -55,10 +55,10 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 	dummyDB := rawdb.NewMemoryDatabase()
 	defer dummyDB.Close()
 
-	genesis := core.DefaultGenesisBlock(common.Address{}, plsConfig.Operator.Address, staminaConfig)
+	genesis := core.DefaultGenesisBlock(common.Address{}, operator, staminaConfig)
 
 	if withPETH {
-		genesis.Alloc[plsConfig.Operator.Address] = core.GenesisAccount{Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))}
+		genesis.Alloc[operator] = core.GenesisAccount{Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))}
 	}
 
 	dummyBlock := genesis.ToBlock(dummyDB)
@@ -135,7 +135,6 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
 
-	plsConfig.Genesis = genesis
 	genesis.ExtraData = rootchainContract[:]
 
 	return rootchainContract, genesis, nil
