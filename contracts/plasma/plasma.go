@@ -43,10 +43,10 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/log"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"github.com/Onther-Tech/plasma-evm/pls"
 )
 
-func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, plsConfig *pls.Config, staminaConfig *params.StaminaConfig, tonAddress common.Address, withPETH bool, development bool, NRELength *big.Int) (common.Address, *core.Genesis, error) {
+func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, staminaConfig *params.StaminaConfig, tonAddress common.Address, withPETH bool, development bool, NRELength *big.Int) (common.Address, *core.Genesis, error) {
+	operator := opt.From
 	var (
 		tx  *types.Transaction
 		err error
@@ -55,10 +55,10 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 	dummyDB := rawdb.NewMemoryDatabase()
 	defer dummyDB.Close()
 
-	genesis := core.DefaultGenesisBlock(common.Address{}, plsConfig.Operator.Address, staminaConfig)
+	genesis := core.DefaultGenesisBlock(common.Address{}, operator, staminaConfig)
 
 	if withPETH {
-		genesis.Alloc[plsConfig.Operator.Address] = core.GenesisAccount{Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))}
+		genesis.Alloc[operator] = core.GenesisAccount{Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))}
 	}
 
 	dummyBlock := genesis.ToBlock(dummyDB)
@@ -77,6 +77,7 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 		if err := WaitTx(backend, tx.Hash()); err != nil {
 			return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy MintableToken contract: %v", err))
 		}
+		increaseNonce(opt)
 	}
 
 	// 2. deploy EtherToken
@@ -102,6 +103,7 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 	if err := WaitTx(backend, tx.Hash()); err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy EpochHandler contract: %v", err))
 	}
+	increaseNonce(opt)
 
 	// 4. deploy SubmitHandler
 	submitHandlerContract, tx, _, err := submithandler.DeploySubmitHandler(opt, backend, epochHandlerContract)
@@ -124,6 +126,7 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 	if err := WaitTx(backend, tx.Hash()); err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to deploy RootChain contract: %v", err))
 	}
+	increaseNonce(opt)
 
 	// 6. initialize EtherToken
 	tx, err = etherToken.Init(opt, rootchainContract)
@@ -134,8 +137,8 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 	if err := WaitTx(backend, tx.Hash()); err != nil {
 		return common.Address{}, nil, errors.New(fmt.Sprintf("Failed to initialize EtherToken: %v", err))
 	}
+	increaseNonce(opt)
 
-	plsConfig.Genesis = genesis
 	genesis.ExtraData = rootchainContract[:]
 
 	return rootchainContract, genesis, nil
@@ -144,6 +147,12 @@ func DeployPlasmaContracts(opt *bind.TransactOpts, backend *ethclient.Client, pl
 type seigManagerSetter interface {
 	SetSeigManager(opts *bind.TransactOpts, _seigManager common.Address) (*types.Transaction, error)
 	SeigManager(opts *bind.CallOpts) (common.Address, error)
+}
+
+func increaseNonce(opt *bind.TransactOpts) {
+	if opt.Nonce != nil {
+		opt.Nonce = new(big.Int).Add(opt.Nonce, big.NewInt(1))
+	}
 }
 
 func DeployManagers(
@@ -161,8 +170,6 @@ func DeployManagers(
 	seigManagerAddr common.Address,
 	err error,
 ) {
-	opt.GasLimit = 7500000
-
 	var (
 		TON  *ton.TON
 		WTON *wton.WTON
@@ -187,6 +194,7 @@ func DeployManagers(
 		}
 
 		log.Info("TON deployed", "addr", tonAddr.String(), "tx", tx.Hash())
+		increaseNonce(opt)
 	} else {
 		tonAddr = _tonAddr
 		log.Warn("use already deployed TON", "addr", tonAddr.String())
@@ -209,6 +217,7 @@ func DeployManagers(
 			return
 		}
 		log.Info("WTON deployed", "addr", wtonAddr.String(), "tx", tx.Hash())
+		increaseNonce(opt)
 	} else {
 		wtonAddr = _wtonAddr
 		log.Warn("use already deployed WTON", "addr", wtonAddr.String())
@@ -235,6 +244,7 @@ func DeployManagers(
 		return
 	}
 	log.Info("RootChainRegistry deployed", "addr", registryAddr.String(), "tx", tx.Hash())
+	increaseNonce(opt)
 
 	// 4. deploy DepositManager
 	log.Info("4. deploy DepositManager")
@@ -248,6 +258,7 @@ func DeployManagers(
 		return
 	}
 	log.Info("DepositManager deployed", "addr", depositManagerAddr.String(), "tx", tx.Hash())
+	increaseNonce(opt)
 
 	// 5. deploy SeigManager
 	log.Info("5. deploy SeigManager")
@@ -261,6 +272,7 @@ func DeployManagers(
 		return
 	}
 	log.Info("SeigManager deployed", "addr", seigManagerAddr.String(), "tx", tx.Hash())
+	increaseNonce(opt)
 
 	// 6. add TON minter role to SeigManager
 	log.Info("6. add WTON minter role to SeigManager")
@@ -276,6 +288,7 @@ func DeployManagers(
 			return
 		}
 		log.Info("Set WTON minter to SeigManager", "tx", tx.Hash())
+		increaseNonce(opt)
 	}
 
 	// 7. add WTON minter role to SeigManager
@@ -292,6 +305,7 @@ func DeployManagers(
 			return
 		}
 		log.Info("Set TON minter to WTON", "tx", tx.Hash())
+		increaseNonce(opt)
 	}
 
 	// 8. set seig manager to contracts
@@ -312,6 +326,7 @@ func DeployManagers(
 		}
 
 		log.Info("Set SeigManager to target cotnract", "target", target, "tx", tx.Hash())
+		increaseNonce(opt)
 	}
 
 	return
@@ -345,6 +360,7 @@ func DeployPowerTON(
 		err = errors.New(fmt.Sprintf("Failed to deploy PowerTON: %v", err))
 		return
 	}
+	increaseNonce(opt)
 
 	// 2. initialize PowerTON
 	tx, err = pton.Init(opt)
@@ -358,6 +374,7 @@ func DeployPowerTON(
 		err = errors.New(fmt.Sprintf("Failed to initialize PowerTON: %v", err))
 		return
 	}
+	increaseNonce(opt)
 
 	// 3. set PowerTON to SeigManager
 	log.Info("3. set PowerTON to SeigManager", "SeigManager", seigManagerAddr, "PowerTON", powertonAddr, "tx", tx.Hash())
@@ -371,6 +388,7 @@ func DeployPowerTON(
 		err = errors.New(fmt.Sprintf("Failed to set PowerTON to SeigManager: %v", err))
 		return
 	}
+	increaseNonce(opt)
 
 	return
 }
