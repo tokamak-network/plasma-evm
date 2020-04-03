@@ -155,6 +155,7 @@ jobs:
           command: |
             set -x
             cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
             go test -v --timeout 7200s ./pls
             go test -v --timeout 7200s ./tx
 
