@@ -260,7 +260,7 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test staking command(1/5) - swapFromTON
+          name: Test staking command(1/7) - swapFromTON
           command: |
             cd plasma-evm
             build/bin/geth staking swapFromTON 1000.0 \
@@ -271,7 +271,7 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test staking command(2/5) - swapToTON
+          name: Test staking command(2/7) - swapToTON
           command: |
             cd plasma-evm
             build/bin/geth staking swapToTON 500.0 \
@@ -282,7 +282,7 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test staking command(3/5) - stakeWTON
+          name: Test staking command(3/7) - stakeWTON
           command: |
             cd plasma-evm
             build/bin/geth staking stakeWTON 250.0 \
@@ -293,7 +293,7 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test staking command(4/5) - stakeTON
+          name: Test staking command(4/7) - stakeTON
           command: |
             cd plasma-evm
             build/bin/geth staking stakeTON 250.0 \
@@ -304,7 +304,7 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test staking command(5/5) - balances
+          name: Test staking command(5/7) - balances
           command: |
             cd plasma-evm
             build/bin/geth staking balances $ADDR0 \
@@ -366,7 +366,7 @@ jobs:
           name: Test staking command(7/7) - prcoessWithdrawal
           command: |
             cd plasma-evm
-            build/bin/geth staking prcoessWithdrawal \
+            build/bin/geth staking proccessWithdrawal \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
               --unlock $ADDR1 \
