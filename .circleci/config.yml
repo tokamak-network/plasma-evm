@@ -51,21 +51,7 @@ jobs:
           command: |
             set -x
             cd go-ethereum
-            build/bin/geth \
-            --dev \
-            --dev.period 1 \
-            --dev.faucetkey "$KEY0,$KEY1,$KEY2,$KEY3" \
-            --datadir $DATADIR_ROOTCHAIN \
-            --rpc \
-            --rpcport 8545 \
-            --rpcapi eth,debug,net \
-            --rpcaddr 0.0.0.0 \
-            --ws \
-            --wsport 8546 \
-            --wsaddr 0.0.0.0 \
-            --wsapi eth,debug,net \
-            --miner.gastarget 8000000 \
-            --miner.gasprice "10"
+            bash run.rootchain.sh
 
       - run:
           name: Setup childchain as operator
@@ -100,7 +86,6 @@ jobs:
       KEY1: "86e60281da515184c825c3f46c7ec490b075af1e74607e2e9a66e3df0fa22122"
       KEY2: "b77b291fab2b0a9e03b5ee0fb0f1140ff41780e93a39e534d54a05ccfad3eead"
       KEY3: "54a93b74538a7ab51062c7314ea9838519acae6b4ea3d47a7f367e866010364d"
-      DATADIR_ROOTCHAIN: "/home/circleci/go-ethereum/chaindata"
       DATADIR_MANAGERS: "/home/circleci/plasma-evm/pls.manager"
       DATADIR_OPERATOR1: "/home/circleci/plasma-evm/pls.oper1"
       DATADIR_OPERATOR2: "/home/circleci/plasma-evm/pls.oper2"
@@ -116,8 +101,9 @@ jobs:
           background: true
           command: |
             set -x
+            rm -rf ~/.root-chain-node-1/keystore
             cd go-ethereum
-            bash run.rootchain.sh
+            bash run.rootchain.sh true
 
       - run:
           name: Run childchain
@@ -189,22 +175,8 @@ jobs:
           background: true
           command: |
             set -x
-            rm -rf $DATADIR_ROOTCHAIN/keystore
-            go-ethereum/build/bin/geth \
-            --dev \
-            --dev.period 1 \
-            --dev.faucetkey "$KEY0,$KEY1,$KEY2,$KEY3" \
-            --datadir $DATADIR_ROOTCHAIN \
-            --rpc \
-            --rpcport 8545 \
-            --rpcapi eth,debug,net \
-            --rpcaddr 0.0.0.0 \
-            --ws \
-            --wsport 8546 \
-            --wsaddr 0.0.0.0 \
-            --wsapi eth,debug,net \
-            --miner.gastarget 8000000 \
-            --miner.gasprice "10"
+            rm -rf ~/.root-chain-node-1/keystore
+            bash run.rootchain.sh true
 
       - run:
           name: Test manage-staking command(1/8) - deployManagers
@@ -337,10 +309,7 @@ jobs:
             cd plasma-evm
             build/bin/geth staking balances $ADDR0 \
               --datadir $DATADIR_OPERATOR1 \
-              --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR1 \
-              --password pwd.pass \
-              --rootchain.sender $ADDR1
+              --rootchain.url "ws://127.0.0.1:8546"
 
       - run:
           name: Run childchain, Operator1
