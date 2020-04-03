@@ -340,10 +340,7 @@ jobs:
             cd plasma-evm
             build/bin/geth staking balances $ADDR1 \
               --datadir $DATADIR_OPERATOR1 \
-              --rootchain.url "ws://127.0.0.1:8546" \
-              --unlock $ADDR1 \
-              --password pwd.pass \
-              --rootchain.sender $ADDR1
+              --rootchain.url "ws://127.0.0.1:8546"
 
 workflows:
   version: 2
