@@ -342,6 +342,45 @@ jobs:
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546"
 
+      - run:
+          name: Test staking command(6/7) - requestWithdrawal
+          command: |
+            cd plasma-evm
+            build/bin/geth staking requestWithdrawal 501.0 \
+              --datadir $DATADIR_OPERATOR1 \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR1 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR1
+
+      - run:
+          name: Proceed operator1 blocks by send dummy tx
+          command: |
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
+            cp sendTx.operator1.sh ./pls.oper1 && cd pls.oper1
+            bash sendTx.operator1.sh
+            bash sendTx.operator1.sh
+
+      - run:
+          name: Test staking command(7/7) - prcoessWithdrawal
+          command: |
+            cd plasma-evm
+            build/bin/geth staking prcoessWithdrawal \
+              --datadir $DATADIR_OPERATOR1 \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --unlock $ADDR1 \
+              --password pwd.pass \
+              --rootchain.sender $ADDR1
+
+      - run:
+          name: Check balance of Operator1 after block proceed
+          command: |
+            cd plasma-evm
+            build/bin/geth staking balances $ADDR1 \
+              --datadir $DATADIR_OPERATOR1 \
+              --rootchain.url "ws://127.0.0.1:8546"
+
 workflows:
   version: 2
   build-and-test:
