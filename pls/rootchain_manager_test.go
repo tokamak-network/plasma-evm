@@ -27,7 +27,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/powerton"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchain"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/rootchainregistry"
-	"github.com/Onther-Tech/plasma-evm/contracts/plasma/seigmanager"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/submithandler"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/token"
 	"github.com/Onther-Tech/plasma-evm/contracts/plasma/ton"
@@ -2081,11 +2080,6 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 		log.Error("Failed to load registry contract", "err", err)
 		return nil, nil, "", err
 	}
-	seigManager, err := seigmanager.NewSeigManager(seigManagerAddr, ethClient)
-	if err != nil {
-		log.Error("Failed to load seigManager contract", "err", err)
-		return nil, nil, "", err
-	}
 	powerTON, err := powerton.NewPowerTON(powertonAddr, ethClient)
 	if err != nil {
 		log.Error("Failed to load powerTON contract", "err", err)
@@ -2145,26 +2139,14 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	config.RootChainContract = rootchainAddress
 
 	// register root chain
-	//transaction, err = registry.RegisterAndDeployCoinageAndSetCommissionRate(operatorOpt, rootchainAddress, seigManagerAddr, commissionRate)
 	setNonce(operatorOpt, &operatorNonceRootChain)
-	transaction, err = registry.RegisterAndDeployCoinage(operatorOpt, rootchainAddress, seigManagerAddr)
+	transaction, err = registry.RegisterAndDeployCoinageAndSetCommissionRate(operatorOpt, rootchainAddress, seigManagerAddr, commissionRate)
 	if err != nil {
 		log.Error("Failed to register rootchain contract", "err", err)
 		return nil, nil, "", err
 	}
 	if err = plasma.WaitTx(ethClient, transaction.Hash()); err != nil {
 		log.Error("Failed to register rootchain contract (2)", "err", err)
-		return nil, nil, "", err
-	}
-
-	setNonce(operatorOpt, &operatorNonceRootChain)
-	transaction, err = seigManager.SetCommissionRate(operatorOpt, rootchainAddress, commissionRate)
-	if err != nil {
-		log.Error("Failed to set commission rate", "commissionRate", commissionRate, "err", err)
-		return nil, nil, "", err
-	}
-	if err = plasma.WaitTx(ethClient, transaction.Hash()); err != nil {
-		log.Error("Failed to set commission rate (2)", "commissionRate", commissionRate, "err", err)
 		return nil, nil, "", err
 	}
 
