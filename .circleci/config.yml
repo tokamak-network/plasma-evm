@@ -102,38 +102,7 @@ jobs:
             set -x
             rm -rf ~/.root-chain-node-1/keystore
             cd go-ethereum
-            bash run.rootchain.sh true
-
-      - run:
-          name: Run childchain
-          background: true
-          command: |
-            set -x
-            cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            sleep 15
-            build/bin/geth \
-              --nousb \
-              --datadir $DATADIR_OPERATOR1 \
-              --syncmode='full' \
-              --networkid 16 \
-              --rootchain.url ws://127.0.0.1:8546 \
-              --rpc \
-              --rpcaddr '0.0.0.0' \
-              --rpcport 8547 \
-              --rpcapi eth,net,debug \
-              --rpccorsdomain '*' \
-              --rpcvhosts=localhost \
-              --operator $ADDR1 \
-              --port 30306 \
-              --nat extip:::1 \
-              --maxpeers 50 \
-              --unlock $ADDR1 \
-              --password pwd.pass \
-              --mine \
-              --miner.gastarget 10000000 \
-              --miner.gaslimit 10000000 \
-              --allow-insecure-unlock
+            bash run.rootchain.sh
 
       - run:
           name: Test pls package
