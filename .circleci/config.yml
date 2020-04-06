@@ -375,7 +375,7 @@ jobs:
           name: Test staking command(7/7) - prcoessWithdrawal
           command: |
             cd plasma-evm
-            build/bin/geth staking proccessWithdrawal \
+            build/bin/geth staking processWithdrawal \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
               --unlock $ADDR1 \
