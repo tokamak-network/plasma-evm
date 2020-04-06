@@ -41,7 +41,7 @@ jobs:
             echo 'COUNT=$1' >> sendTx.sh
             echo 'geth_command="../build/bin/geth --exec '\'web3.eth.sendTransaction\({from: eth.accounts[0], to:eth.accounts[0], value: 0}\)\'' attach --datadir ./"' >> sendTx.sh
             echo 'if [ $1 -gt 0 ] ; then for i in `seq 1 $1`; do eval ${geth_command} && sleep 5; done; fi' >> sendTx.sh
-            echo 'if [ $1 -eq 0 ] ; then while :; do echo eval ${geth_command} && sleep 1; done; fi' >> sendTx.sh
+            echo 'if [ $1 -eq 0 ] ; then while :; do eval ${geth_command} && sleep 5; done; fi' >> sendTx.sh
             echo '' > pwd.pass
 
       - run:
