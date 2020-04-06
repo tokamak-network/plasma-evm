@@ -136,17 +136,6 @@ jobs:
               --allow-insecure-unlock
 
       - run:
-          name: Sending dummy Txs
-          background: true
-          command: |
-            set -x
-            cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
-            sleep 10
-            cp sendTx.sh $DATADIR_OPERATOR1 && cd $DATADIR_OPERATOR1
-            bash sendTx.sh 0
-
-      - run:
           name: Test pls package
           command: |
             set -x
