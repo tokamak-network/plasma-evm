@@ -24,7 +24,7 @@ jobs:
           command: |
             set -x
             env
-            git clone -b $CIRCLE_BRANCH https://github.com/Onther-Tech/plasma-evm plasma-test
+            git clone -b $CIRCLE_BRANCH https://github.com/sifnoc/plasma-evm plasma-test
 
       - run:
           name: Compile rootchain
