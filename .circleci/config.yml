@@ -20,6 +20,13 @@ jobs:
       DATADIR_OPERATOR2: "/home/circleci/plasma-evm/pls.oper2"
     steps:
       - run:
+          name : variable Test
+          command: |
+            set -x
+            env
+            git clone -b $CIRCLE_BRANCH https://github.com/Onther-Tech/plasma-evm plasma-test
+
+      - run:
           name: Compile rootchain
           command: |
             set -x
@@ -109,7 +116,7 @@ jobs:
           command: |
             set -x
             cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8547
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
             go test -v --timeout 7200s ./pls
             go test -v --timeout 7200s ./tx
 
