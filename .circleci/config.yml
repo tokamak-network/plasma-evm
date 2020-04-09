@@ -100,7 +100,7 @@ jobs:
           background: true
           command: |
             set -x
-            rm -rf ~/.root-chain-node-1/keystore
+            rm -rf $DATADIR_ROOTCHAIN
             cd go-ethereum
             bash run.rootchain.sh
 
@@ -110,8 +110,8 @@ jobs:
             set -x
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            go test -v --timeout 7200s ./pls
             go test -v --timeout 7200s ./tx
+            go test -v --timeout 7200s ./pls
 
   test-staking:
     docker:
