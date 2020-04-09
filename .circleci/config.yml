@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-     - image: cimg/go:1.13
+      - image: cimg/go:1.13
 
     working_directory: ~/
     environment:
@@ -19,13 +19,6 @@ jobs:
       DATADIR_OPERATOR1: "/home/circleci/plasma-evm/pls.oper1"
       DATADIR_OPERATOR2: "/home/circleci/plasma-evm/pls.oper2"
     steps:
-      - run:
-          name : variable Test
-          command: |
-            set -x
-            env
-            git clone -b $CIRCLE_BRANCH https://github.com/sifnoc/plasma-evm plasma-test
-
       - run:
           name: Compile rootchain
           command: |
@@ -107,7 +100,7 @@ jobs:
           background: true
           command: |
             set -x
-            rm -rf ~/.root-chain-node-1/keystore
+            rm -rf ~/.root-chain-node-1
             cd go-ethereum
             bash run.rootchain.sh
 
