@@ -1204,7 +1204,7 @@ func getBalances(ctx *cli.Context) error {
 		totalStake          *big.Int
 		totalStakeRootChain *big.Int
 
-		uncomittedStakeOf *big.Int
+		uncommittedStakeOf *big.Int
 		stakeOf           *big.Int
 
 		commissionRate *big.Int
@@ -1269,9 +1269,9 @@ func getBalances(ctx *cli.Context) error {
 		totalStakeRootChain = big.NewInt(0)
 	}
 
-	if uncomittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
-		log.Warn("Failed to read uncomitted stake", "err", err)
-		uncomittedStakeOf = big.NewInt(0)
+	if uncommittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
+		log.Warn("Failed to read uncommitted stake", "err", err)
+		uncommittedStakeOf = big.NewInt(0)
 	}
 	if stakeOf, err = seigManager.StakeOf(opt, rootchainAddr, depositor); err != nil {
 		log.Warn("Failed to read stake", "err", err)
@@ -1295,8 +1295,8 @@ func getBalances(ctx *cli.Context) error {
 	log.Info("Total Stake", "amount", bigIntToString(totalStake, params.WTONDecimals)+" WTON")
 	log.Info("Total Stake of Root Chain", "amount", bigIntToString(totalStakeRootChain, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr)
 
-	log.Info("Uncomitted Stake", "amount", bigIntToString(uncomittedStakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
-	log.Info("Comitted Stake", "amount", bigIntToString(stakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+	log.Info("Uncommitted Stake", "amount", bigIntToString(uncommittedStakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
+	log.Info("Committed Stake", "amount", bigIntToString(stakeOf, params.WTONDecimals)+" WTON", "rootchain", rootchainAddr, "depositor", depositor)
 
 	log.Info("Commission Rate", "rate", params.ToRayFloat64(commissionRate))
 
