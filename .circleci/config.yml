@@ -44,29 +44,6 @@ jobs:
             echo 'if [ $1 -eq 0 ] ; then while :; do eval ${geth_command} && sleep 5; done; fi' >> sendTx.sh
             echo '' > pwd.pass
 
-      - run:
-          name: Run rootchain
-          background: true
-          command: |
-            set -x
-            cd go-ethereum
-            bash run.rootchain.sh
-
-      - run:
-          name: Setup childchain as operator
-          command: |
-            set -x
-            cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            build/bin/geth \
-              --nousb \
-              --rootchain.url "ws://127.0.0.1:8546" \
-              --operator.key $KEY1 \
-              --rootchain.sender $ADDR1 \
-              --datadir $DATADIR_OPERATOR1 \
-              deploy "./genesis.json" 16 true 2
-            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
-
       - save_cache:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -103,14 +80,6 @@ jobs:
             rm -rf $DATADIR_ROOTCHAIN
             cd go-ethereum
             bash run.rootchain.sh
-
-      - run:
-          name: re-clone
-          command: |
-            rm -rf plasma-evm
-            git clone https://github.com/Onther-Tech/plasma-evm
-            cd plasma-evm
-            make geth
 
       - run:
           name: Test pls package - Basic (1/2)
@@ -185,6 +154,21 @@ jobs:
             set -x
             cd go-ethereum
             bash run.rootchain.sh true
+
+      - run:
+          name: Setup childchain as operator
+          command: |
+            set -x
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            build/bin/geth \
+              --nousb \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --operator.key $KEY1 \
+              --rootchain.sender $ADDR1 \
+              --datadir $DATADIR_OPERATOR1 \
+              deploy "./genesis.json" 16 true 2
+            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
 
       - run:
           name: Test manage-staking command(1/8) - deployManagers
