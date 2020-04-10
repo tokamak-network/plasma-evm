@@ -1269,7 +1269,7 @@ func getBalances(ctx *cli.Context) error {
 		totalStakeRootChain = big.NewInt(0)
 	}
 
-	if uncommittedStakeOf, err = seigManager.UncommittedStakeOf(opt, rootchainAddr, depositor); err != nil {
+	if uncommittedStakeOf, err = seigManager.UncomittedStakeOf(opt, rootchainAddr, depositor); err != nil {
 		log.Warn("Failed to read uncommitted stake", "err", err)
 		uncommittedStakeOf = big.NewInt(0)
 	}
