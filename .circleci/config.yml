@@ -109,11 +109,10 @@ jobs:
           command: |
             set -x
             rm -rf plasma-evm
-            git clone https://github.com/Onther-Tech/plasma-evm
-            cd plasma-evm
+            go get github.com/Onther-Tech/plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            go test -v --timeout 7200s ./pls
-            go test -v --timeout 7200s ./tx
+            go test -v github.com/Onther-Tech/plasma-evm/pls
+            go test -v github.com/Onther-Tech/plasma-evm/tx
 
   test-staking:
     docker:
