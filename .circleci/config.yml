@@ -105,6 +105,14 @@ jobs:
             bash run.rootchain.sh
 
       - run:
+          name: re-clone
+          command: |
+            rm -rf plasma-evm
+            git clone https://github.com/Onther-Tech/plasma-evm
+            cd plasma-evm
+            make geth
+
+      - run:
           name: Test pls package - Basic (1/2)
           command: |
             set -x
