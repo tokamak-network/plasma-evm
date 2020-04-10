@@ -31,7 +31,7 @@ jobs:
           name: Compile childchain as operator
           command: |
             set -x
-            git clone https://github.com/Onther-Tech/plasma-evm
+            git clone https://github.com/sifnoc/plasma-evm
             cd plasma-evm
             make geth
             echo "" > signer.pass
