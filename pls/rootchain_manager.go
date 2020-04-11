@@ -164,8 +164,8 @@ func (rcm *RootChainManager) Start() error {
 }
 
 func (rcm *RootChainManager) Stop() error {
-	rcm.txManager.Stop()
 	rcm.backend.Close()
+	rcm.txManager.Stop()
 	close(rcm.quit)
 	return nil
 }
