@@ -227,7 +227,7 @@ func (tm *TransactionManager) Add(account accounts.Account, raw *RawTransaction,
 
 	// enqueue raw transaction
 	tm.pending[addr] = append(tm.pending[addr], raw)
-	WritePendingTxs(tm.db, addr, tm.pending[addr])
+	WritePendingTxs(tm.db, tm.quit, addr, tm.pending[addr])
 
 	log.Info("Raw transaction added", "caption", raw.getCaption(), "from", raw.From)
 
@@ -335,7 +335,7 @@ func (tm *TransactionManager) Start() {
 			raw.LastSentBlockNumber = blockNumber
 
 			tm.lock.Lock()
-			WritePendingTxs(tm.db, addr, tm.pending[addr])
+			WritePendingTxs(tm.db, tm.quit, addr, tm.pending[addr])
 			tm.lock.Unlock()
 
 			err = tm.backend.SendTransaction(context.Background(), signedTx)
@@ -662,8 +662,8 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 		tm.unconfirmed[addr] = newUnconfirmed
 		sort.Sort(RawTransactionsByIndex(tm.pending[addr]))
 
-		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
-		WritePendingTxs(tm.db, addr, tm.pending[addr])
+		WriteUnconfirmedTxs(tm.db, tm.quit, addr, tm.unconfirmed[addr])
+		WritePendingTxs(tm.db, tm.quit, addr, tm.pending[addr])
 	}
 
 	// remove already confirmed raw transactions
@@ -688,8 +688,8 @@ func (tm *TransactionManager) confirmQueue(addr common.Address) {
 	// update database
 	if i != 0 {
 		tm.unconfirmed[addr] = tm.unconfirmed[addr][i:]
-		WriteNumConfirmedRawTxs(tm.db, addr, numConfirmed)
-		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
+		WriteNumConfirmedRawTxs(tm.db, tm.quit, addr, numConfirmed)
+		WriteUnconfirmedTxs(tm.db, tm.quit, addr, tm.unconfirmed[addr])
 	}
 }
 
