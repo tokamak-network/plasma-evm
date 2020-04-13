@@ -616,8 +616,8 @@ func (tm *TransactionManager) clearQueue(addr common.Address) {
 	if l != 0 {
 		tm.unconfirmed[addr] = append(tm.unconfirmed[addr], minedRaws...)
 		tm.pending[addr] = tm.pending[addr][l:]
-		WritePendingTxs(tm.db, addr, tm.pending[addr])
-		WriteUnconfirmedTxs(tm.db, addr, tm.unconfirmed[addr])
+		WritePendingTxs(tm.db, tm.quit, addr, tm.pending[addr])
+		WriteUnconfirmedTxs(tm.db, tm.quit, addr, tm.unconfirmed[addr])
 	}
 }
 
