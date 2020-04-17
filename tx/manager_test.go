@@ -139,10 +139,11 @@ func makeTestManager(db ethdb.Database) *TransactionManager {
 }
 
 func TestBasic(t *testing.T) {
+	var wg sync.WaitGroup
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
-	tm.Start()
+	tm.Start(&wg)
 
 	// addrs[0] send 1 ETH to addrs[1] n1 times
 	n1 := 10
@@ -173,9 +174,11 @@ func TestBasic(t *testing.T) {
 }
 
 func TestRestart(t *testing.T) {
+	var wg sync.WaitGroup
+
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
-	tm.Start()
+	tm.Start(&wg)
 
 	// addrs[0] sends n1 transactions
 	n1 := 10
@@ -183,7 +186,7 @@ func TestRestart(t *testing.T) {
 
 	for i := 0; i < n1; i++ {
 		rawTx := NewRawTransaction(addrs[0], 21000, &addrs[1], big.NewInt(int64(1e18+i)), []byte{}, false, fmt.Sprintf("raw tx %d", i))
-		if err := tm.Add(accs[0], rawTx, false); err != nil {
+		if err := tm.Add(accs[0], rawTx,false); err != nil {
 			t.Fatalf("Failed to add rawTx: %v", err)
 		}
 		log.Debug(fmt.Sprintf("raw tx %d added", i))
@@ -198,7 +201,7 @@ func TestRestart(t *testing.T) {
 
 	<-time.NewTimer(5 * time.Second).C
 	tm = makeTestManager(db)
-	tm.Start()
+	tm.Start(&wg)
 	log.Info("TranasctionManager restarted")
 
 	// addrs[0] sends n2 transactions
@@ -229,13 +232,14 @@ func TestRestart(t *testing.T) {
 }
 
 func TestCongestedNetwork(t *testing.T) {
+	var wg sync.WaitGroup
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
-	tm.Start()
+	tm.Start(&wg)
 
 	// addrs[0] send n1 transactions
-	n1 := 10
+	n1 := 3
 	nonce1, _ := backend.NonceAt(context.Background(), addrs[0], nil)
 
 	// addrs[1, ..., 8] send lots of tx to congest network

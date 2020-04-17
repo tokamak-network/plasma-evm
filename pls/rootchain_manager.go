@@ -69,6 +69,7 @@ type RootChainManager struct {
 	invalidExits map[uint64]map[uint64]invalidExits
 
 	// channels
+	wg 			 *sync.WaitGroup
 	quit             chan struct{}
 	epochPreparedCh  chan *rootchain.RootChainEpochPrepared
 	blockFinalizedCh chan *rootchain.RootChainBlockFinalized
@@ -129,6 +130,7 @@ func NewRootChainManager(
 		miner:             miner,
 		minerEnv:          env,
 		invalidExits:      make(map[uint64]map[uint64]invalidExits),
+		wg:				   new(sync.WaitGroup),
 		quit:              make(chan struct{}),
 		epochPreparedCh:   make(chan *rootchain.RootChainEpochPrepared, MAX_EPOCH_EVENTS),
 		blockFinalizedCh:  make(chan *rootchain.RootChainBlockFinalized),
@@ -154,7 +156,7 @@ func (rcm *RootChainManager) Start() error {
 	}
 
 	go rcm.pingBackend()
-	rcm.txManager.Start()
+	rcm.txManager.Start(rcm.wg)
 
 	if rcm.config.NodeMode == ModeOperator {
 		go rcm.miner.Start(rcm.config.Operator.Address, new(rootchain.RootChainEpochPrepared), true)
@@ -166,6 +168,7 @@ func (rcm *RootChainManager) Start() error {
 func (rcm *RootChainManager) Stop() error {
 	rcm.backend.Close()
 	rcm.txManager.Stop()
+	rcm.wg.Wait()
 	close(rcm.quit)
 	return nil
 }
