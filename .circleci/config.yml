@@ -44,29 +44,6 @@ jobs:
             echo 'if [ $1 -eq 0 ] ; then while :; do eval ${geth_command} && sleep 5; done; fi' >> sendTx.sh
             echo '' > pwd.pass
 
-      - run:
-          name: Run rootchain
-          background: true
-          command: |
-            set -x
-            cd go-ethereum
-            bash run.rootchain.sh
-
-      - run:
-          name: Setup childchain as operator
-          command: |
-            set -x
-            cd plasma-evm
-            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            build/bin/geth \
-              --nousb \
-              --rootchain.url "ws://127.0.0.1:8546" \
-              --operator.key $KEY1 \
-              --rootchain.sender $ADDR1 \
-              --datadir $DATADIR_OPERATOR1 \
-              deploy "./genesis.json" 16 true 2
-            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
-
       - save_cache:
           key: plasma-evm-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -105,13 +82,50 @@ jobs:
             bash run.rootchain.sh
 
       - run:
-          name: Test pls package
+          name: Test pls package - Basic (1/2)
           command: |
             set -x
+            sleep 10
             cd plasma-evm
             curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
-            go test -v --timeout 7200s ./tx
-            go test -v --timeout 7200s ./pls
+            go test -v --timeout 3600s ./pls -run TestBasic
+
+      - run:
+          name: Test pls package - InvalidExit (2/2)
+          command: |
+            set -x
+            sleep 10
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            go test -v --timeout 3600s ./pls -run TestInvalidExit
+
+      - run:
+          name: Test tx package - Basic (1/3)
+          command: |
+            set -x
+            sleep 10
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            go test -v --timeout 3600s ./tx -run TestBasic
+
+      - run:
+          name: Test tx package - Restart (2/3)
+          command: |
+            set -x
+            sleep 10
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            go test -v --timeout 3600s ./tx -run TestRestart
+
+      - run:
+          name: Test tx package - CongestedNetwork (3/3)
+          command: |
+            set -x
+            sleep 10
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            go test -v --timeout 3600s ./tx -run TestCongestedNetwork
+
 
   test-staking:
     docker:
@@ -145,6 +159,21 @@ jobs:
             set -x
             cd go-ethereum
             bash run.rootchain.sh true
+
+      - run:
+          name: Setup childchain as operator
+          command: |
+            set -x
+            cd plasma-evm
+            curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":67}' -H 'Content-Type: application/json' --retry 100 --retry-delay 3 --retry-connrefused  http://127.0.0.1:8545
+            build/bin/geth \
+              --nousb \
+              --rootchain.url "ws://127.0.0.1:8546" \
+              --operator.key $KEY1 \
+              --rootchain.sender $ADDR1 \
+              --datadir $DATADIR_OPERATOR1 \
+              deploy "./genesis.json" 16 true 2
+            build/bin/geth --nousb init --rootchain.url "ws://127.0.0.1:8546" --datadir $DATADIR_OPERATOR1 genesis.json
 
       - run:
           name: Test manage-staking command(1/8) - deployManagers
@@ -358,4 +387,4 @@ workflows:
             - build
       - test-staking:
           requires:
-            - build
+            - test
