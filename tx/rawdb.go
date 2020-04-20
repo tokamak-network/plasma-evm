@@ -198,18 +198,13 @@ func ReadNumConfirmedRawTxs(db ethdb.Reader, addr common.Address) uint64 {
 	return n
 }
 
-func WriteNumConfirmedRawTxs(db ethdb.KeyValueWriter, quit chan struct{}, addr common.Address, n uint64) {
+func WriteNumConfirmedRawTxs(db ethdb.KeyValueWriter, addr common.Address, n uint64) {
 	data, err := rlp.EncodeToBytes(n)
 	if err != nil {
 		log.Crit("Failed to encode number of raw transactions", "err", err)
 	}
-	select {
-	case <-quit:
-		return
-	default:
-		if err := db.Put(unconfirmedTxsKey(addr), data); err != nil {
-			log.Crit("Failed to store unconfirmed transactions", "err", err)
-		}
+	if err := db.Put(numConfirmedRawTxsKey(addr), data); err != nil {
+		log.Crit("Failed to store number of raw transactions", "err", err)
 	}
 }
 
@@ -263,7 +258,7 @@ func ReadUnconfirmedTxs(db ethdb.Reader, addr common.Address) RawTransactions {
 	return txs
 }
 
-func WriteUnconfirmedTxs(db ethdb.KeyValueWriter, quit chan struct{}, addr common.Address, txs RawTransactions) {
+func WriteUnconfirmedTxs(db ethdb.KeyValueWriter, addr common.Address, txs RawTransactions) {
 	data, err := rlp.EncodeToBytes(txs)
 	if err != nil {
 		log.Crit("Failed to encode unconfirmed transactions", "err", err)
@@ -293,7 +288,7 @@ func ReadPendingTxs(db ethdb.Reader, addr common.Address) RawTransactions {
 	return txs
 }
 
-func WritePendingTxs(db ethdb.KeyValueWriter, quit chan struct{}, addr common.Address, txs RawTransactions) {
+func WritePendingTxs(db ethdb.KeyValueWriter, addr common.Address, txs RawTransactions) {
 	data, err := rlp.EncodeToBytes(txs)
 	if err != nil {
 		log.Crit("Failed to encode pending transactions", "err", err)
