@@ -92,6 +92,7 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 
 		taskCh: make(chan *RawTransaction, MaxNumTask),
 
+		wg:   new(sync.WaitGroup),
 		quit: make(chan struct{}),
 	}
 
@@ -258,7 +259,6 @@ func (tm *TransactionManager) Count(account accounts.Account, tx *types.Transact
 }
 
 func (tm *TransactionManager) Start() {
-	tm.wg = new(sync.WaitGroup)
 	tm.wg.Add(1)
 	go tm.confirmLoop()
 
