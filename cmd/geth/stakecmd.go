@@ -1749,8 +1749,8 @@ func restake(ctx *cli.Context) error {
 		numRequests = big.NewInt(int64(n))
 	}
 
-	if numRequests.Cmp(numPendingRequests) < 0 {
-		utils.Fatalf("the number of pending request is less than the number of request to restake (pendingRequest=%d, numRequest=%d)", numPendingRequests.Uint64(), numRequests.Uint64())
+	if numRequests.Cmp(numPendingRequests) > 0 {
+		utils.Fatalf("the number of request to restake exceeds the number of pending request (pendingRequest=%d, numRequest=%d)", numPendingRequests.Uint64(), numRequests.Uint64())
 	}
 
 	if tx, err = depositManager.RedepositMulti(opt, rootchainAddr, numRequests); err != nil {
