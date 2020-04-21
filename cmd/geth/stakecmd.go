@@ -408,6 +408,35 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
+				Name:      "restake",
+				Usage:     "Restake pending withdrawal request",
+				ArgsUsage: "<numRequests?>",
+				Action:    utils.MigrateFlags(restake),
+				Category:  "TON STAKING COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.RootChainUrlFlag,
+					utils.UnlockedAccountFlag,
+					utils.PasswordFileFlag,
+					utils.RootChainSenderFlag,
+					utils.RootChainTONFlag,
+					utils.RootChainWTONFlag,
+					utils.RootChainDepositManagerFlag,
+					utils.RootChainSeigManagerFlag,
+					utils.RootChainGasPriceFlag,
+				},
+				Description: `
+				geth staking restake <numRequests?>
+
+Restake pending request withdrawal
+
+If <numRequests> is not provided or zero, restake all pending requests
+
+NOTE:
+use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
+`,
+			},
+			{
 				Name:      "requestWithdrawal",
 				Usage:     "Make a withdrawal request",
 				ArgsUsage: "<amount?>",
@@ -1136,7 +1165,9 @@ func setCommissionRate(ctx *cli.Context) error {
 
 	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
 
-	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, rate)
+	isCommissionRateNegative := rate.Cmp(big.NewInt(0)) < 0
+	absRate := new(big.Int).Abs(rate)
+	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, absRate, isCommissionRateNegative)
 	if err != nil {
 		utils.Fatalf("Failed to send transaction: %v", err)
 	}
@@ -1656,6 +1687,81 @@ func stakeWTON(ctx *cli.Context) error {
 	}
 
 	log.Info("Deposit WTON to RootChain", "rootchain", rootchainAddr, "amount", bigIntToString(amount, decimals)+" WTON", "tx", tx.Hash())
+
+	return nil
+}
+
+func restake(ctx *cli.Context) error {
+	if len(ctx.Args()) > 1 {
+		utils.Fatalf("Expected 1 or 0 parameters, not %d", len(ctx.Args()))
+	}
+
+	stack, cfg := makeConfigNode(ctx)
+	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+
+	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
+	defer stakedb.Close()
+	if err != nil {
+		utils.Fatalf("Failed to open database: %v", err)
+	}
+	managers := getManagerConfig(stakedb, ctx, true)
+	rootchainAddr := getRootChainAddr(cfg.Node.DataDir)
+
+	var (
+		n                  int
+		numPendingRequests *big.Int
+		numRequests        *big.Int
+
+		tx *types.Transaction
+	)
+
+	if len(ctx.Args()) == 1 {
+		if n, err = strconv.Atoi(ctx.Args().Get(0)); err != nil {
+			return err
+		}
+	}
+
+	if (managers.TON == common.Address{}) ||
+		(managers.WTON == common.Address{}) ||
+		(managers.DepositManager == common.Address{}) ||
+		(managers.RootChainRegistry == common.Address{}) ||
+		(managers.SeigManager == common.Address{}) {
+		return errors.New("manager contract addresses is empty. please write contracts before register using `geth staking setManagers`")
+	}
+
+	logManagers(managers)
+
+	var (
+		depositManager *depositmanager.DepositManager
+	)
+
+	if depositManager, err = depositmanager.NewDepositManager(managers.DepositManager, backend); err != nil {
+		utils.Fatalf("Failed to load DepositManager contract: %v", err)
+	}
+
+	if numPendingRequests, err = depositManager.NumPendingRequests(&bind.CallOpts{Pending: false}, rootchainAddr, opt.From); err != nil {
+		utils.Fatalf("Failed to read the number of pending requests: %v", err)
+	}
+
+	if n == 0 {
+		numRequests = new(big.Int).Set(numPendingRequests)
+	} else {
+		numRequests = big.NewInt(int64(n))
+	}
+
+	if numRequests.Cmp(numPendingRequests) < 0 {
+		utils.Fatalf("the number of pending request is less than the number of request to restake (pendingRequest=%d, numRequest=%d)", numPendingRequests.Uint64(), numRequests.Uint64())
+	}
+
+	if tx, err = depositManager.RedepositMulti(opt, rootchainAddr, numRequests); err != nil {
+		return err
+	}
+
+	if err = plasma.WaitTx(backend, tx.Hash()); err != nil {
+		return err
+	}
+
+	log.Info("Redeposit pending requests", "rootchain", rootchainAddr, "numRequests", numRequests, "tx", tx.Hash())
 
 	return nil
 }
