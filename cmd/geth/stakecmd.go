@@ -1157,8 +1157,9 @@ func setCommissionRate(ctx *cli.Context) error {
 		utils.Fatalf("Failed to MAX_VALID_COMMISSION_RATE: %v", err)
 	}
 
-	if rate.Cmp(big.NewInt(0)) != 0 && (minRate.Cmp(rate) > 0 || maxRate.Cmp(rate) < 0) {
-		utils.Fatalf("Commission rate should be 0 or between %.2f and %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
+	absRate := new(big.Int).Abs(rate)
+	if absRate.Cmp(big.NewInt(0)) != 0 && (minRate.Cmp(absRate) > 0 || maxRate.Cmp(absRate) < 0) {
+		utils.Fatalf("Commission rate should be 0 or between ±%.2f and ± %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
 	}
 
 	// send transaction
@@ -1166,7 +1167,6 @@ func setCommissionRate(ctx *cli.Context) error {
 	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
 
 	isCommissionRateNegative := rate.Cmp(big.NewInt(0)) < 0
-	absRate := new(big.Int).Abs(rate)
 	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, absRate, isCommissionRateNegative)
 	if err != nil {
 		utils.Fatalf("Failed to send transaction: %v", err)
