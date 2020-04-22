@@ -1162,11 +1162,14 @@ func setCommissionRate(ctx *cli.Context) error {
 		utils.Fatalf("Commission rate should be 0 or between ±%.2f and ± %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
 	}
 
-	// send transaction
-
-	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
-
 	isCommissionRateNegative := rate.Cmp(big.NewInt(0)) < 0
+	_commission := params.ToRayFloat64(rate)
+	if isCommissionRateNegative {
+		_commission = _commission * -1
+	}
+	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", _commission)
+
+	// send transaction
 	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, absRate, isCommissionRateNegative)
 	if err != nil {
 		utils.Fatalf("Failed to send transaction: %v", err)
@@ -1238,7 +1241,8 @@ func getBalances(ctx *cli.Context) error {
 		uncomittedStakeOf *big.Int
 		stakeOf           *big.Int
 
-		commissionRate *big.Int
+		commissionRate       *big.Int
+		//isCommissionNegative bool
 	)
 
 	// load contract instances
@@ -1312,6 +1316,10 @@ func getBalances(ctx *cli.Context) error {
 		log.Warn("Failed to read commission rate stake", "err", err)
 		commissionRate = big.NewInt(0)
 	}
+	//if isCommissionRateNegative, err = seigManager.IsCommissionNegative(opt, rootchainAddr); err != nil {
+	//	log.Warn("Failed to read commission rate stake", "err", err)
+	//	isCommissionNegative = false
+	//}
 
 	deposit = new(big.Int).Sub(accStaked, accUnstaked)
 
