@@ -16,7 +16,13 @@
 
 package params
 
-import "math/big"
+import (
+	"math/big"
+	"strconv"
+	"strings"
+
+	"github.com/Onther-Tech/plasma-evm/log"
+)
 
 // These are the multipliers for ether denominations.
 // Example: To get the wei value of an amount in 'gwei', use
@@ -30,28 +36,89 @@ const (
 )
 
 func ToRayBigInt(v float64) *big.Int {
-	return new(big.Int).Mul(big.NewInt(int64(v*GWei)), big.NewInt(Ether))
+	str := strconv.FormatFloat(v, 'f', -1, 64)
+	return parseFloatString(str, 27)
 }
 
 func ToEtherBigInt(v float64) *big.Int {
-	return new(big.Int).Mul(big.NewInt(int64(v*GWei)), big.NewInt(GWei))
+	str := strconv.FormatFloat(v, 'f', -1, 64)
+	return parseFloatString(str, 18)
 }
 
 func ToGWeiBigInt(v float64) *big.Int {
-	return big.NewInt(int64(v * GWei))
+	str := strconv.FormatFloat(v, 'f', -1, 64)
+	return parseFloatString(str, 9)
 }
 
 func ToRayFloat64(v *big.Int) float64 {
-	b := new(big.Int).Div(v, big.NewInt(GWei))
+	isNeg := v.Cmp(big.NewInt(0)) < 0
+
+	abs := new(big.Int).Abs(v)
+
+	b := new(big.Int).Div(abs, big.NewInt(GWei))
 	b = new(big.Int).Div(b, big.NewInt(GWei))
-	return float64(b.Int64()) / GWei
+
+	if isNeg {
+		return -float64(b.Uint64()) / GWei
+	}
+
+	return float64(b.Uint64()) / GWei
 }
 
 func ToEtherFloat64(v *big.Int) float64 {
-	b := new(big.Int).Div(v, big.NewInt(GWei))
-	return float64(b.Int64()) / GWei
+	isNeg := v.Cmp(big.NewInt(0)) < 0
+
+	abs := new(big.Int).Abs(v)
+
+	b := new(big.Int).Div(abs, big.NewInt(GWei))
+
+	if isNeg {
+		return -float64(b.Uint64()) / GWei
+	}
+
+	return float64(b.Uint64()) / GWei
 }
 
 func ToGWeiFloat64(v *big.Int) float64 {
-	return float64(v.Int64()) / GWei
+	isNeg := v.Cmp(big.NewInt(0)) < 0
+
+	abs := new(big.Int).Abs(v)
+
+	if isNeg {
+		return -float64(abs.Uint64()) / GWei
+	}
+
+	return float64(abs.Uint64()) / GWei
+}
+
+func parseFloatString(str string, decimals int) *big.Int {
+	i := strings.Index(str, ".")
+
+	v := str
+	n := decimals
+
+	// split string with "."
+	if i >= 0 {
+		a := str[:i]
+		b := str[i+1:]
+		n = n - len(b)
+
+		if n < 0 {
+			log.Crit("out of decimals precision", "decimals", decimals, "length", len(b))
+			return nil
+		}
+
+		v = a + b
+	}
+
+	v = v + strings.Repeat("0", n)
+
+	bi, ok := big.NewInt(0).SetString(v, 10)
+
+	if !ok {
+		log.Crit("failed to parse string", "string", str)
+		return nil
+	}
+
+	return bi
 }
