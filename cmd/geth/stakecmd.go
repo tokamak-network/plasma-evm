@@ -1241,8 +1241,8 @@ func getBalances(ctx *cli.Context) error {
 		uncomittedStakeOf *big.Int
 		stakeOf           *big.Int
 
-		commissionRate       *big.Int
-		//isCommissionNegative bool
+		commissionRate           *big.Int
+		isCommissionRateNegative bool
 	)
 
 	// load contract instances
@@ -1316,10 +1316,12 @@ func getBalances(ctx *cli.Context) error {
 		log.Warn("Failed to read commission rate stake", "err", err)
 		commissionRate = big.NewInt(0)
 	}
-	//if isCommissionRateNegative, err = seigManager.IsCommissionNegative(opt, rootchainAddr); err != nil {
-	//	log.Warn("Failed to read commission rate stake", "err", err)
-	//	isCommissionNegative = false
-	//}
+	if isCommissionRateNegative, err = seigManager.IsCommissionRateNegative(opt, rootchainAddr); err != nil {
+		log.Warn("Failed to read commission rate stake", "err", err)
+	}
+	if isCommissionRateNegative {
+		commissionRate = new(big.Int).Neg(commissionRate)
+	}
 
 	deposit = new(big.Int).Sub(accStaked, accUnstaked)
 
