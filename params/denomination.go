@@ -44,14 +44,14 @@ func ToGWeiBigInt(v float64) *big.Int {
 func ToRayFloat64(v *big.Int) float64 {
 	b := new(big.Int).Div(v, big.NewInt(GWei))
 	b = new(big.Int).Div(b, big.NewInt(GWei))
-	return float64(b.Uint64()) / GWei
+	return (float64(b.Uint64()) / GWei) * float64(v.Cmp(big.NewInt(0)))
 }
 
 func ToEtherFloat64(v *big.Int) float64 {
 	b := new(big.Int).Div(v, big.NewInt(GWei))
-	return float64(b.Uint64()) / GWei
+	return (float64(b.Uint64()) / GWei) * float64(v.Cmp(big.NewInt(0)))
 }
 
 func ToGWeiFloat64(v *big.Int) float64 {
-	return float64(v.Uint64()) / GWei
+	return (float64(v.Uint64()) / GWei) * float64(v.Cmp(big.NewInt(0)))
 }
