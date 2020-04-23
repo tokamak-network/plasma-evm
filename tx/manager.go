@@ -67,6 +67,7 @@ type TransactionManager struct {
 
 	lock         sync.RWMutex
 	gasPriceLock sync.Mutex
+	wg           *sync.WaitGroup
 	quit         chan struct{}
 }
 
@@ -91,6 +92,7 @@ func NewTransactionManager(ks *keystore.KeyStore, backend *ethclient.Client, db 
 
 		taskCh: make(chan *RawTransaction, MaxNumTask),
 
+		wg:   new(sync.WaitGroup),
 		quit: make(chan struct{}),
 	}
 
@@ -257,6 +259,7 @@ func (tm *TransactionManager) Count(account accounts.Account, tx *types.Transact
 }
 
 func (tm *TransactionManager) Start() {
+	tm.wg.Add(1)
 	go tm.confirmLoop()
 
 	// send a single raw transaction to root chain.
@@ -421,7 +424,9 @@ func (tm *TransactionManager) Start() {
 				}
 
 				for addr, _ := range tm.pending {
+					tm.wg.Add(1)
 					go func(addr common.Address) {
+						defer tm.wg.Done()
 						log.Trace("TransactionManager iterates", "addr", addr)
 						queue := tm.pending[addr]
 
@@ -706,6 +711,7 @@ func (tm *TransactionManager) indexOf(addr common.Address) int {
 
 // TODO: use SubscribeNewHead with disconnection handling
 func (tm *TransactionManager) confirmLoop() {
+	defer tm.wg.Done()
 	closed := false
 
 	newHeaderCh := make(chan *types.Header)
@@ -799,6 +805,7 @@ func (tm *TransactionManager) confirmLoop() {
 
 func (tm *TransactionManager) Stop() {
 	close(tm.quit)
+	tm.wg.Wait()
 }
 
 func (tm *TransactionManager) inspect(addr common.Address) {
