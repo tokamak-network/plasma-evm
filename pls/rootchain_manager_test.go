@@ -2140,7 +2140,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 
 	// register root chain
 	setNonce(operatorOpt, &operatorNonceRootChain)
-	transaction, err = registry.RegisterAndDeployCoinageAndSetCommissionRate(operatorOpt, rootchainAddress, seigManagerAddr, commissionRate)
+	transaction, err = registry.RegisterAndDeployCoinageAndSetCommissionRate(operatorOpt, rootchainAddress, seigManagerAddr, commissionRate, false)
 	if err != nil {
 		log.Error("Failed to register rootchain contract", "err", err)
 		return nil, nil, "", err
@@ -2342,7 +2342,6 @@ func deployTokenContracts(t *testing.T) (*token.RequestableSimpleToken, *token.R
 		t.Fatal("Failed to deploy token contract in root chain", "err", err)
 	}
 	log.Info("Token deployed in root chain", "address", tokenAddrInRootChain)
-
 	setNonce(operatorOpt, &operatorNonceChildChain)
 	tokenAddrInChildChain, tx, tokenInChildChain, err := token.DeployRequestableSimpleToken(
 		operatorOpt,
