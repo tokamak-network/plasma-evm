@@ -139,11 +139,10 @@ func makeTestManager(db ethdb.Database) *TransactionManager {
 }
 
 func TestBasic(t *testing.T) {
-	var wg sync.WaitGroup
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
-	tm.Start(&wg)
+	tm.Start()
 
 	// addrs[0] send 1 ETH to addrs[1] n1 times
 	n1 := 10
@@ -178,7 +177,7 @@ func TestRestart(t *testing.T) {
 
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
-	tm.Start(&wg)
+	tm.Start()
 
 	// addrs[0] sends n1 transactions
 	n1 := 10
@@ -201,7 +200,7 @@ func TestRestart(t *testing.T) {
 
 	<-time.NewTimer(5 * time.Second).C
 	tm = makeTestManager(db)
-	tm.Start(&wg)
+	tm.Start()
 	log.Info("TranasctionManager restarted")
 
 	// addrs[0] sends n2 transactions
@@ -232,11 +231,10 @@ func TestRestart(t *testing.T) {
 }
 
 func TestCongestedNetwork(t *testing.T) {
-	var wg sync.WaitGroup
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 
-	tm.Start(&wg)
+	tm.Start()
 
 	// addrs[0] send n1 transactions
 	n1 := 3
