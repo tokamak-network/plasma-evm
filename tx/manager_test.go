@@ -173,8 +173,6 @@ func TestBasic(t *testing.T) {
 }
 
 func TestRestart(t *testing.T) {
-	var wg sync.WaitGroup
-
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
 	tm.Start()
