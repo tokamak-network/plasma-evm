@@ -221,6 +221,12 @@ var (
 		utils.RootChainPowerTONFlag,
 		utils.RootChainSenderFlag,
 	}
+
+	childchainFlags = []cli.Flag{
+		utils.ChildChainUrlFlag,
+		utils.ChildChainGasPriceFlag,
+		utils.ChildChainSenderFlag,
+	}
 )
 
 func init() {
@@ -260,6 +266,8 @@ func init() {
 		// See stakecmd.go
 		manageStakingCmd,
 		stakingCmd,
+		// See staminacmd.go
+		staminaCmd,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -272,6 +280,7 @@ func init() {
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 	app.Flags = append(app.Flags, stakingFlags...)
+	app.Flags = append(app.Flags, childchainFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		return debug.Setup(ctx, "")
