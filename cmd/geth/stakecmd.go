@@ -844,7 +844,7 @@ func getManagers(ctx *cli.Context) error {
 	if len(configPath) != 0 {
 		log.Info("Exporting manager contracts", "path", configPath)
 
-		fh, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+		fh, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
 		if err != nil {
 			return err
 		}
