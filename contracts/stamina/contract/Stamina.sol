@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 
 contract Stamina {
@@ -122,6 +122,10 @@ contract Stamina {
 
   function getNumRecovery(address delegatee) public view returns (uint) {
     return _num_recovery[delegatee];
+  }
+
+  function getLastProcessedWithdrawalIndex(address depositor) public view returns (uint) {
+    return _last_processed_withdrawal[depositor];
   }
 
   function getWithdrawal(address depositor, uint withdrawalIndex)

@@ -89,7 +89,7 @@ The manage-staking command deploys and set up contracts in TON ecosystem.
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-    geth staking deployManagers <withdrawalDelay> <seigPerBlock>
+    geth manage-staking deployManagers <withdrawalDelay> <seigPerBlock>
 
 Deploy new manager contracts.
 
@@ -114,7 +114,7 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 					utils.RootChainSeigManagerFlag,
 				},
 				Description: `
-    geth staking deployPowerTON <roundDuration>
+    geth manage-staking deployPowerTON <roundDuration>
 
 Deploy new PowerTON contract.
 
@@ -138,7 +138,7 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-    geth staking startPowerTON
+    geth manage-staking startPowerTON
 
 Start first round of PowerTON
 
@@ -161,7 +161,7 @@ set manager contracts or use --rootchain.powerton flag to use already deployed t
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking register
+				geth manage-staking register
 
 Register RootChain contract to RootChainRegistry
 `,
@@ -170,7 +170,7 @@ Register RootChain contract to RootChainRegistry
 				Name:      "setCommissionRate",
 				Usage:     "Set commission rate",
 				Action:    utils.MigrateFlags(setCommissionRate),
-				ArgsUsage: "<rate>",
+				ArgsUsage: "<rate> <isCommissionRateNegative?>",
 				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
@@ -182,9 +182,17 @@ Register RootChain contract to RootChainRegistry
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking setCommissionRate <rate>
+				geth manage-staking setCommissionRate <rate> <isCommissionRateNegative?>
 
 Set commission rate of the root chain (operator only)
+
+Default value of <isCommissionRateNegative> is false
+
+Example:
+	geth manage-staking setCommissionRate 0
+	geth manage-staking setCommissionRate 0.1
+	geth manage-staking setCommissionRate 0.1 false
+	geth manage-staking setCommissionRate 0.1 true
 
 NOTE:
 rate should be 0 or between 0.01 and 1.00
@@ -200,7 +208,7 @@ rate should be 0 or between 0.01 and 1.00
 					utils.DataDirFlag,
 				},
 				Description: `
-    geth staking getManagers <path?>
+    geth manage-staking getManagers <path?>
 
 Get staking contracts addresses. If path is given, contracts are stored in the path as JSON.
 `,
@@ -222,7 +230,7 @@ Get staking contracts addresses. If path is given, contracts are stored in the p
 					utils.RootChainPowerTONFlag,
 				},
 				Description: `
-    geth staking setManagers <uri>
+    geth manage-staking setManagers <uri>
 
 Set staking contracts addresses
 
@@ -246,7 +254,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.r
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking mintTON <to> <amount>
+				geth manage-staking mintTON <to> <amount>
 
 Mint TON to account
 
@@ -314,7 +322,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 
 Change TON to WTON
 
-CAVEAT: <tonAmount> should be a float
+CAVEAT: <tonAmount> must be a float
 
 NOTE:
 use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
@@ -343,7 +351,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 
 Change WTON to TON
 
-CAVEAT: <wtonAmount> should be a float
+CAVEAT: <wtonAmount> must be a float
 
 NOTE:
 use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
@@ -372,7 +380,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 
 Stake WTON
 
-CAVEAT: <amount> should be a float
+CAVEAT: <amount> must be a float
 
 NOTE:
 use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
@@ -401,7 +409,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 
 Stake WTON
 
-CAVEAT: <amount> should be a float
+CAVEAT: <amount> must be a float
 
 NOTE:
 use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.seigmanager flags to use already deployed token contracts
@@ -455,7 +463,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 
 Make an unstaking request. If amount is not given, make a request with all staked amount.
 
-CAVEAT: <amount> should be a float
+CAVEAT: <amount> must be a float
 
 NOTE:
 use --rootchain.depositmanager flags to use already deployed token contracts
@@ -480,7 +488,7 @@ use --rootchain.depositmanager flags to use already deployed token contracts
 
 Process unstaking requests
 
-CAVEAT: <amount> should be a float
+CAVEAT: <amount> must be a float
 
 NOTE:
 use --rootchain.depositmanager flags to use already deployed token contracts
@@ -1103,8 +1111,8 @@ func registerRootChain(ctx *cli.Context) error {
 }
 
 func setCommissionRate(ctx *cli.Context) error {
-	if len(ctx.Args()) != 1 {
-		utils.Fatalf("Expected 1 parameters, not %d", len(ctx.Args()))
+	if len(ctx.Args()) != 1 && len(ctx.Args()) != 2 {
+		utils.Fatalf("Expected 1 or 2 parameters, not %d", len(ctx.Args()))
 	}
 
 	stack, cfg := makeConfigNode(ctx)
@@ -1126,6 +1134,20 @@ func setCommissionRate(ctx *cli.Context) error {
 	decimals := params.WTONDecimals
 
 	rate := parseFloatString(ctx.Args().Get(0), decimals)
+	isCommissionRateNegative := false
+
+	if rate.Cmp(big.NewInt(0)) < 0 {
+		utils.Fatalf("Commission rate cannot be negative")
+	}
+
+	switch ctx.Args().Get(1) {
+	case "":
+	case "false":
+	case "true":
+		isCommissionRateNegative = true
+	default:
+		utils.Fatalf("Cannot parse isCommissionRateNegative: %s", ctx.Args().Get(1))
+	}
 
 	logManagers(managers)
 
@@ -1161,13 +1183,10 @@ func setCommissionRate(ctx *cli.Context) error {
 		utils.Fatalf("Commission rate should be 0 or between %.2f and %.2f", params.ToRayFloat64(minRate), params.ToRayFloat64(maxRate))
 	}
 
+	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate), "isCommissionRateNegative", isCommissionRateNegative)
+
 	// send transaction
-
-	log.Info("Set commission rate", "rootchain", rootchainAddr, "commissionRate", params.ToRayFloat64(rate))
-
-	isCommissionRateNegative := rate.Cmp(big.NewInt(0)) < 0
-	absRate := new(big.Int).Abs(rate)
-	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, absRate, isCommissionRateNegative)
+	tx, err := seigManager.SetCommissionRate(opt, rootchainAddr, rate, isCommissionRateNegative)
 	if err != nil {
 		utils.Fatalf("Failed to send transaction: %v", err)
 	}
@@ -1238,7 +1257,8 @@ func getBalances(ctx *cli.Context) error {
 		uncomittedStakeOf *big.Int
 		stakeOf           *big.Int
 
-		commissionRate *big.Int
+		commissionRate           *big.Int
+		isCommissionRateNegative bool
 	)
 
 	// load contract instances
@@ -1311,6 +1331,12 @@ func getBalances(ctx *cli.Context) error {
 	if commissionRate, err = seigManager.CommissionRates(opt, rootchainAddr); err != nil {
 		log.Warn("Failed to read commission rate stake", "err", err)
 		commissionRate = big.NewInt(0)
+	}
+	if isCommissionRateNegative, err = seigManager.IsCommissionRateNegative(opt, rootchainAddr); err != nil {
+		log.Warn("Failed to read commission rate stake", "err", err)
+	}
+	if isCommissionRateNegative {
+		commissionRate = new(big.Int).Neg(commissionRate)
 	}
 
 	deposit = new(big.Int).Sub(accStaked, accUnstaked)

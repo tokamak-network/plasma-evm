@@ -848,6 +848,20 @@ var (
 		Value: pls.DefaultConfig.TxConfig.Interval,
 	}
 
+	// Child Chain Transaction Flags
+	ChildChainUrlFlag = cli.StringFlag{
+		Name:  "childchain.url",
+		Usage: "JSONRPC endpoint of child chain provider.",
+	}
+	ChildChainSenderFlag = cli.StringFlag{
+		Name:  "childchain.sender",
+		Usage: "Sender address of child chain transaction",
+	}
+	ChildChainGasPriceFlag = cli.Float64Flag{
+		Name:  "childchain.gasprice",
+		Usage: "Gas price for child chain transaction in GWei",
+	}
+
 	// Stamina Flags
 	StaminaOperatorAmountFlag = cli.Float64Flag{
 		Name:  "stamina.operatoramount",

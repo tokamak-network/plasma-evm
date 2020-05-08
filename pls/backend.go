@@ -636,8 +636,8 @@ func (s *Plasma) Stop() error {
 	s.miner.Stop()
 	s.eventMux.Stop()
 
-	s.chainDb.Close()
 	s.rootchainManager.Stop()
+	s.chainDb.Close()
 	close(s.shutdownChan)
 	return nil
 }
