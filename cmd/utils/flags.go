@@ -229,7 +229,7 @@ var (
 	GCModeFlag = cli.StringFlag{
 		Name:  "gcmode",
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
-		Value: "full",
+		Value: "archive",
 	}
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
