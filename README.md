@@ -46,14 +46,14 @@ $ make geth
 Before running plasma-evm client, you **MUST** run another geth client as root chain client.
 
 ```bash
-$ git clone https://github.con/Onther-Tech/go-ethereum.git root-chain-geth && cd root-chain-geth
+$ git clone https://github.com/Onther-Tech/go-ethereum.git root-chain-geth && cd root-chain-geth
 $ bash run.rootchain.sh
 ```
 
 Then you can run  or test plasma-evm client.
 
 ```bash
-$ git clone https://github.con/Onther-Tech/plasma-evm.git && cd plasma-evm
+$ git clone https://github.com/Onther-Tech/plasma-evm.git && cd plasma-evm
 $ bash run.pls.sh
 ```
 
