@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"path/filepath"
+
 	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
 	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
@@ -13,8 +16,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/params"
 	"github.com/Onther-Tech/plasma-evm/plsclient"
 	"gopkg.in/urfave/cli.v1"
-	"math/big"
-	"path/filepath"
 
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 )
@@ -31,7 +32,7 @@ NOTE: uint256 type parameters must be a float
 `,
 		Subcommands: []cli.Command{
 			{
-				Name:      "getDelegatee",
+				Name:      "get-delegatee",
 				Usage:     "Get delegatee of account",
 				ArgsUsage: "<address>",
 				Action:    utils.MigrateFlags(getDelegatee),
@@ -40,7 +41,7 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "getStamina",
+				Name:      "get-stamina",
 				Usage:     "Get stamina of account",
 				ArgsUsage: "<address>",
 				Action:    utils.MigrateFlags(getStamina),
@@ -49,7 +50,7 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "getTotalDeposit",
+				Name:      "get-totaldeposit",
 				Usage:     "Get total deposit of account",
 				ArgsUsage: "<address>",
 				Action:    utils.MigrateFlags(getTotalDeposit),
@@ -58,7 +59,7 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "getDeposit",
+				Name:      "get-deposit",
 				Usage:     "Get deposit of account from the depositor",
 				ArgsUsage: "<depositor> <delegatee>",
 				Action:    utils.MigrateFlags(getDeposit),
@@ -67,8 +68,8 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "getLastRecoveryBlock",
-				Usage:     "get last recovery block of the delegatee",
+				Name:      "get-lastrecoveryblock",
+				Usage:     "Get last recovery block of the delegatee",
 				ArgsUsage: "<delegatee>",
 				Action:    utils.MigrateFlags(getLastRecoveryBlock),
 				Flags: []cli.Flag{
@@ -76,8 +77,8 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "getWithdrawal",
-				Usage:     "get withdrawal requests",
+				Name:      "get-withdrawal",
+				Usage:     "Get withdrawal requests",
 				ArgsUsage: "<depositor>",
 				Action:    utils.MigrateFlags(getWithdrawal),
 				Flags: []cli.Flag{
@@ -85,8 +86,8 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "setDelegator",
-				Usage:     "set delegator",
+				Name:      "set-delegator",
+				Usage:     "Set delegator",
 				ArgsUsage: "<delegator>",
 				Action:    utils.MigrateFlags(setDelegator),
 				Flags: []cli.Flag{
@@ -100,7 +101,7 @@ NOTE: uint256 type parameters must be a float
 			},
 			{
 				Name:      "deposit",
-				Usage:     "deposit PETH to gain stamina",
+				Usage:     "Deposit PETH to gain stamina",
 				ArgsUsage: "<delegatee> <value>",
 				Action:    utils.MigrateFlags(deposit),
 				Flags: []cli.Flag{
@@ -113,8 +114,8 @@ NOTE: uint256 type parameters must be a float
 				},
 			},
 			{
-				Name:      "requestWithdrawal",
-				Usage:     "request withdraw",
+				Name:      "request-withdrawal",
+				Usage:     "Request withdraw",
 				ArgsUsage: "<delegatee> <value>",
 				Action:    utils.MigrateFlags(requestStaminaWithdrawal),
 				Flags: []cli.Flag{
@@ -128,7 +129,7 @@ NOTE: uint256 type parameters must be a float
 			},
 			{
 				Name:      "withdraw",
-				Usage:     "process withdraw",
+				Usage:     "Process withdraw",
 				ArgsUsage: "",
 				Action:    utils.MigrateFlags(withdraw),
 				Flags: []cli.Flag{

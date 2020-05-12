@@ -787,7 +787,7 @@ var (
 		Usage: "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.",
 	}
 	RootChainGasPriceFlag = BigFlag{
-		Name:  "rootchain.gasPrice",
+		Name:  "rootchain.gasprice",
 		Usage: "Transaction gas price to root chain in GWei",
 		Value: big.NewInt(10 * params.GWei),
 	}
@@ -796,7 +796,7 @@ var (
 		Usage: "Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)",
 	}
 	RootChainDeployGasPriceFlag = BigFlag{
-		Name:  "rootchain.deployGasPrice",
+		Name:  "rootchain.deploygasprice",
 		Usage: "Transaction gas price to deploy rootchain in Gwei",
 		Value: big.NewInt(10 * params.GWei),
 	}
@@ -815,7 +815,7 @@ var (
 		Usage: "Address of WTON token contract",
 	}
 	RootChainDepositManagerFlag = cli.StringFlag{
-		Name:  "rootchain.depositManager",
+		Name:  "rootchain.depositmanager",
 		Usage: "Address of Deposit Manager contract",
 	}
 	RootChainRegistryFlag = cli.StringFlag{
@@ -823,7 +823,7 @@ var (
 		Usage: "Address of RootChainRegistry contract",
 	}
 	RootChainSeigManagerFlag = cli.StringFlag{
-		Name:  "rootchain.seigManager",
+		Name:  "rootchain.seigmanager",
 		Usage: "Address of SeigManager contract",
 	}
 	RootChainPowerTONFlag = cli.StringFlag{

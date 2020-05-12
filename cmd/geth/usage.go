@@ -317,6 +317,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "PLASMA EVM - CHILDCHAIN OPTIONS",
+		Flags: []cli.Flag{
+			utils.ChildChainUrlFlag,
+			utils.ChildChainSenderFlag,
+			utils.ChildChainGasPriceFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

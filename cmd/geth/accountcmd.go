@@ -190,7 +190,7 @@ nodes.
 `,
 			},
 			{
-				Name:   "importKey",
+				Name:   "import-key",
 				Usage:  "Import a private key from hex key into a new account",
 				Action: utils.MigrateFlags(accountImportKey),
 				Flags: []cli.Flag{
@@ -223,7 +223,7 @@ nodes.
 `,
 			},
 			{
-				Name:   "importHDwallet",
+				Name:   "import-hdwallet",
 				Usage:  "Import a mnemonic into a new account",
 				Action: utils.MigrateFlags(accountImportHDwallet),
 				Flags: []cli.Flag{
