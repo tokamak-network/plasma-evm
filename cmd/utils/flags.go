@@ -795,6 +795,11 @@ var (
 		Name:  "rootchain.sender",
 		Usage: "Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)",
 	}
+	RootChainDeployGasPriceFlag = BigFlag{
+		Name:  "rootchain.deployGasPrice",
+		Usage: "Transaction gas price to deploy rootchain in Gwei",
+		Value: big.NewInt(10 * params.GWei),
+	}
 
 	// Tokamak Network contracts flags
 	RootChainContractFlag = cli.StringFlag{

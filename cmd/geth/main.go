@@ -180,6 +180,7 @@ var (
 		utils.RootChainUrlFlag,
 		utils.RootChainContractFlag,
 		utils.RootChainGasPriceFlag,
+		utils.RootChainDeployGasPriceFlag,
 		utils.TxMinGasPriceFlag,
 		utils.TxMaxGasPriceFlag,
 		utils.TxResubmitFlag,

@@ -31,7 +31,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Onther-Tech/plasma-evm/accounts"
 	"github.com/Onther-Tech/plasma-evm/accounts/abi/bind"
+	"github.com/Onther-Tech/plasma-evm/accounts/keystore"
 	"github.com/Onther-Tech/plasma-evm/cmd/utils"
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/console"
@@ -44,7 +46,9 @@ import (
 	"github.com/Onther-Tech/plasma-evm/ethclient"
 	"github.com/Onther-Tech/plasma-evm/event"
 	"github.com/Onther-Tech/plasma-evm/log"
+	"github.com/Onther-Tech/plasma-evm/node"
 	"github.com/Onther-Tech/plasma-evm/params"
+	"github.com/Onther-Tech/plasma-evm/pls"
 	"github.com/Onther-Tech/plasma-evm/pls/downloader"
 	"github.com/Onther-Tech/plasma-evm/trie"
 	"gopkg.in/urfave/cli.v1"
@@ -76,9 +80,10 @@ It expects the genesis file as argument.`,
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.RootChainUrlFlag,
+			utils.RootChainDeployGasPriceFlag,
+			utils.RootChainSenderFlag,
 			utils.UnlockedAccountFlag,
 			utils.PasswordFileFlag,
-			utils.RootChainSenderFlag,
 			utils.DeveloperKeyFlag,
 			utils.StaminaOperatorAmountFlag,
 			utils.StaminaMinDepositFlag,
@@ -97,13 +102,14 @@ To configure stamina, use below flags
 	--stamina.recoverepochlength
 	--stamina.withdrawaldelay
 
+To configure gas price for deploying RootChain contract, use below flag
+  --rootchain.deployGasPrice
+
 It expects arguments as below:
  - genesisPath: path to write genesis.json
  - chainId: chain id of the network
  - withPETH: whether give PETH to operator or not. (true or false)
- - NRELength: length of non-reqeust epoch.
-
-`,
+ - NRELength: length of non-reqeust epoch.`,
 	}
 	importCommand = cli.Command{
 		Action:    utils.MigrateFlags(importChain),
@@ -347,7 +353,7 @@ func deployRootChain(ctx *cli.Context) error {
 	}
 
 	stack, cfg := makeConfigNode(ctx)
-	opt, backend := initOpts(ctx, stack, &cfg.Pls)
+	opt, backend := initOptsForDeployingRootChain(ctx, stack, &cfg.Pls)
 
 	stakedb, err := stack.OpenDatabase("stakingdata", 0, 0, "")
 	defer stakedb.Close()
@@ -415,6 +421,35 @@ func deployRootChain(ctx *cli.Context) error {
 	utils.ExportGenesis(genesis, genesisPath)
 
 	return nil
+}
+
+func initOptsForDeployingRootChain(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.TransactOpts, *ethclient.Client) {
+	unlockAccounts(ctx, stack)
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+
+	sender := common.HexToAddress(ctx.GlobalString(utils.RootChainSenderFlag.Name))
+
+	var opt *bind.TransactOpts
+	if (sender != common.Address{}) {
+		if !ks.HasAddress(sender) {
+			utils.Fatalf("Unknown sender account: %s", sender)
+		}
+
+		log.Info("Root chain transaction sender found", "address", sender)
+
+		senderAccount := accounts.Account{Address: sender}
+
+		opt = bind.NewAccountTransactor(ks, senderAccount)
+		opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainDeployGasPriceFlag.Name)
+	}
+
+	backend, err := ethclient.Dial(cfg.RootChainURL)
+	if err != nil {
+		utils.Fatalf("Failed to connect root chain: %v", err)
+	}
+
+	return opt, backend
 }
 
 func importChain(ctx *cli.Context) error {
