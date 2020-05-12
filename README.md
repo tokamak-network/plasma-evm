@@ -162,7 +162,7 @@ $ geth manage-staking deploy-managers <withdrawalDelay> <seigPerBlock> # Deploy 
 $ geth manage-staking deploy-powerton <roundDuration>                  # Deploy PowerTON contract
 $ geth manage-staking start-powerton                                   # Start PowerTON first round
 $ geth manage-staking register                                         # Register RootChain contract
-$ geth manage-staking managers <path>                                  # Get staking managers addresses in database
+$ geth manage-staking get-managers <path>                              # Get staking managers addresses in database
 $ geth manage-staking set-managers <uri>                               # Set staking managers addresses in database
 $ geth manage-staking mint-ton <to> <amount>                           # Mint TON to account (for dev)
 ```
