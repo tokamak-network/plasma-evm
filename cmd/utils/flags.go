@@ -797,7 +797,7 @@ var (
 	}
 	RootChainDeployGasPriceFlag = BigFlag{
 		Name:  "rootchain.deploygasprice",
-		Usage: "Transaction gas price to deploy rootchain in Gwei",
+		Usage: "Transaction gas price to deploy rootchain in GWei (default: 10000000000). This flag applies only to deploy command.",
 		Value: big.NewInt(10 * params.GWei),
 	}
 
