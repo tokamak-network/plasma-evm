@@ -176,7 +176,7 @@ PLASMA EVM - STAMINA OPTIONS:
 
 PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.url value                 JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
-  --rootchain.deploygasprice value      Transaction gas price to deploy rootchain in Gwei (default: 10000000000)
+  --rootchain.deploygasprice value      Transaction gas price to deploy rootchain in GWei (default: 10000000000). This flag applies only to deploy command.
 
 PLASMA EVM - STAKING OPTIONS OPTIONS:
   --rootchain.sender value              Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
