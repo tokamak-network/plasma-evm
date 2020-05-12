@@ -107,7 +107,7 @@ PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.contract value          Address of the RootChain contract
   --rootchain.deploygasprice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000)
 
-PLASMA EVM - STAKING OPTIONS OPTIONS:
+PLASMA EVM - STAKING OPTIONS:
   --unlock value                      Comma separated list of accounts to unlock
   --password value                    Password file to use for non-interactive password input
   --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)

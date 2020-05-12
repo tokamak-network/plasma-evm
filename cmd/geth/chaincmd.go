@@ -99,7 +99,7 @@ To configure stamina, use below flags
 	--stamina.withdrawaldelay
 
 To configure gas price for deploying RootChain contract, use below flag
-  --rootchain.deployGasPrice
+  --rootchain.deploygasprice
 
 It expects arguments as below:
  - genesisPath: path to write genesis.json
