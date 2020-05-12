@@ -378,7 +378,7 @@ PLASMA EVM - STAKING OPTIONS OPTIONS:
 ```
 
 ```bash
-$ geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>
+$ geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>    # Set commission rate
 
 ETHEREUM OPTIONS:
   --datadir value                       Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
