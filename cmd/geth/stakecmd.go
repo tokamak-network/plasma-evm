@@ -167,10 +167,10 @@ Register RootChain contract to RootChainRegistry
 `,
 			},
 			{
-				Name:      "set-commissionrate",
+				Name:      "set-commission-rate",
 				Usage:     "Set commission rate",
 				Action:    utils.MigrateFlags(setCommissionRate),
-				ArgsUsage: "<rate> <isCommissionRateNegative?>",
+				ArgsUsage: "<rate> <isCommissionRateNegative>",
 				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
@@ -182,17 +182,17 @@ Register RootChain contract to RootChainRegistry
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth manage-staking setCommissionRate <rate> <isCommissionRateNegative?>
+				geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>
 
 Set commission rate of the root chain (operator only)
 
 Default value of <isCommissionRateNegative> is false
 
 Example:
-	geth manage-staking setCommissionRate 0
-	geth manage-staking setCommissionRate 0.1
-	geth manage-staking setCommissionRate 0.1 false
-	geth manage-staking setCommissionRate 0.1 true
+	geth manage-staking set-commission-rate 0
+	geth manage-staking set-commission-rate 0.1
+	geth manage-staking set-commission-rate 0.1 false
+	geth manage-staking set-commission-rate 0.1 true
 
 NOTE:
 rate should be 0 or between 0.01 and 1.00

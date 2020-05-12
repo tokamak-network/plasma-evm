@@ -246,10 +246,10 @@ jobs:
               --rootchain.sender $ADDR1
 
       - run:
-          name: Test manage-staking command(8/8) - set-commissionrate
+          name: Test manage-staking command(8/8) - set-commission-rate
           command: |
             cd plasma-evm
-            build/bin/geth manage-staking set-commissionrate 0.01 \
+            build/bin/geth manage-staking set-commission-rate 0.01 \
               --datadir $DATADIR_OPERATOR1 \
               --rootchain.url "ws://127.0.0.1:8546" \
               --unlock $ADDR1 \

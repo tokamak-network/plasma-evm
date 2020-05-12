@@ -378,6 +378,28 @@ PLASMA EVM - STAKING OPTIONS OPTIONS:
 ```
 
 ```bash
+$ geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>
+
+ETHEREUM OPTIONS:
+  --datadir value                       Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                        Comma separated list of accounts to unlock
+  --password value                      Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                       Comma seperated developer account key as hex(for dev)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value                 JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value              Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.gasprice value            Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+
+```bash
 $ geth manage-staking get-managers <path>    # Get staking managers addresses in database
 
 ETHEREUM OPTIONS:
