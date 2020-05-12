@@ -105,19 +105,24 @@ PLASMA EVM - CHALLENGER OPTIONS:
 PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
   --rootchain.contract value          Address of the RootChain contract
-  --rootchain.deployGasPrice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000)
+  --rootchain.deploygasprice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000)
 
 PLASMA EVM - STAKING OPTIONS OPTIONS:
   --unlock value                      Comma separated list of accounts to unlock
   --password value                    Password file to use for non-interactive password input
   --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
-  --rootchain.gasPrice value          Transaction gas price to root chain in GWei (default: 10000000000)
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
   --rootchain.ton value               Address of TON token contract
   --rootchain.wton value              Address of WTON token contract
   --rootchain.registry value          Address of RootChainRegistry contract
-  --rootchain.depositManager value    Address of Deposit Manager contract
-  --rootchain.seigManager value       Address of SeigManager contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
   --rootchain.powerton value          Address of PowerTON contract
+  
+PLASMA EVM - CHILDCHAIN OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)
 ```
 
 ## Additional Commands
@@ -126,8 +131,8 @@ For more information, run below command (and sub-command) with `--help` flag.
 ### account
 
 ```bash
-$ geth account importKey <privateKey>            # Import a private key from hex key into a new account
-$ geth account importHDwallet <mnemonic> <path>  # Import a mnemonic into a new account
+$ geth account import-key <privateKey>            # Import a private key from hex key into a new account
+$ geth account import-hdwallet <mnemonic> <path>  # Import a mnemonic into a new account
 ```
 
 ### deploy
@@ -135,25 +140,40 @@ $ geth account importHDwallet <mnemonic> <path>  # Import a mnemonic into a new 
 $ geth deploy <genesisPath> <chainId> <withPETH> <NRELength>  # Deploy RootChain contract and make genesis file
 ```
 
+### stamina
+```bash
+$ geth stamina get-delegatee <address>                # Get delegatee of account
+$ geth stamina get-stamina <address>                  # Get stamina of account
+$ geth stamina get-totaldeposit <address>             # Get total deposit of account
+$ geth stamina get-deposit <depositor> <delegatee>    # Get deposit of account from the depositor
+$ geth stamina get-lastrecoveryblock <delegatee>      # Get last recovery block of the delegatee
+$ geth stamina get-withdrawal <depositor>             # Get withdrawal requests
+$ geth stamina set-delegator <delegator>              # Set delegator
+$ geth stamina deposit <delegatee> <value>            # Deposit PETH to gain stamina
+$ geth stamina request-withdrawal <delegatee> <value> # Request withdraw
+$ geth stamina withdraw                               # Process withdraw
+
+```
+
 ### manage-staking
 
 ```bash
-$ geth manage-staking deployManagers <withdrawalDelay> <seigPerBlock>  # Deploy staking manager contracts (except PowerTON)
-$ geth manage-staking deployPowerTON <roundDuration>                   # Deploy PowerTON contract
-$ geth manage-staking startPowerTON                                    # Start PowerTON first round
+$ geth manage-staking deploy-managers <withdrawalDelay> <seigPerBlock> # Deploy staking manager contracts (except PowerTON)
+$ geth manage-staking deploy-powerton <roundDuration>                  # Deploy PowerTON contract
+$ geth manage-staking start-powerton                                   # Start PowerTON first round
 $ geth manage-staking register                                         # Register RootChain contract
-$ geth manage-staking getManagers <path?>                              # Get staking managers addresses in database
-$ geth manage-staking setManagers <uri>                                # Set staking managers addresses in database
-$ geth manage-staking mintTON <to> <amount>                            # Mint TON to account (for dev)
+$ geth manage-staking managers <path>                                  # Get staking managers addresses in database
+$ geth manage-staking set-managers <uri>                               # Set staking managers addresses in database
+$ geth manage-staking mint-ton <to> <amount>                           # Mint TON to account (for dev)
 ```
 
-### Staking
+### staking
 
 ```bash
-$ geth staking balances <address>                               # Print balances of token and stake
-$ geth staking swapFromTON <tonAmount>                          # Swap TON to WTON
-$ geth staking swapToTON <wtonAmount>                           # Swap WTON to TON
-$ geth staking stake <amount>                                   # Stake WTON
-$ geth staking requestWithdrawal <amount?>                      # Make a withdrawal request
-$ geth staking processWithdrawal <numRequests?>                 # Process pending withdrawals
+$ geth staking balances <address>               # Print balances of token and stake
+$ geth staking swap-from-ton <tonAmount>        # Swap TON to WTON
+$ geth staking swap-to-ton <wtonAmount>         # Swap WTON to TON
+$ geth staking stake <amount>                   # Stake WTON
+$ geth staking request-withdrawal <amount>      # Make a withdrawal request
+$ geth staking process-withdrawal <numRequests> # Process pending withdrawals
 ```
