@@ -298,6 +298,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.RootChainUrlFlag,
 			utils.RootChainContractFlag,
+			utils.RootChainDeployGasPriceFlag,
 		},
 	},
 	{

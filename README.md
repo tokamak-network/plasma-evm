@@ -105,6 +105,7 @@ PLASMA EVM - CHALLENGER OPTIONS:
 PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
   --rootchain.contract value          Address of the RootChain contract
+  --rootchain.deployGasPrice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000)
 
 PLASMA EVM - STAKING OPTIONS OPTIONS:
   --unlock value                      Comma separated list of accounts to unlock
