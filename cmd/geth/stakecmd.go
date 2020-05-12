@@ -228,6 +228,7 @@ Get staking contracts addresses. If path is given, contracts are stored in the p
 					utils.RootChainRegistryFlag,
 					utils.RootChainSeigManagerFlag,
 					utils.RootChainPowerTONFlag,
+					utils.RootChainGasPriceFlag,
 				},
 				Description: `
     geth manage-staking setManagers <uri>
@@ -418,7 +419,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 			{
 				Name:      "restake",
 				Usage:     "Restake pending withdrawal request",
-				ArgsUsage: "<numRequests?>",
+				ArgsUsage: "<numRequests>",
 				Action:    utils.MigrateFlags(restake),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -447,7 +448,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 			{
 				Name:      "requestWithdrawal",
 				Usage:     "Make a withdrawal request",
-				ArgsUsage: "<amount?>",
+				ArgsUsage: "<amount>",
 				Action:    utils.MigrateFlags(requestWithdrawal),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -457,6 +458,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 					utils.PasswordFileFlag,
 					utils.RootChainSenderFlag,
 					utils.RootChainDepositManagerFlag,
+					utils.RootChainGasPriceFlag,
 				},
 				Description: `
 				geth staking requestWithdrawal <amount?>
@@ -472,7 +474,7 @@ use --rootchain.depositmanager flags to use already deployed token contracts
 			{
 				Name:      "processWithdrawal",
 				Usage:     "Process pending withdrawals",
-				ArgsUsage: "<numRequests?>",
+				ArgsUsage: "<numRequests>",
 				Action:    utils.MigrateFlags(processWithdrawal),
 				Category:  "TON STAKING COMMANDS",
 				Flags: []cli.Flag{
@@ -482,6 +484,7 @@ use --rootchain.depositmanager flags to use already deployed token contracts
 					utils.PasswordFileFlag,
 					utils.RootChainSenderFlag,
 					utils.RootChainDepositManagerFlag,
+					utils.RootChainGasPriceFlag,
 				},
 				Description: `
 				geth staking processWithdrawal <numRequests?>
