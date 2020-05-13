@@ -46,14 +46,14 @@ $ make geth
 Before running plasma-evm client, you **MUST** run another geth client as root chain client.
 
 ```bash
-$ git clone https://github.con/Onther-Tech/go-ethereum.git root-chain-geth && cd root-chain-geth
+$ git clone https://github.com/Onther-Tech/go-ethereum.git root-chain-geth && cd root-chain-geth
 $ bash run.rootchain.sh
 ```
 
 Then you can run  or test plasma-evm client.
 
 ```bash
-$ git clone https://github.con/Onther-Tech/plasma-evm.git && cd plasma-evm
+$ git clone https://github.com/Onther-Tech/plasma-evm.git && cd plasma-evm
 $ bash run.pls.sh
 ```
 
@@ -105,19 +105,24 @@ PLASMA EVM - CHALLENGER OPTIONS:
 PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
   --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
   --rootchain.contract value          Address of the RootChain contract
-  --rootchain.deployGasPrice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000)
+  --rootchain.deploygasprice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000). This flag applies only to deploy command.
 
-PLASMA EVM - STAKING OPTIONS OPTIONS:
+PLASMA EVM - STAKING OPTIONS:
   --unlock value                      Comma separated list of accounts to unlock
   --password value                    Password file to use for non-interactive password input
   --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
-  --rootchain.gasPrice value          Transaction gas price to root chain in GWei (default: 10000000000)
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
   --rootchain.ton value               Address of TON token contract
   --rootchain.wton value              Address of WTON token contract
   --rootchain.registry value          Address of RootChainRegistry contract
-  --rootchain.depositManager value    Address of Deposit Manager contract
-  --rootchain.seigManager value       Address of SeigManager contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
   --rootchain.powerton value          Address of PowerTON contract
+  
+PLASMA EVM - CHILDCHAIN OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)
 ```
 
 ## Additional Commands
@@ -126,34 +131,482 @@ For more information, run below command (and sub-command) with `--help` flag.
 ### account
 
 ```bash
-$ geth account importKey <privateKey>            # Import a private key from hex key into a new account
-$ geth account importHDwallet <mnemonic> <path>  # Import a mnemonic into a new account
+$ geth account import-key <privateKey>    # Import a private key from hex key into a new account
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+  --keystore value                    Directory for the keystore (default = inside the datadir)
+  --lightkdf                          Reduce key-derivation RAM & CPU usage at some expense of KDF strength
+
+ACCOUNT OPTIONS:
+  --password value                    Password file to use for non-interactive password input
+```
+
+```bash
+$ geth account import-hdwallet <mnemonic> <path>    # Import a mnemonic into a new account
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+  --keystore value                    Directory for the keystore (default = inside the datadir)
+  --lightkdf                          Reduce key-derivation RAM & CPU usage at some expense of KDF strength
+
+ACCOUNT OPTIONS:
+  --password value                    Password file to use for non-interactive password input
 ```
 
 ### deploy
 ```bash
-$ geth deploy <genesisPath> <chainId> <withPETH> <NRELength>  # Deploy RootChain contract and make genesis file
+$ geth deploy <genesisPath> <chainId> <withPETH> <NRELength>    # Deploy RootChain contract and make genesis file
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                     Comma seperated developer account key as hex(for dev)
+
+PLASMA EVM - STAMINA OPTIONS:
+  --stamina.operatoramount value      Operator stamina amount at genesis block in ETH (default: 1)
+  --stamina.mindeposit value          Minimum deposit amount in ETH (default: 0.5)
+  --stamina.recoverepochlength value  The length of recovery epoch in block (default: 120960)
+  --stamina.withdrawaldelay value     Withdrawal delay in block (default: 362880)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+  --rootchain.deploygasprice value    Transaction gas price to deploy rootchain in GWei (default: 10000000000). This flag applies only to deploy command.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+```
+
+### stamina
+```bash
+$ geth stamina get-delegatee <address>    # Get delegatee of account
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina get-stamina <address>    # Get stamina of account
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina get-totaldeposit <address>    # Get total deposit of account
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina get-deposit <depositor> <delegatee>    # Get deposit of account from the depositor
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina get-lastrecoveryblock <delegatee>    # Get last recovery block of the delegatee
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina get-withdrawal <depositor>    # Get withdrawal requests
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+```
+
+```bash
+$ geth stamina set-delegator <delegator>    # Set delegator
+
+ETHEREUM OPTIONS:
+--datadir value                       Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)
+```
+
+```bash
+$ geth stamina deposit <delegatee> <value>    # Deposit PETH to gain stamina
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)
+```
+
+```bash
+$ geth stamina request-withdrawal <delegatee> <value>    # Request withdraw
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)
+```
+
+```bash
+$ geth stamina withdraw    # Process withdraw
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - CHILDCHAIN OPTIONS OPTIONS:
+  --childchain.url value              JSONRPC endpoint of child chain provider.
+  --childchain.sender value           Sender address of child chain transaction
+  --childchain.gasprice value         Gas price for child chain transaction in GWei (default: 0)                              
 ```
 
 ### manage-staking
 
 ```bash
-$ geth manage-staking deployManagers <withdrawalDelay> <seigPerBlock>  # Deploy staking manager contracts (except PowerTON)
-$ geth manage-staking deployPowerTON <roundDuration>                   # Deploy PowerTON contract
-$ geth manage-staking startPowerTON                                    # Start PowerTON first round
-$ geth manage-staking register                                         # Register RootChain contract
-$ geth manage-staking getManagers <path?>                              # Get staking managers addresses in database
-$ geth manage-staking setManagers <uri>                                # Set staking managers addresses in database
-$ geth manage-staking mintTON <to> <amount>                            # Mint TON to account (for dev)
+$ geth manage-staking deploy-managers <withdrawalDelay> <seigPerBlock>    # Deploy staking manager contracts (except PowerTON)
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                     Comma separated developer account key as hex(for dev)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
 ```
 
-### Staking
+```bash
+$ geth manage-staking deploy-powerton <roundDuration>    # Deploy PowerTON contract
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+```
 
 ```bash
-$ geth staking balances <address>                               # Print balances of token and stake
-$ geth staking swapFromTON <tonAmount>                          # Swap TON to WTON
-$ geth staking swapToTON <wtonAmount>                           # Swap WTON to TON
-$ geth staking stake <amount>                                   # Stake WTON
-$ geth staking requestWithdrawal <amount?>                      # Make a withdrawal request
-$ geth staking processWithdrawal <numRequests?>                 # Process pending withdrawals
+$ geth manage-staking start-powerton    # Start PowerTON first round
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                     Comma seperated developer account key as hex(for dev)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.powerton value          Address of PowerTON contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth manage-staking register    # Register RootChain contract
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                     Comma seperated developer account key as hex(for dev)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>    # Set commission rate
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - DEVELOPMENT MODE OPTIONS:
+  --dev.key value                     Comma seperated developer account key as hex(for dev)
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+
+```bash
+$ geth manage-staking get-managers <path>    # Get staking managers addresses in database
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+```
+
+```bash
+$ geth manage-staking set-managers <uri>    # Set staking managers addresses in database
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.registry value          Address of RootChainRegistry contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.powerton value          Address of PowerTON contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth manage-staking mint-ton <to> <amount>    # Mint TON to account (for dev)
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+### staking
+
+```bash
+$ geth staking balances <address>    # Print balances of token and stake
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+```
+
+```bash
+$ geth staking swap-from-ton <tonAmount>    # Swap TON to WTON
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking swap-to-ton <wtonAmount>    # Swap WTON to TON
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking stake-ton <amount>    # Stake TON
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking stake-wton <amount>    # Stake WTON
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking restake <amount>    # Restake pending withdrawal request
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.ton value               Address of TON token contract
+  --rootchain.wton value              Address of WTON token contract
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.seigmanager value       Address of SeigManager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking request-withdrawal <amount>    # Make a withdrawal request
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
+```
+
+```bash
+$ geth staking process-withdrawal <numRequests>    # Process pending withdrawals
+
+ETHEREUM OPTIONS:
+  --datadir value                     Data directory for the databases and keystore (default: "/Users/thomashin/Library/Ethereum")
+
+ACCOUNT OPTIONS:
+  --unlock value                      Comma separated list of accounts to unlock
+  --password value                    Password file to use for non-interactive password input
+
+PLASMA EVM - ROOTCHAIN CONTRACT OPTIONS:
+  --rootchain.url value               JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.
+
+PLASMA EVM - STAKING OPTIONS OPTIONS:
+  --rootchain.sender value            Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)
+  --rootchain.depositmanager value    Address of Deposit Manager contract
+  --rootchain.gasprice value          Transaction gas price to root chain in GWei (default: 10000000000)
 ```

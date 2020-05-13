@@ -72,7 +72,7 @@ The manage-staking command deploys and set up contracts in TON ecosystem.
 `,
 		Subcommands: []cli.Command{
 			{
-				Name:      "deployManagers",
+				Name:      "deploy-managers",
 				Usage:     "Deploy staking manager contracts (except PowerTON)",
 				ArgsUsage: "<withdrawalDelay> <seigPerBlock>",
 				Action:    utils.MigrateFlags(deployManagers),
@@ -98,8 +98,8 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 `,
 			},
 			{
-				Name:      "deployPowerTON",
-				Usage:     "Deploy PowerTON contract",
+				Name:      "deploy-powerton",
+				Usage:     "Deploy Power TON contract",
 				ArgsUsage: "<roundDuration>",
 				Action:    utils.MigrateFlags(deployPowerTON),
 				Category:  "TON STAKING MANAGE COMMANDS",
@@ -123,8 +123,8 @@ set manager contracts or use --rootchain.wton, --rootchain.seigManager flags to 
 `,
 			},
 			{
-				Name:     "startPowerTON",
-				Usage:    "Start PowerTON first round",
+				Name:     "start-powerton",
+				Usage:    "Start Power TON first round",
 				Action:   utils.MigrateFlags(startPowerTON),
 				Category: "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
@@ -167,10 +167,10 @@ Register RootChain contract to RootChainRegistry
 `,
 			},
 			{
-				Name:      "setCommissionRate",
+				Name:      "set-commission-rate",
 				Usage:     "Set commission rate",
 				Action:    utils.MigrateFlags(setCommissionRate),
-				ArgsUsage: "<rate> <isCommissionRateNegative?>",
+				ArgsUsage: "<rate> <isCommissionRateNegative>",
 				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
@@ -182,39 +182,39 @@ Register RootChain contract to RootChainRegistry
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth manage-staking setCommissionRate <rate> <isCommissionRateNegative?>
+				geth manage-staking set-commission-rate <rate> <isCommissionRateNegative>
 
 Set commission rate of the root chain (operator only)
 
 Default value of <isCommissionRateNegative> is false
 
 Example:
-	geth manage-staking setCommissionRate 0
-	geth manage-staking setCommissionRate 0.1
-	geth manage-staking setCommissionRate 0.1 false
-	geth manage-staking setCommissionRate 0.1 true
+	geth manage-staking set-commission-rate 0
+	geth manage-staking set-commission-rate 0.1
+	geth manage-staking set-commission-rate 0.1 false
+	geth manage-staking set-commission-rate 0.1 true
 
 NOTE:
 rate should be 0 or between 0.01 and 1.00
 `,
 			},
 			{
-				Name:      "getManagers",
+				Name:      "get-managers",
 				Usage:     "Get staking managers addresses in database",
 				Action:    utils.MigrateFlags(getManagers),
-				ArgsUsage: "<path?>",
+				ArgsUsage: "<path>",
 				Category:  "TON STAKING MANAGE COMMANDS",
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 				},
 				Description: `
-    geth manage-staking getManagers <path?>
+    geth manage-staking getManagers <path>
 
 Get staking contracts addresses. If path is given, contracts are stored in the path as JSON.
 `,
 			},
 			{
-				Name:      "setManagers",
+				Name:      "set-managers",
 				Usage:     "Set staking managers addresses in database",
 				ArgsUsage: "<uri>",
 				Action:    utils.MigrateFlags(setManagers),
@@ -240,7 +240,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.r
 `,
 			},
 			{
-				Name:      "mintTON",
+				Name:      "mint-ton",
 				Usage:     "Mint TON to account (for dev)",
 				ArgsUsage: "<to> <amount>",
 				Action:    utils.MigrateFlags(mintTON),
@@ -301,7 +301,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "swapFromTON",
+				Name:      "swap-from-ton",
 				Usage:     "Swap TON to WTON",
 				ArgsUsage: "<tonAmount>",
 				Action:    utils.MigrateFlags(swapFromTON),
@@ -330,7 +330,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "swapToTON",
+				Name:      "swap-to-ton",
 				Usage:     "Swap WTON to TON",
 				ArgsUsage: "<wtonAmount>",
 				Action:    utils.MigrateFlags(swapToTON),
@@ -359,7 +359,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "stakeTON",
+				Name:      "stake-ton",
 				Usage:     "Stake TON",
 				ArgsUsage: "<amount>",
 				Action:    utils.MigrateFlags(stakeTON),
@@ -388,7 +388,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "stakeWTON",
+				Name:      "stake-wton",
 				Usage:     "Stake WTON",
 				ArgsUsage: "<amount>",
 				Action:    utils.MigrateFlags(stakeWTON),
@@ -435,7 +435,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking restake <numRequests?>
+				geth staking restake <numRequests>
 
 Restake pending request withdrawal
 
@@ -446,7 +446,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 `,
 			},
 			{
-				Name:      "requestWithdrawal",
+				Name:      "request-withdrawal",
 				Usage:     "Make a withdrawal request",
 				ArgsUsage: "<amount>",
 				Action:    utils.MigrateFlags(requestWithdrawal),
@@ -461,7 +461,7 @@ use --rootchain.ton, --rootchain.wton, --rootchain.depositmanager, --rootchain.s
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking requestWithdrawal <amount?>
+				geth staking requestWithdrawal <amount>
 
 Make an unstaking request. If amount is not given, make a request with all staked amount.
 
@@ -472,7 +472,7 @@ use --rootchain.depositmanager flags to use already deployed token contracts
 `,
 			},
 			{
-				Name:      "processWithdrawal",
+				Name:      "process-withdrawal",
 				Usage:     "Process pending withdrawals",
 				ArgsUsage: "<numRequests>",
 				Action:    utils.MigrateFlags(processWithdrawal),
@@ -487,7 +487,7 @@ use --rootchain.depositmanager flags to use already deployed token contracts
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-				geth staking processWithdrawal <numRequests?>
+				geth staking processWithdrawal <numRequests>
 
 Process unstaking requests
 
