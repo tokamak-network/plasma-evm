@@ -17,9 +17,13 @@
 package utils
 
 import (
+	"flag"
+	"math/big"
 	"os"
 	"os/user"
 	"testing"
+
+	"gopkg.in/urfave/cli.v1"
 )
 
 func TestPathExpansion(t *testing.T) {
@@ -36,6 +40,43 @@ func TestPathExpansion(t *testing.T) {
 		got := expandPath(test)
 		if got != expected {
 			t.Errorf("test %s, got %s, expected %s\n", test, got, expected)
+		}
+	}
+}
+
+func TestGlobalGasPrice(t *testing.T) {
+	tests := map[string]string{
+		"1":                             "1",
+		"1234":                          "1234",
+		"1234567890123456789":           "1234567890123456789",
+		"1wei":                          "1",
+		"1234wei":                       "1234",
+		"1234567890123456789wei":        "1234567890123456789",
+		"1gwei":                         "1000000000",
+		"1234gwei":                      "1234000000000",
+		"1234567890123456789gwei":       "1234567890123456789000000000",
+		"1.1234gwei":                    "1123400000",
+		"1234.1234gwei":                 "1234123400000",
+		"1234567890123456789.1234gwei":  "1234567890123456789123400000",
+		"1ether":                        "1000000000000000000",
+		"1234ether":                     "1234000000000000000000",
+		"1234567890123456789ether":      "1234567890123456789000000000000000000",
+		"1.1234ether":                   "1123400000000000000",
+		"1234.1234ether":                "1234123400000000000000",
+		"1234567890123456789.1234ether": "1234567890123456789123400000000000000",
+	}
+
+	for k, v := range tests {
+		exp, _ := new(big.Int).SetString(v, 10)
+		set := flag.NewFlagSet("test", 0)
+		//set.Set(k, k)
+		set.String(k, k, "")
+		globalctx := cli.NewContext(nil, set, nil)
+		ctx := cli.NewContext(nil, set, globalctx)
+		//ctx2 := cli.NewContext(nil, nil, ctx)
+		got := GlobalGasPrice(ctx, k)
+		if got.Cmp(exp) != 0 {
+			t.Fatalf("test %s, got %v, expected %v\n", k, got, exp)
 		}
 	}
 }

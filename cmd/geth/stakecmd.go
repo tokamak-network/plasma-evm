@@ -664,9 +664,9 @@ func initOpts(ctx *cli.Context, stack *node.Node, cfg *pls.Config) (*bind.Transa
 
 		opt = bind.NewAccountTransactor(ks, senderAccount)
 		if ctx.IsSet(utils.RootChainDeployGasPriceFlag.Name) {
-			opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainDeployGasPriceFlag.Name)
+			opt.GasPrice = utils.GlobalGasPrice(ctx, utils.RootChainDeployGasPriceFlag.Name)
 		} else {
-			opt.GasPrice = utils.GlobalBig(ctx, utils.RootChainGasPriceFlag.Name)
+			opt.GasPrice = utils.GlobalGasPrice(ctx, utils.RootChainGasPriceFlag.Name)
 		}
 	}
 

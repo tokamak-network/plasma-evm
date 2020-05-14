@@ -166,7 +166,7 @@ func initPlsOpts(ctx *cli.Context) (*bind.TransactOpts, *plsclient.Client) {
 			senderAccount := accounts.Account{Address: sender}
 
 			opt = bind.NewAccountTransactor(ks, senderAccount)
-			opt.GasPrice = params.ToGWeiBigInt(ctx.GlobalFloat64(utils.ChildChainGasPriceFlag.Name))
+			opt.GasPrice = utils.GlobalGasPrice(ctx, utils.ChildChainGasPriceFlag.Name)
 		}
 	}
 

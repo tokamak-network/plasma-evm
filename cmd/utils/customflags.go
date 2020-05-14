@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/Onther-Tech/plasma-evm/common/math"
+	"github.com/Onther-Tech/plasma-evm/params"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -183,6 +184,33 @@ func GlobalBig(ctx *cli.Context, name string) *big.Int {
 		return nil
 	}
 	return (*big.Int)(val.(*bigValue))
+}
+
+func GlobalGasPrice(ctx *cli.Context, name string) (result *big.Int) {
+	val := ctx.GlobalString(name)
+	if val == "" {
+		return
+	}
+
+	units := map[string]int{"ether": 18, "gwei": 9}
+	for unit, decimals := range units {
+		if len(val) > len(unit) && val[len(val)-len(unit):] == unit {
+			result = params.ParseFloatString(val[:len(val)-len(unit)], decimals)
+		}
+	}
+	if result == nil && len(val) > 3 && val[len(val)-3:] == "wei" {
+		v, ok := new(big.Int).SetString(val[:len(val)-3], 10)
+		if ok {
+			result = v
+		}
+	}
+	if result == nil {
+		v, ok := new(big.Int).SetString(val, 10)
+		if ok {
+			result = v
+		}
+	}
+	return
 }
 
 // Expands a file path

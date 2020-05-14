@@ -435,15 +435,15 @@ var (
 		Usage: "Target gas ceiling for mined blocks",
 		Value: pls.DefaultConfig.Miner.GasCeil,
 	}
-	MinerGasPriceFlag = BigFlag{
+	MinerGasPriceFlag = cli.StringFlag{
 		Name:  "miner.gasprice",
-		Usage: "Minimum gas price for mining a transaction",
-		Value: pls.DefaultConfig.Miner.GasPrice,
+		Usage: "Minimum gas price for mining a transaction (default = 1 Gwei)",
+		Value: "1gwei",
 	}
-	MinerLegacyGasPriceFlag = BigFlag{
+	MinerLegacyGasPriceFlag = cli.StringFlag{
 		Name:  "gasprice",
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
-		Value: pls.DefaultConfig.Miner.GasPrice,
+		Value: "1gwei",
 	}
 	MinerEtherbaseFlag = cli.StringFlag{
 		Name:  "miner.etherbase",
@@ -786,19 +786,19 @@ var (
 		Name:  "rootchain.url",
 		Usage: "JSONRPC endpoint of rootchain provider. If URL is empty, ignore the provider.",
 	}
-	RootChainGasPriceFlag = BigFlag{
+	RootChainGasPriceFlag = cli.StringFlag{
 		Name:  "rootchain.gasprice",
-		Usage: "Transaction gas price to root chain in GWei",
-		Value: big.NewInt(10 * params.GWei),
+		Usage: "Transaction gas price to root chain (default: 10gwei)",
+		Value: "10gwei",
 	}
 	RootChainSenderFlag = cli.StringFlag{
 		Name:  "rootchain.sender",
 		Usage: "Address of root chain transaction sender account. it MUST be unlocked by --unlock, --password flags (CAVEAT: To set plasma operator, use --operator flag)",
 	}
-	RootChainDeployGasPriceFlag = BigFlag{
+	RootChainDeployGasPriceFlag = cli.StringFlag{
 		Name:  "rootchain.deploygasprice",
-		Usage: "Transaction gas price to deploy rootchain in GWei (default: 10000000000). This flag applies only to deploy command.",
-		Value: big.NewInt(10 * params.GWei),
+		Usage: "Transaction gas price to deploy rootchain (default: 10gwei). This flag applies only to deploy command.",
+		Value: "10gwei",
 	}
 
 	// Tokamak Network contracts flags
@@ -832,20 +832,20 @@ var (
 	}
 
 	// Transaction Flags
-	TxGasPriceFlag = BigFlag{
+	TxGasPriceFlag = cli.StringFlag{
 		Name:  "tx.gasprice",
-		Usage: "Gas price for transaction (default = 10 Gwei)",
-		Value: big.NewInt(0),
+		Usage: "Gas price for transaction (default = 10gwei)",
+		Value: "10gwei",
 	}
-	TxMinGasPriceFlag = BigFlag{
+	TxMinGasPriceFlag = cli.StringFlag{
 		Name:  "tx.mingasprice",
 		Usage: "Minimum gas price for submitting a block (default = 1 Gwei)",
-		Value: pls.DefaultConfig.TxConfig.MinGasPrice,
+		Value: "1gwei",
 	}
-	TxMaxGasPriceFlag = BigFlag{
+	TxMaxGasPriceFlag = cli.StringFlag{
 		Name:  "tx.maxgasprice",
 		Usage: "Maximum gas price for submitting a block (default = 100 Gwei)",
-		Value: pls.DefaultConfig.TxConfig.MaxGasPrice,
+		Value: "100gwei",
 	}
 	TxResubmitFlag = cli.DurationFlag{
 		Name:  "tx.interval",
@@ -862,9 +862,10 @@ var (
 		Name:  "childchain.sender",
 		Usage: "Sender address of child chain transaction",
 	}
-	ChildChainGasPriceFlag = cli.Float64Flag{
+	ChildChainGasPriceFlag = cli.StringFlag{
 		Name:  "childchain.gasprice",
-		Usage: "Gas price for child chain transaction in GWei",
+		Usage: "Gas price for child chain transaction in GWei (default = 10 Gwei)",
+		Value: "10gwei",
 	}
 
 	// Stamina Flags
@@ -1492,10 +1493,10 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 		cfg.GasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.GasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
+		cfg.GasPrice = GlobalGasPrice(ctx, MinerLegacyGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
-		cfg.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
+		cfg.GasPrice = GlobalGasPrice(ctx, MinerGasPriceFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
 		cfg.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
@@ -1841,7 +1842,7 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 			}
 
 			opt := bind.NewAccountTransactor(ks, cfg.Operator)
-			opt.GasPrice = GlobalBig(ctx, RootChainGasPriceFlag.Name)
+			opt.GasPrice = GlobalGasPrice(ctx, RootChainGasPriceFlag.Name)
 
 			// TODO: accept TON address in dev mode?
 			rootchainContract, genesis, err := plasma.DeployPlasmaContracts(opt, rootchainBackend, staminaConfig, common.Address{}, withPETH, development, NRELength)
@@ -1860,8 +1861,8 @@ func SetPlsConfig(ctx *cli.Context, stack *node.Node, cfg *pls.Config) {
 
 	if ctx.GlobalIsSet(TxMinGasPriceFlag.Name) {
 		if ctx.GlobalIsSet(TxMaxGasPriceFlag.Name) {
-			minGasPrice := GlobalBig(ctx, TxMinGasPriceFlag.Name)
-			maxGasPrice := GlobalBig(ctx, TxMaxGasPriceFlag.Name)
+			minGasPrice := GlobalGasPrice(ctx, TxMinGasPriceFlag.Name)
+			maxGasPrice := GlobalGasPrice(ctx, TxMaxGasPriceFlag.Name)
 
 			if minGasPrice.Cmp(maxGasPrice) >= 0 {
 				Fatalf("min gas price is equal to or greater than max gas price: min gas price: %v, max gas price: %v", minGasPrice, maxGasPrice)

@@ -122,3 +122,7 @@ func parseFloatString(str string, decimals int) *big.Int {
 
 	return bi
 }
+
+func ParseFloatString(str string, decimals int) *big.Int {
+	return parseFloatString(str, decimals)
+}
