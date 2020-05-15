@@ -275,24 +275,7 @@ func DeployManagers(
 	increaseNonce(opt)
 
 	// 6. add TON minter role to SeigManager
-	log.Info("6. add WTON minter role to SeigManager")
-	if ok, _ := WTON.IsMinter(&bind.CallOpts{Pending: false}, seigManagerAddr); ok {
-		log.Info("Already minter role provided")
-	} else {
-		if tx, err = WTON.AddMinter(opt, seigManagerAddr); err != nil {
-			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
-			return
-		}
-		if err = WaitTx(backend, tx.Hash()); err != nil {
-			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
-			return
-		}
-		log.Info("Set WTON minter to SeigManager", "tx", tx.Hash())
-		increaseNonce(opt)
-	}
-
-	// 7. add WTON minter role to SeigManager
-	log.Info("7. add TON minter role to WTON")
+	log.Info("6. add TON minter role to WTON")
 	if ok, _ := TON.IsMinter(&bind.CallOpts{Pending: false}, wtonAddr); ok {
 		log.Info("Already minter role provided")
 	} else {
@@ -305,6 +288,23 @@ func DeployManagers(
 			return
 		}
 		log.Info("Set TON minter to WTON", "tx", tx.Hash())
+		increaseNonce(opt)
+	}
+
+	// 7. add WTON minter role to SeigManager
+	log.Info("7. add WTON minter role to SeigManager")
+	if ok, _ := WTON.IsMinter(&bind.CallOpts{Pending: false}, seigManagerAddr); ok {
+		log.Info("Already minter role provided")
+	} else {
+		if tx, err = WTON.AddMinter(opt, seigManagerAddr); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
+			return
+		}
+		if err = WaitTx(backend, tx.Hash()); err != nil {
+			err = errors.New(fmt.Sprintf("Failed to add WTON minter role to SeigManager: %v", err))
+			return
+		}
+		log.Info("Set WTON minter to SeigManager", "tx", tx.Hash())
 		increaseNonce(opt)
 	}
 
