@@ -14,8 +14,9 @@ Implementation of [Plasma EVM](https://tokamak.network). You can check smart con
   - [Additional Commands](#additional-commands)
     - [account](#account)
     - [deploy](#deploy)
+    - [stamina](#stamina)
     - [manage-staking](#manage-staking)
-    - [Staking](#staking)
+    - [staking](#staking)
 
 ## Development Status
 - [x] Make enter / exit requests
