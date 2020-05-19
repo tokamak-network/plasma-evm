@@ -337,6 +337,8 @@ func makePos(v1 *big.Int, v2 *big.Int) *big.Int {
 func (rcm *RootChainManager) addEpochSubmitTransaction(blocks types.Blocks) error {
 	if rcm.config.NodeMode != ModeOperator {
 		return errors.New("only operator node can add submit transaction")
+	} else if len(blocks) == 0 {
+		return errors.New("empty epoch error.")
 	}
 
 	operator := rcm.config.Operator
