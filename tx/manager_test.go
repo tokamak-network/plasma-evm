@@ -138,6 +138,38 @@ func makeTestManager(db ethdb.Database) *TransactionManager {
 	return tm
 }
 
+func waitForConfirm(nonce, noncediff uint64, timeout time.Duration) bool {
+	timer := time.NewTimer(timeout * time.Minute)
+	for {
+		select {
+		case _, ok := <-timer.C:
+			if ok {
+                fmt.Println("### 1")
+				return false
+			} else {
+				nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+				if nonce2-nonce != noncediff {
+                    fmt.Println("### 2")
+					time.Sleep(time.Second)
+				} else {
+                    fmt.Println("### 3")
+					return true
+				}
+			}
+		default:
+			nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
+			if nonce2-nonce != noncediff {
+                fmt.Println("### 4")
+				time.Sleep(time.Second)
+			} else {
+                fmt.Println("### 5")
+				return true
+			}
+		}
+	}
+
+}
+
 func TestBasic(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	tm := makeTestManager(db)
@@ -160,14 +192,9 @@ func TestBasic(t *testing.T) {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
 	}
 
-	timer := time.NewTimer(10 * time.Minute)
-
-	<-timer.C
-	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
-
-	if nonce2-nonce1 != uint64(n1) {
-		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1, nonce2)
-	}
+    if !waitForConfirm(nonce1, uint64(n1), 1) {
+        t.Fatalf("Nonce doesn't match. time out.")
+    }
 
 	tm.Stop()
 }
@@ -189,14 +216,14 @@ func TestRestart(t *testing.T) {
 		log.Debug(fmt.Sprintf("raw tx %d added", i))
 	}
 
-	timer := time.NewTimer(25 * time.Second)
-
-	<-timer.C
+    if !waitForConfirm(nonce1, uint64(n1), 1) {
+        t.Fatalf("Nonce doesn't match. time out.")
+    }
 
 	// restart TransactionManager
 	tm.Stop()
 
-	<-time.NewTimer(5 * time.Second).C
+	//<-time.NewTimer(5 * time.Second).C
 	tm = makeTestManager(db)
 	tm.Start()
 	log.Info("TranasctionManager restarted")
@@ -212,14 +239,9 @@ func TestRestart(t *testing.T) {
 		log.Debug(fmt.Sprintf("raw tx %d added", n1+i))
 	}
 
-	timer2 := time.NewTimer(2 * time.Minute)
-
-	<-timer2.C
-	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
-
-	if nonce2-nonce1 != uint64(n1+n2) {
-		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1+n2, nonce2)
-	}
+    if !waitForConfirm(nonce1, uint64(n2), 1) {
+        t.Fatalf("Nonce doesn't match. time out.")
+    }
 
 	if ReadNumAddr(tm.db) != 1 {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, len(tm.addresses))
@@ -320,14 +342,11 @@ func TestCongestedNetwork(t *testing.T) {
 		t.Errorf("Number of account is expected %d, but actual is %d", 1, numAddrs)
 	}
 
-	timer := time.NewTimer(300 * time.Second)
+    if !waitForConfirm(nonce1, uint64(n1), 2) {
+        t.Fatalf("Nonce doesn't match. time out.")
+    }
 
-	<-timer.C
-	nonce2, _ := backend.NonceAt(context.Background(), addrs[0], nil)
-
-	if nonce2-nonce1 != uint64(n1) {
-		t.Fatalf("Nonce doesn't match. expected %d + %d == %d", nonce1, n1, nonce2)
-	}
+    time.Sleep(time.Minute)
 
 	if len(ReadPendingTxs(tm.db, addrs[0])) != 0 {
 		t.Fatalf("Rwa transactions are not mined")
