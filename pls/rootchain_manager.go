@@ -362,7 +362,7 @@ func (rcm *RootChainManager) addEpochSubmitTransaction(blocks types.Blocks) erro
 		pos2,
 		blocks.StatesRoot(),
 		blocks.TransactionsRoot(),
-		blocks.ReceiptssRoot(),
+		blocks.ReceiptsRoot(),
 	)
 
 	if err != nil {

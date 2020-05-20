@@ -2684,7 +2684,7 @@ func checkEpochAfter(pls *Plasma, epochPreparedEvents chan *rootchain.RootChainE
 		return errors.New(fmt.Sprintf("Epoch transactions root mismatch (expected: %s actual: %s)", common.Bytes2Hex(expectedTxRoot), common.Bytes2Hex(txRoot)))
 	}
 
-	expectedReceiptsRoot := blocks.ReceiptssRoot().Bytes()[:]
+	expectedReceiptsRoot := blocks.ReceiptsRoot().Bytes()[:]
 	receiptsRoot := epoch.NRE.EpochReceiptsRoot[:]
 	if bytes.Compare(expectedReceiptsRoot, receiptsRoot) != 0 {
 		return errors.New(fmt.Sprintf("Epoch receipts root mismatch (expected: %s actual: %s)", common.Bytes2Hex(expectedReceiptsRoot), common.Bytes2Hex(receiptsRoot)))

@@ -458,7 +458,7 @@ func (self Blocks) TransactionsRoot() common.Hash {
 	return getBinaryMerkleRoot(h)
 }
 
-func (self Blocks) ReceiptssRoot() common.Hash {
+func (self Blocks) ReceiptsRoot() common.Hash {
 	h := make([]common.Hash, len(self))
 
 	for i := 0; i < len(self); i++ {
