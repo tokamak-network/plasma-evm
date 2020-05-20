@@ -14,7 +14,7 @@ echo "uncleblock length is $LEN"
 GASLIMIT=`build/bin/geth --exec "eth.getBlock('latest').gasLimit" --datadir $DATADIR_1 attach`
 echo $GASLIMIT
 
-BLOCK=`expr $INITIAL_BLOCK + 10`
+BLOCK=`expr $INITIAL_BLOCK + 1000`
 MINED_BLOCK=0
 
 while [ $MINED_BLOCK -lt $BLOCK ]
@@ -51,8 +51,10 @@ UNCLE_RATIO=`expr $UNCLE_BLOCK / 1000`
 echo "Total uncle block is $UNCLE_BLOCK"
 echo "Uncle ratio is $UNCLE_RATIO"
 
+FIRST_BT=`expr $INIT_BN + 1`
+
 LAST_BT=`build/bin/geth --exec "eth.getBlock('latest').timestamp" --datadir $DATADIR_1 attach`
-INIT_BT=`build/bin/geth --exec "eth.getBlock($INIT_BN).timestamp" --datadir $DATADIR_1 attach`
+INIT_BT=`build/bin/geth --exec "eth.getBlock($FIRST_BT).timestamp" --datadir $DATADIR_1 attach`
 
 TOT_BT=`expr $LAST_BT - $INIT_BT`
 AVG_BT=`expr $TOT_BT / 1000`
