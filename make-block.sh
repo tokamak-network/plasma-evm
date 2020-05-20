@@ -13,7 +13,7 @@ echo "uncleblock length is $LEN"
 GASLIMIT=`build/bin/geth --exec "eth.getBlock('latest').gasLimit" --datadir $DATADIR_1 attach`
 echo $GASLIMIT
 
-BLOCK=`expr $INITIAL_BLOCK + 10`
+BLOCK=`expr $INITIAL_BLOCK + 1000`
 MINED_BLOCK=0
 
 while [ $MINED_BLOCK -lt $BLOCK ]
@@ -33,7 +33,7 @@ for((i=$INITIAL_BLOCK;i<$BLOCK;i++))
 do
   # Calculate total block size
   GASLIMIT=`build/bin/geth --exec "eth.getBlock($i).gasLimit" --datadir $DATADIR_1 attach`
-  echo $GASLIMIT
+  # echo $GASLIMIT
   TOTAL_GASLIMIT=`expr $TOTAL_GASLIMIT + $GASLIMIT`
 
   # Calculate Uncle ratio
