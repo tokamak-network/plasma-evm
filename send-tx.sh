@@ -4,6 +4,8 @@ DATADIR_1=$HOME/.pls.dev
 
 INIT_TIME=`date +%Y%m%d%H%M%S`
 INIT_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
+INIT_BN=`build/bin/geth --exec "eth.getBlock('latest')).number" attach --datadir $DATADIR_1`
+INIT_TIME=`build/bin/geth --exec "eth.getBlock('latest')).timestamp" attach --datadir $DATADIR_1`
 
 bash send-tx1.sh &
 bash send-tx2.sh &
@@ -17,13 +19,19 @@ bash send-tx9.sh &
 bash send-tx10.sh &
 
 wait
-# for((i=0;i<50;i++))
-# do
-#   # send empty transaction
-#   build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1
-#   build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1
-  
-# done
+
+TOT_TX=0
+
+LAST_BN=`build/bin/geth --exec "eth.getBlock('latest')).number" attach --datadir $DATADIR_1`
+LAST_TIME=`build/bin/geth --exec "eth.getBlock('latest')).timestamp" attach --datadir $DATADIR_1`
+
+for((i=$INIT_BN;i<$LAST_BN;i++))
+do
+  # send empty transaction
+  TX=`build/bin/geth --exec "eth.getBlock('latest').transactions" attach --datadir $DATADIR_1`
+  NUM_TX=${#TX[@]}
+  TOT_TX=`expr $TOT_TX + $NUM_TX`  
+done
 CUR_TIME=`date +%Y%m%d%H%M%S`
 CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
 
@@ -38,4 +46,9 @@ echo "Currnet balance is $CUR_BALANCE"
 BALANCE_DIFF=`expr $INIT_BALANCE - $CUR_BALANCE`
 echo "It use $BALANCE_DIFF"
 
-echo "10000 tx done"
+DURATION=`expr $LAST_TIME - $INIT_TIME`
+echo "Duration is $DURATION"
+
+TPS=`expr $TOT_TX / $DURATION`
+echo "TPS is $TPS"
+
