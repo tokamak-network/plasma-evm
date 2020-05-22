@@ -5,23 +5,27 @@ DATADIR_1=$HOME/.pls.dev
 
 INITIAL_BLOCK=`build/bin/geth --exec "eth.getBlock('latest').number" --datadir $DATADIR_1 attach`
 INIT_BN=`build/bin/geth --exec "web3.eth.getBlock('latest').number" --datadir $DATADIR_1 attach`
+INIT_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
+
 echo "Initial block number is $INITIAL_BLOCK"
-UNCLE=(`build/bin/geth --exec "eth.getBlock('latest').uncles" --datadir /Users/hwangjaeseung/.pls.dev attach`)
-LEN=${#UNCLE[@]}
-echo $UNCLE
-echo "uncleblock length is $LEN"
 
 GASLIMIT=`build/bin/geth --exec "eth.getBlock('latest').gasLimit" --datadir $DATADIR_1 attach`
 echo $GASLIMIT
 
-BLOCK=`expr $INITIAL_BLOCK + 1000`
+BLOCK=`expr $INITIAL_BLOCK + 5`
 MINED_BLOCK=0
+CUR_BALANCE=0
 
 while [ $MINED_BLOCK -lt $BLOCK ]
 do
   # send empty transaction
-  build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1 &
-  
+  HASH=`build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1`
+  NONCE=(`build/bin/geth --exec "web3.eth.getTransaction($HASH)" attach --datadir $DATADIR_1`)
+  echo ${NONCE[15]} ${NONCE[16]}
+  if [ "${NONCE[16]}" = 450 ]; then
+    echo good
+    CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
+  fi
   MINED_BLOCK=`build/bin/geth --exec "eth.getBlock('latest').number" --datadir $DATADIR_1 attach`
   echo $MINED_BLOCK
 done
@@ -39,7 +43,7 @@ do
   # Calculate Uncle ratio
   UNCLE=(`build/bin/geth --exec "eth.getBlock($i).uncles" --datadir $DATADIR_1 attach`)
   LEN=${#UNCLE[@]}
-  UNCLE_BLOCK=`expr $UNCLE_BLOCK + $LEN`
+  UNCLE_BLOCK=`expr $UNCLE_BLOCK + $LEN - 1`
 done
 
 
@@ -61,3 +65,6 @@ AVG_BT=`expr $TOT_BT / 1000`
 
 echo $TOT_BT
 echo $AVG_BT
+
+echo "Initial balance is $INIT_BALANCE"
+echo "Currnet balance is $CUR_BALANCE"
