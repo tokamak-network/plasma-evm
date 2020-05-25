@@ -12,7 +12,7 @@ echo "Initial block number is $INITIAL_BLOCK"
 GASLIMIT=`build/bin/geth --exec "eth.getBlock('latest').gasLimit" --datadir $DATADIR_1 attach`
 echo $GASLIMIT
 
-BLOCK=`expr $INITIAL_BLOCK + 5`
+BLOCK=`expr $INITIAL_BLOCK + 1000`
 MINED_BLOCK=0
 CUR_BALANCE=0
 
@@ -20,8 +20,8 @@ while [ $MINED_BLOCK -lt $BLOCK ]
 do
   # send empty transaction
   HASH=`build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1`
-  NONCE=(`build/bin/geth --exec "web3.eth.getTransaction($HASH)" attach --datadir $DATADIR_1`)
-  echo ${NONCE[15]} ${NONCE[16]}
+  # NONCE=(`build/bin/geth --exec "web3.eth.getTransaction($HASH)" attach --datadir $DATADIR_1`)
+  
   if [ "${NONCE[16]}" = 450 ]; then
     echo good
     CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
