@@ -1,10 +1,10 @@
 #!/bin/bash
 
 DATADIR_1=$HOME/.pls.dev
-build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[1], value: 1e18})" attach --datadir $DATADIR_1  
+build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[2], value: 1e18})" attach --datadir $DATADIR_1  
+sleep 5
 
-
-INIT_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[1])" --datadir $DATADIR_1 attach`
+INIT_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[2])" --datadir $DATADIR_1 attach`
 
 bash send-tx1.sh &
 bash send-tx2.sh &
@@ -26,7 +26,7 @@ TOT_TX=0
 TOTAL_BLOCK=``
 
 
-CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[1])" --datadir $DATADIR_1 attach`
+CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[2])" --datadir $DATADIR_1 attach`
 
 
 echo "Initial balance is $INIT_BALANCE"

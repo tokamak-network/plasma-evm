@@ -20,12 +20,7 @@ while [ $MINED_BLOCK -lt $BLOCK ]
 do
   # send empty transaction
   HASH=`build/bin/geth --exec "web3.eth.sendTransaction({from: eth.accounts[0], to:eth.accounts[0], value: 0})" attach --datadir $DATADIR_1`
-  # NONCE=(`build/bin/geth --exec "web3.eth.getTransaction($HASH)" attach --datadir $DATADIR_1`)
-  
-  if [ "${NONCE[16]}" = 450 ]; then
-    echo good
-    CUR_BALANCE=`build/bin/geth --exec "eth.getBalance(eth.accounts[0])" --datadir $DATADIR_1 attach`
-  fi
+
   MINED_BLOCK=`build/bin/geth --exec "eth.getBlock('latest').number" --datadir $DATADIR_1 attach`
   echo $MINED_BLOCK
 done
