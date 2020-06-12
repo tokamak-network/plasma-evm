@@ -694,6 +694,7 @@ func (rcm *RootChainManager) handleBlockFinalized(ev *rootchain.RootChainBlockFi
 	w, err := rcm.accountManager.Find(rcm.config.Challenger)
 	if err != nil {
 		log.Error("Failed to get challenger account", "err", err)
+		return err
 	}
 
 	block, err := rcm.rootchainContract.GetBlock(callerOpts, e.ForkNumber, e.BlockNumber)
