@@ -89,7 +89,7 @@ The manage-staking command deploys and set up contracts in TON ecosystem.
 					utils.RootChainGasPriceFlag,
 				},
 				Description: `
-    geth manage-staking deployManagers <withdrawalDelay> <seigPerBlock>
+    geth manage-staking deploy-managers <withdrawalDelay> <seigPerBlock>
 
 Deploy new manager contracts.
 
@@ -114,7 +114,7 @@ set manager contracts or use --rootchain.ton, --rootchain.wton flags to use alre
 					utils.RootChainSeigManagerFlag,
 				},
 				Description: `
-    geth manage-staking deployPowerTON <roundDuration>
+    geth manage-staking deploy-powerton <roundDuration>
 
 Deploy new PowerTON contract.
 

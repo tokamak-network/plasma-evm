@@ -59,7 +59,7 @@ type StaminaConfig struct {
 	OperatorAmount     *big.Int `json:"operatorAmount"`
 	MinDeposit         *big.Int `json:"minDeposit"`
 	RecoverEpochLength *big.Int `json:"recoveryEpochLength"`
-	WithdrawalDelay    *big.Int `json:"withdrarwalDelay"`
+	WithdrawalDelay    *big.Int `json:"withdrawalDelay"`
 }
 
 // DefaultStaminaConfig contains the default configurations for the stamina.
